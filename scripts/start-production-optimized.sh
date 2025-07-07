@@ -5,7 +5,7 @@
 # For Starter plans: 512MB
 # For Standard plans: 2GB
 # For Professional plans: 4GB+
-export NODE_OPTIONS="--max-old-space-size=450 --optimize-for-size --gc-interval=100"
+export NODE_OPTIONS="--max-old-space-size=450"
 
 # Disable ALL non-essential features
 export ENABLE_REDIS=${ENABLE_REDIS:-false}
