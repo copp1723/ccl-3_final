@@ -1,284 +1,103 @@
-# Complete Car Loans (CCL) Agent System Documentation
+# CCL-3 Documentation Hub
 
-## Overview
+## 🚀 Getting Started
 
-The CCL Agent System is an enterprise-grade multi-agent platform for automotive
-lending operations, featuring AI-powered customer engagement, lead processing,
-and compliance management.
-
-## System Architecture
-
-### Core Components
-
-- **Realtime Chat Agent (Cathy)**: Empathetic customer engagement and lead
-  qualification
-- **Lead Packaging Agent**: CRM integration and lead processing
-- **Email Reengagement Agent**: Automated follow-up campaigns
-- **Visitor Identifier Agent**: Anonymous visitor tracking and identification
-
-### Technology Stack
-
-- **Backend**: Node.js, Express, TypeScript
-- **Frontend**: React, Vite, TailwindCSS
-- **Database**: PostgreSQL with Drizzle ORM
-- **AI/ML**: OpenAI Agents Framework
-- **Security**: JWT authentication, rate limiting, input sanitization
-
-## Quick Start
-
-### Development Setup
-
-```bash
-# Install dependencies
-npm install
-
-# Configure environment
-cp .env.example .env.development
-# Edit .env.development with your configuration
-
-# Start development server
-npm run dev
-```
-
-### Staging Deployment
-
-```bash
-# Configure staging environment
-cp .env.staging .env
-
-# Run security audit
-npm run audit
-
-# Deploy to staging
-npm run dev
-```
-
-### Production Deployment
-
-See [Production Deployment Guide](PRODUCTION_DEPLOYMENT_GUIDE.md) for detailed
-instructions.
-
-## API Documentation
-
-### Authentication
-
-All API endpoints (except health checks) require authentication:
-
-```bash
-curl -H "x-api-key: YOUR_API_KEY" http://localhost:5000/api/endpoint
-```
-
-### Core Endpoints
-
-#### System Health
-
-- `GET /health` - Basic health check (public)
-- `GET /api/system/health` - Detailed system status (authenticated)
-
-#### Agent Management
-
-- `GET /api/agents/status` - Agent operational status
-- `GET /api/activity` - System activity feed
-
-#### Lead Processing
-
-- `GET /api/leads` - List all leads
-- `POST /api/leads/process` - Process new lead
-
-#### Campaign Management
-
-- `POST /api/email-campaigns/bulk-send` - Bulk email campaign
-
-### Response Format
-
-```json
-{
-  "success": true,
-  "data": { ... },
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
-
-## Security Features
-
-### Implemented Controls
-
-- API key authentication with rate limiting
-- Input sanitization and validation
-- Security headers (CORS, CSP, HSTS)
-- Audit logging and monitoring
-- Error handling without information disclosure
-
-### Compliance
-
-- SOC 2 Type I ready
-- GDPR compliance framework
-- Financial industry security standards
-- Audit trail with 7-year retention
-
-## Monitoring & Observability
-
-### Key Metrics
-
-- Response times (<200ms target)
-- Memory usage (<85% threshold)
-- Error rates (<1% target)
-- API authentication success rate
-
-### Monitoring Endpoints
-
-- `/api/monitoring/metrics` - Performance metrics
-- `/api/monitoring/security` - Security events
-
-## Architecture Decisions
-
-### Agent System Design
-
-The multi-agent architecture enables:
-
-- Specialized AI personalities for different customer touchpoints
-- Scalable processing of leads and campaigns
-- Real-time chat capabilities with warm handoffs
-- Comprehensive audit trails for compliance
-
-### Performance Optimizations
-
-- Smart caching layer with TTL management
-- Database query optimization
-- Memory management with automatic garbage collection
-- Concurrent request handling
-
-## Development Guidelines
-
-### Code Standards
-
-- TypeScript for type safety
-- ESLint and Prettier for code quality
-- Security-first development approach
-- Comprehensive error handling
-
-### Testing Strategy
-
-- Unit tests for business logic
-- Integration tests for API endpoints
-- End-to-end tests for user workflows
-- Security testing and vulnerability scanning
-
-## Deployment Environments
+### Essential Guides
+- [Quick Start Guide](./guides/QUICK_START.md) - Get up and running quickly
+- [Project Structure](./guides/PROJECT_STRUCTURE.md) - Understand the codebase organization
+- [Troubleshooting Guide](./guides/TROUBLESHOOTING.md) - Common issues and solutions
 
 ### Development
+- [Installation & Setup](./documentation/INSTALLATION.md)
+- [Development Guide](./documentation/DEVELOPMENT.md)
+- [API Integration Guide](./documentation/API_INTEGRATION_GUIDE.md)
 
-- Local development with hot reload
-- In-memory database for testing
-- Debug logging enabled
+## 🔧 Configuration & Setup
 
-### Staging
+### Environment Configuration
+- [API Keys Explained](./configuration/API_KEYS_EXPLAINED.md) - Understanding VALID_API_KEYS
+- [Missing Environment Variables](./deployment/MISSING_ENV_VARS.md) - Required env vars for Render
 
-- Production-like environment
-- Full security controls enabled
-- Performance monitoring active
+### Deployment Guides
+- [Render Deployment Guide](./deployment/RENDER_DEPLOYMENT.md) - Deploy to Render
+- [Redis Setup](./deployment/REDIS_SETUP.md) - Configure Redis on Render
+- [Redis Troubleshooting](./deployment/REDIS_TROUBLESHOOTING.md) - Fix Redis connection issues
+- [Production Deployment Guide](./documentation/PRODUCTION_DEPLOYMENT_GUIDE.md)
+- [Staging Deployment Guide](./documentation/STAGING_DEPLOYMENT_GUIDE.md)
 
-### Production
+## 🏗️ Architecture & Technical Docs
 
-- Enterprise security hardening
-- Advanced monitoring and alerting
-- Automated backup and recovery
-- High availability configuration
+### System Architecture
+- [Technical Architecture](./TECHNICAL_ARCHITECTURE.md) - System design overview
+- [Technical Assessment Report](./documentation/TECHNICAL_ASSESSMENT_REPORT.md)
+- [System Status](./documentation/SYSTEM_STATUS.md)
+- [Production Readiness Report](./documentation/PRODUCTION_READINESS_REPORT.md)
 
-## Troubleshooting
+### Feature Implementation
+- [Email Agent Implementation](./guides/EMAIL_AGENT_IMPLEMENTATION.md)
+- [Database Implementation Summary](./DATABASE_IMPLEMENTATION_SUMMARY.md)
+- [Lead Import Feature](./LEAD_IMPORT_FEATURE.md)
+- [Chat Widget Implementation](./CHAT_WIDGET_IMPLEMENTATION.md)
+- [Boberdoo Implementation](./BOBERDOO_IMPLEMENTATION_SUMMARY.md)
+- [Twilio SMS Integration](./TWILIO_SMS_INTEGRATION_SUMMARY.md)
 
-### Common Issues
+## 🔒 Security & Compliance
 
-1. **Authentication Failures**: Check API key configuration
-2. **Database Connection**: Verify DATABASE_URL setting
-3. **Performance Issues**: Monitor memory usage and query performance
-4. **Agent Errors**: Check OpenAI API key and rate limits
+- [Security Implementation Guide](./documentation/SECURITY_IMPLEMENTATION_GUIDE.md)
+- [Security Audit Report](./documentation/SECURITY_AUDIT_REPORT.md)
+- [Security Implementation Report](./documentation/SECURITY_IMPLEMENTATION_REPORT.md)
+- [Enterprise Enhancement Report](./documentation/ENTERPRISE_ENHANCEMENT_REPORT.md)
 
-### Debug Commands
+## 📊 Operations & Analysis
 
-```bash
-# Check system health
-curl http://localhost:5000/health
+- [Operations Manual](./OPERATIONS_MANUAL.md)
+- [System Flexibility Analysis](./SYSTEM_FLEXIBILITY_ANALYSIS.md)
+- [UI Makeover Guide](./UI_MAKEOVER_README.md)
+- [Executive Summary](./documentation/EXECUTIVE_SUMMARY.md)
 
-# Monitor performance
-curl -H "x-api-key: KEY" http://localhost:5000/api/monitoring/metrics
+## 📚 API Documentation
 
-# View system logs
-npm run dev (check console output)
+- [API Reference](./api/API_REFERENCE.md)
+- [CCL API Integration Guide](./documentation/CCL_API_INTEGRATION_GUIDE.md)
+- [Error Handling Documentation](./documentation/ERROR_HANDLING_DOCUMENTATION.md)
+
+## 📋 Testing & Deployment
+
+### Testing
+- [Boberdoo Testing Guide](./BOBERDOO_TESTING_GUIDE.md)
+- [Unit Tests Summary](../tests/B2_UNIT_TESTS_SUMMARY.md)
+- [Final Status](../tests/B2_FINAL_STATUS.md)
+
+### Deployment Checklists
+- [Deployment Checklist](./documentation/DEPLOYMENT_CHECKLIST.md)
+- [Staging Deployment Checklist](./documentation/STAGING_DEPLOYMENT_CHECKLIST.md)
+- [Deployment Readiness Plan](./DEPLOYMENT_READINESS_PLAN.md)
+
+## 🎯 Quick Reference
+
+### Environment Setup
+1. Copy `.env.example` to `.env`
+2. Set required variables (see [Missing Environment Variables](./deployment/MISSING_ENV_VARS.md))
+3. Configure API keys (see [API Keys Explained](./configuration/API_KEYS_EXPLAINED.md))
+
+### Common Tasks
+- **Deploy to Render**: See [Render Deployment Guide](./deployment/RENDER_DEPLOYMENT.md)
+- **Fix Redis Issues**: See [Redis Troubleshooting](./deployment/REDIS_TROUBLESHOOTING.md)
+- **Understand Project**: See [Project Structure](./guides/PROJECT_STRUCTURE.md)
+
+## 📁 Documentation Structure
+
+```
+docs/
+├── api/                    # API documentation
+├── assets/                 # Images and screenshots
+├── configuration/          # Configuration guides
+├── deployment/            # Deployment-related docs
+├── documentation/         # Legacy/existing docs
+├── guides/                # How-to guides
+└── README.md             # This file
 ```
 
-## Contributing
+---
 
-### Development Workflow
-
-1. Create feature branch from `develop`
-2. Implement changes with tests
-3. Run security audit: `npm run audit`
-4. Submit pull request with documentation updates
-
-### Security Requirements
-
-- All API endpoints must have authentication
-- Input validation required for all user data
-- Security headers must be implemented
-- Audit logging for all sensitive operations
-
-## Support & Resources
-
-### Documentation
-
-- [API Integration Guide](API_INTEGRATION_GUIDE.md)
-- [Security Implementation](SECURITY_IMPLEMENTATION_GUIDE.md)
-- [Production Deployment](PRODUCTION_DEPLOYMENT_GUIDE.md)
-- [Staging Deployment](STAGING_DEPLOYMENT_GUIDE.md)
-
-### Status & Health
-
-- System Status: Check `/health` endpoint
-- Performance Metrics: `/api/monitoring/metrics`
-- Security Dashboard: Available in production deployment
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Version History
-
-- v1.0.0: Initial release with core agent functionality
-- v1.1.0: Enhanced security and compliance features
-- v1.2.0: Performance optimizations and monitoring
-
-# Complete Car Loans - Documentation
-
-## Quick Start
-
-- [Installation & Setup](./INSTALLATION.md)
-- [Development Guide](./DEVELOPMENT.md)
-- [API Integration](./API_INTEGRATION_GUIDE.md)
-
-## Deployment
-
-- [Production Deployment](./PRODUCTION_DEPLOYMENT_GUIDE.md)
-- [Staging Deployment](./STAGING_DEPLOYMENT_GUIDE.md)
-- [Deployment Checklist](./deployment/CHECKLIST.md)
-
-## Security & Compliance
-
-- [Security Implementation](./SECURITY_IMPLEMENTATION_GUIDE.md)
-- [Security Audit Report](./SECURITY_AUDIT_REPORT.md)
-- [Enterprise Enhancement](./ENTERPRISE_ENHANCEMENT_REPORT.md)
-
-## System Documentation
-
-- [Technical Assessment](./TECHNICAL_ASSESSMENT_REPORT.md)
-- [System Status](./SYSTEM_STATUS.md)
-- [Production Readiness](./PRODUCTION_READINESS_REPORT.md)
-
-## API Reference
-
-- [Error Handling](./api/ERROR_HANDLING_DOCUMENTATION.md)
-- [Email Delivery](./EMAIL_DELIVERY_VERIFICATION_COMPLETE.md)
-
-## Original Documentation
-
-- [Original README](./ORIGINAL_README.md)
+Last updated: July 2025
