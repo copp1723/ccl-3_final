@@ -61,33 +61,59 @@ export let sessionRedis: Redis | null = null;
 
 // Initialize Redis connections
 export async function initializeRedis(): Promise<void> {
+  // Skip Redis in production if memory optimization is enabled
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_REDIS === 'false') {
+    logger.info('Redis disabled in production for memory optimization');
+    return;
+  }
+  
   try {
     const config = getRedisConfig();
     
+    // For Render internal URLs, we need to handle the connection differently
+    const connectionOptions = typeof config === 'string' ? {
+      ...redisOptions,
+      // Parse the URL to extract components
+      ...((() => {
+        try {
+          const url = new URL(config);
+          return {
+            host: url.hostname,
+            port: parseInt(url.port || '6379'),
+            password: url.password || undefined,
+            username: url.username || undefined,
+          };
+        } catch {
+          // If URL parsing fails, use the string as-is
+          return {};
+        }
+      })()),
+    } : redisOptions;
+    
     // Main Redis client for general caching
     redisClient = typeof config === 'string' 
-      ? new Redis(config, redisOptions)
-      : new Redis(redisOptions);
+      ? new Redis(config, connectionOptions)
+      : new Redis(connectionOptions);
     
     // Dedicated instance for rate limiting (different key prefix)
     rateLimitRedis = typeof config === 'string'
       ? new Redis(config, {
-          ...redisOptions,
+          ...connectionOptions,
           keyPrefix: 'ccl3:ratelimit:',
         })
       : new Redis({
-          ...redisOptions,
+          ...connectionOptions,
           keyPrefix: 'ccl3:ratelimit:',
         });
     
     // Dedicated instance for sessions (different DB)
     sessionRedis = typeof config === 'string'
       ? new Redis(config, {
-          ...redisOptions,
+          ...connectionOptions,
           keyPrefix: 'ccl3:session:',
         })
       : new Redis({
-          ...redisOptions,
+          ...connectionOptions,
           keyPrefix: 'ccl3:session:',
           db: 1, // Use different database for sessions
         });
