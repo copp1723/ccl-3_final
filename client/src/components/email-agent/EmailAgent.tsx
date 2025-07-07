@@ -12,12 +12,14 @@ import {
   Brain,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Users
 } from 'lucide-react';
 import { AgentConfigurator } from './AgentConfigurator';
 import { CampaignManager } from './CampaignManager';
 import { TemplateEditor } from './TemplateEditor';
 import { CampaignAnalytics } from './CampaignAnalytics';
+import { LeadView } from './LeadView';
 
 interface Agent {
   id: string;
@@ -173,7 +175,7 @@ export function EmailAgent() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center space-x-2">
             <Brain className="h-4 w-4" />
             <span>Overview</span>
@@ -193,6 +195,10 @@ export function EmailAgent() {
           <TabsTrigger value="analytics" className="flex items-center space-x-2">
             <Target className="h-4 w-4" />
             <span>Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="flex items-center space-x-2">
+            <Users className="h-4 w-4" />
+            <span>Leads</span>
           </TabsTrigger>
         </TabsList>
 
@@ -449,6 +455,66 @@ export function EmailAgent() {
         {/* Analytics Tab */}
         <TabsContent value="analytics">
           <CampaignAnalytics campaigns={campaigns} agents={agents} />
+        </TabsContent>
+
+        {/* Leads Tab */}
+        <TabsContent value="leads">
+          <LeadView 
+            leads={[
+              // Sample data - replace with actual API call
+              {
+                id: '1',
+                name: 'John Smith',
+                email: 'john.smith@example.com',
+                phone: '(555) 123-4567',
+                company: 'Acme Corp',
+                status: 'active' as const,
+                conversationMode: 'template' as const,
+                templateProgress: {
+                  current: 3,
+                  total: 5,
+                  lastSent: new Date().toISOString(),
+                  nextScheduled: new Date(Date.now() + 86400000).toISOString()
+                },
+                metrics: {
+                  emailsSent: 3,
+                  emailsOpened: 3,
+                  linksClicked: 2,
+                  repliesReceived: 0
+                },
+                tags: ['hot-lead', 'auto-finance'],
+                createdAt: new Date().toISOString(),
+                lastActivity: new Date().toISOString()
+              },
+              {
+                id: '2',
+                name: 'Sarah Johnson',
+                email: 'sarah.j@example.com',
+                status: 'replied' as const,
+                conversationMode: 'ai' as const,
+                templateProgress: {
+                  current: 5,
+                  total: 5
+                },
+                aiEngagement: {
+                  messagesExchanged: 8,
+                  lastInteraction: new Date().toISOString(),
+                  sentiment: 'positive' as const
+                },
+                metrics: {
+                  emailsSent: 5,
+                  emailsOpened: 5,
+                  linksClicked: 4,
+                  repliesReceived: 3
+                },
+                tags: ['qualified', 'ready-to-buy'],
+                createdAt: new Date().toISOString(),
+                lastActivity: new Date().toISOString()
+              }
+            ]}
+            onLeadSelect={(lead) => console.log('Selected lead:', lead)}
+            onModeSwitch={(leadId, newMode) => console.log('Switch lead', leadId, 'to', newMode)}
+          />
         </TabsContent>
       </Tabs>
     </div>

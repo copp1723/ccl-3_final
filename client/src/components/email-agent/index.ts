@@ -5,3 +5,4 @@ export { TemplateEditor } from './TemplateEditor';
 export { CampaignScheduler } from './CampaignScheduler';
 export { CampaignAnalytics } from './CampaignAnalytics';
 export { CampaignEditor } from './CampaignEditor';
+export { LeadView } from './LeadView';
