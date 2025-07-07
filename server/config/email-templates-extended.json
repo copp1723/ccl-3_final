@@ -1,0 +1,129 @@
+{
+  "templates": [
+    {
+      "id": "day-0",
+      "subject": "Welcome {{name}}! Quick question about your needs",
+      "body": "Hi {{name}},\n\nThanks for your interest! I wanted to reach out personally to understand what brought you here.\n\nAre you looking for a specific solution, or just exploring options?\n\nBest regards,\nThe Team",
+      "delayMinutes": 0,
+      "category": "welcome"
+    },
+    {
+      "id": "day-1",
+      "subject": "Did you get my message, {{name}}?",
+      "body": "Hi {{name}},\n\nJust making sure my email didn't get lost in your inbox!\n\nI'm here to help whenever you're ready. What's the biggest challenge you're facing right now?\n\nTalk soon,\nThe Team",
+      "delayMinutes": 1440,
+      "category": "follow-up"
+    },
+    {
+      "id": "day-3",
+      "subject": "{{name}}, thought this might help",
+      "body": "Hi {{name}},\n\nI've been thinking about your situation. Here's a quick resource that's helped others:\n\n[Link to valuable content]\n\nNo response needed - just wanted to share something useful!\n\nBest,\nThe Team",
+      "delayMinutes": 4320,
+      "category": "value-add"
+    },
+    {
+      "id": "day-5",
+      "subject": "Success story from a company like yours",
+      "body": "Hi {{name}},\n\n[Similar Company] was struggling with the same challenges. Here's how they solved it:\n\n• Challenge: [Specific problem]\n• Solution: [What they did]\n• Result: 45% improvement in [metric]\n\nWant to hear more about their approach?\n\nBest,\nThe Team",
+      "delayMinutes": 7200,
+      "category": "social-proof"
+    },
+    {
+      "id": "week-1",
+      "subject": "Is [specific problem] still a priority?",
+      "body": "Hi {{name}},\n\nI know you're busy, so I'll keep this brief.\n\nAre you still looking to solve [specific problem]? \n\nIf yes - I have 2 ideas that might help.\nIf no - I'll stop reaching out!\n\nJust let me know either way?\n\nBest,\nThe Team",
+      "delayMinutes": 10080,
+      "category": "check-in"
+    },
+    {
+      "id": "week-2",
+      "subject": "New approach to [industry challenge]",
+      "body": "Hi {{name}},\n\nJust saw this new study on [industry challenge]. The findings surprised me:\n\n• 73% of companies still use [outdated method]\n• Top performers do [innovative approach] instead\n• Average ROI: 312% in first year\n\nFull report here: [link]\n\nThought you might find it interesting!\n\nBest,\nThe Team",
+      "delayMinutes": 20160,
+      "category": "industry-insight"
+    },
+    {
+      "id": "week-3",
+      "subject": "Quick question for you, {{name}}",
+      "body": "Hi {{name}},\n\nI'm curious - what's your #1 goal for this quarter?\n\nI ask because we just launched something that might align perfectly, but I want to make sure before sharing.\n\nNo sales pitch - just trying to be helpful!\n\nBest,\nThe Team",
+      "delayMinutes": 30240,
+      "category": "engagement"
+    },
+    {
+      "id": "week-4",
+      "subject": "Free tool that might help",
+      "body": "Hi {{name}},\n\nWe just released a free [tool/calculator/template] that helps with [specific task].\n\nNo strings attached - just download and use: [link]\n\nOur clients typically save 3-4 hours per week with this.\n\nHope it helps!\n\nBest,\nThe Team",
+      "delayMinutes": 40320,
+      "category": "free-resource"
+    },
+    {
+      "id": "month-2-week-1",
+      "subject": "Honest question: Should I stop emailing?",
+      "body": "Hi {{name}},\n\nI've sent a few emails and haven't heard back. Totally understand if:\n\n• This isn't a priority right now\n• You're happy with your current solution\n• You're just not interested\n\nShould I close your file and stop reaching out?\n\nA quick 'yes' or 'no' would really help!\n\nBest,\nThe Team",
+      "delayMinutes": 60480,
+      "category": "re-engagement"
+    },
+    {
+      "id": "month-2-week-3",
+      "subject": "[Industry] trends report for 2024",
+      "body": "Hi {{name}},\n\nJust published our annual trends report. Key findings:\n\n1. [Trend 1] is becoming critical\n2. Companies investing in [solution] see 4x returns\n3. [Old method] is officially obsolete\n\nWant the full report? Just reply 'SEND IT' and I'll share the link.\n\nBest,\nThe Team",
+      "delayMinutes": 90720,
+      "category": "value-add"
+    },
+    {
+      "id": "month-3",
+      "subject": "Big announcement (affects your industry)",
+      "body": "Hi {{name}},\n\n[Major company/regulation/technology] just announced [significant change].\n\nThis means companies in [industry] need to [take action] by [deadline].\n\nWe're helping our clients prepare. Want to discuss what this means for you?\n\n15-minute call this week?\n\nBest,\nThe Team",
+      "delayMinutes": 129600,
+      "category": "urgency"
+    },
+    {
+      "id": "month-4",
+      "subject": "{{name}}, are you the right person?",
+      "body": "Hi {{name}},\n\nI've been reaching out about [solution category]. \n\nAm I talking to the right person? If not, could you point me to whoever handles:\n\n• [Responsibility 1]\n• [Responsibility 2]\n• [Responsibility 3]\n\nThanks for your help!\n\nBest,\nThe Team",
+      "delayMinutes": 172800,
+      "category": "referral"
+    },
+    {
+      "id": "month-5",
+      "subject": "Personal invitation for {{name}}",
+      "body": "Hi {{name}},\n\nWe're hosting an exclusive roundtable for [industry] leaders next month.\n\nTopics:\n• [Hot topic 1]\n• [Hot topic 2]\n• Networking with peers\n\nOnly 20 spots available. Interested?\n\nDetails here: [link]\n\nBest,\nThe Team",
+      "delayMinutes": 216000,
+      "category": "event"
+    },
+    {
+      "id": "month-6",
+      "subject": "Still thinking about you, {{name}}",
+      "body": "Hi {{name}},\n\nIt's been a while! Just wanted to check in and see how things are going.\n\nIf you ever need help with [solution category], I'm here.\n\nNo agenda - just keeping the door open!\n\nBest,\nThe Team",
+      "delayMinutes": 259200,
+      "category": "touch-base"
+    },
+    {
+      "id": "month-8",
+      "subject": "Quick update on [major industry change]",
+      "body": "Hi {{name}},\n\nRemember when we talked about [topic]? Well, it's happening faster than expected.\n\n[Competitor] just announced they're [taking action].\n\nMight be worth a quick chat to ensure you're not falling behind?\n\nBest,\nThe Team",
+      "delayMinutes": 345600,
+      "category": "competitor-intel"
+    },
+    {
+      "id": "month-10",
+      "subject": "Black Friday for B2B? Kind of...",
+      "body": "Hi {{name}},\n\nWe rarely do this, but it's our end-of-year push.\n\nFor the next 2 weeks:\n• 30% off implementation\n• Free premium support (usually $X/month)\n• Bonus training for your team\n\nWorth a conversation?\n\nBest,\nThe Team",
+      "delayMinutes": 432000,
+      "category": "special-offer"
+    },
+    {
+      "id": "month-12",
+      "subject": "Final email (for real this time)",
+      "body": "Hi {{name}},\n\nIt's been a year since you first showed interest. I've shared:\n\n✓ Success stories\n✓ Industry insights\n✓ Free resources\n✓ Special offers\n\nClearly, the timing isn't right, and that's okay!\n\nI'm closing your file but saving your contact. If things change, just reply to any of these emails.\n\nWishing you continued success!\n\nThe Team\n\nP.S. Any feedback on why it wasn't a fit would help me improve!",
+      "delayMinutes": 518400,
+      "category": "goodbye"
+    }
+  ],
+  "settings": {
+    "maxTemplates": 50,
+    "stopOnReply": true,
+    "aiTakeover": true,
+    "trackingEnabled": true
+  }
+}

@@ -35,52 +35,116 @@ export class EmailConversationManager {
   }
 
   private loadTemplates() {
-    // Load from environment or database
-    // For now, hardcoded examples
-    this.templates = [
-      {
-        id: 'template-1',
-        subject: 'Welcome! Quick question about your needs',
-        body: `Hi {{name}},
-
-Thanks for your interest! I wanted to reach out personally to understand what brought you here.
-
-Are you looking for a specific solution, or just exploring options?
-
-Best regards,
-The Team`,
-        delayMinutes: 0, // Send immediately
-        expectedReplyPatterns: ['looking for', 'need', 'interested', 'exploring']
-      },
-      {
-        id: 'template-2',
-        subject: 'Following up - how can we help?',
-        body: `Hi {{name}},
-
-I noticed you haven't had a chance to reply yet. No worries at all!
-
-I'm here when you're ready. What's the biggest challenge you're facing right now?
-
-Talk soon,
-The Team`,
-        delayMinutes: 1440, // 24 hours
-        expectedReplyPatterns: ['challenge', 'problem', 'issue', 'help']
-      },
-      {
-        id: 'template-3',
-        subject: 'Last check-in',
-        body: `Hi {{name}},
-
-I'll keep this brief - just wanted to make sure you got my previous messages.
-
-If now's not the right time, no problem at all. When would be better for you?
-
-Best,
-The Team`,
-        delayMinutes: 2880, // 48 hours
-        expectedReplyPatterns: ['time', 'busy', 'later', 'schedule']
+    // Support dynamic template count from environment
+    const templateCount = parseInt(process.env.EMAIL_TEMPLATE_COUNT || '6');
+    const templatePath = process.env.EMAIL_TEMPLATES_PATH;
+    
+    // Try to load from file if path provided
+    if (templatePath) {
+      try {
+        const templates = require(templatePath);
+        this.templates = templates.templates || templates;
+        console.log(`Loaded ${this.templates.length} templates from ${templatePath}`);
+        return;
+      } catch (error) {
+        console.error(`Failed to load templates from ${templatePath}, generating dynamic templates`);
       }
-    ];
+    }
+    
+    // Generate dynamic templates based on count
+    this.templates = this.generateDynamicTemplates(templateCount);
+    console.log(`Generated ${this.templates.length} dynamic email templates`);
+  }
+
+  private generateDynamicTemplates(count: number): EmailTemplate[] {
+    const templates: EmailTemplate[] = [];
+    
+    // Determine nurture strategy based on count
+    const strategy = count <= 10 ? 'sprint' : count <= 30 ? 'standard' : count <= 50 ? 'extended' : 'marathon';
+    
+    for (let i = 0; i < count; i++) {
+      // Calculate delay based on position in sequence
+      let delayMinutes: number;
+      if (i === 0) delayMinutes = 0; // First email immediately
+      else if (i === 1) delayMinutes = 60; // Second after 1 hour
+      else if (i < 5) delayMinutes = 1440 * (i - 1); // Daily for first week
+      else if (i < 10) delayMinutes = 1440 * 3 * (i - 4); // Every 3 days
+      else if (i < 20) delayMinutes = 1440 * 7 * (i - 9); // Weekly
+      else if (i < 30) delayMinutes = 1440 * 14 * (i - 19); // Bi-weekly
+      else delayMinutes = 1440 * 30 * (i - 29); // Monthly
+      
+      // Generate varied subjects
+      const subjects = [
+        'Welcome! Quick question about your needs',
+        'Did you find what you were looking for?',
+        '🎯 Special offer inside',
+        'Your personalized recommendations',
+        'Still thinking it over?',
+        'Important update for you',
+        'Last chance to connect',
+        'Quick tip that might help',
+        'Success story from someone like you',
+        'One more thing to consider'
+      ];
+      
+      // Generate content based on stage
+      const stage = i < 3 ? 'early' : i < 10 ? 'middle' : 'late';
+      const urgency = i < 5 ? 'low' : i < 15 ? 'medium' : 'high';
+      
+      templates.push({
+        id: `template-${i + 1}`,
+        subject: subjects[i % subjects.length] || `Follow-up #${i + 1}`,
+        body: this.generateTemplateBody(i, stage, urgency),
+        delayMinutes,
+        expectedReplyPatterns: this.getExpectedPatterns(stage)
+      });
+    }
+    
+    return templates;
+  }
+
+  private generateTemplateBody(index: number, stage: string, urgency: string): string {
+    const greetings = ['Hi', 'Hello', 'Hey', 'Good morning', 'Good afternoon'];
+    const greeting = greetings[index % greetings.length];
+    
+    const bodies = {
+      early: [
+        'Thanks for your interest! I wanted to reach out personally to understand what brought you here.',
+        'I noticed you were checking out our solutions. What specific challenge are you trying to solve?',
+        'Just following up on your recent visit. How can we help you achieve your goals?'
+      ],
+      middle: [
+        'I wanted to check in and see if you had any questions I could help answer.',
+        'Many of our customers had similar concerns before getting started. What\'s holding you back?',
+        'I have some insights that might be helpful for your situation. When would be a good time to chat?'
+      ],
+      late: [
+        'This will be one of my last emails. Is there anything I can help clarify?',
+        'I\'ll stop reaching out soon, but wanted to leave the door open. Reply anytime if you need help.',
+        'Final check-in: If the timing isn\'t right, I understand. Just let me know if you\'d like to stay in touch.'
+      ]
+    };
+    
+    const bodyOptions = bodies[stage] || bodies.middle;
+    const bodyText = bodyOptions[index % bodyOptions.length];
+    
+    return `${greeting} {{name}},
+
+${bodyText}
+
+${urgency === 'high' ? '\nP.S. This offer expires soon, so don\'t wait too long!\n' : ''}
+Best regards,
+The Team`;
+  }
+
+  private getExpectedPatterns(stage: string): string[] {
+    const patterns = {
+      early: ['interested', 'looking for', 'need', 'want', 'help'],
+      middle: ['question', 'concern', 'thinking', 'considering', 'maybe'],
+      late: ['stop', 'unsubscribe', 'not interested', 'remove', 'later']
+    };
+    
+    return patterns[stage] || patterns.middle;
   }
 
   async initializeConversation(lead: any): Promise<void> {
