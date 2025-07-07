@@ -1,23 +1,16 @@
 // server/utils/redis-simple.ts
 // Simple Redis wrapper - single connection, no pools
-import { createClient } from 'redis';
+// import { createClient } from 'redis';
 
 let redisClient: any = null;
 
 export async function getRedis() {
-  if (!redisClient && process.env.REDIS_URL) {
-    redisClient = createClient({ url: process.env.REDIS_URL });
-    redisClient.on('error', (err: any) => console.error('Redis error:', err));
-    await redisClient.connect();
-  }
-  return redisClient;
+  // Redis disabled for minimal build
+  return null;
 }
 
 export async function closeRedis() {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-  }
+  // Redis disabled for minimal build
 }
 
 // Simple rate limiter without redis-rate-limit

@@ -193,7 +193,7 @@ The Team`
 We've helped over 500 companies improve their operations.`;
   }
 
-  private generateContextualResponse(history: any[], lead: any): string {
+  private generateSimpleResponse(history: any[], lead: any): string {
     // Generate a contextual response based on conversation flow
     const lastMessage = history[history.length - 1];
     
