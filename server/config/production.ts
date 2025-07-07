@@ -1,39 +1,50 @@
-// Production configuration for low-memory environments
+// Production configuration for ultra-low-memory environments
 export const productionConfig = {
-  // Disable memory-intensive features in low-memory environments
+  // Disable ALL non-essential features to save memory
   features: {
-    enableRedis: process.env.ENABLE_REDIS !== 'false',
-    enableQueueSystem: process.env.ENABLE_QUEUE !== 'false', 
-    enableHealthChecks: process.env.ENABLE_HEALTH_CHECKS !== 'false',
-    enableMetrics: process.env.ENABLE_METRICS !== 'false',
-    enablePerformanceMonitoring: false, // Disable by default in production
+    enableRedis: false, // Disable Redis completely
+    enableQueueSystem: false, // Disable queue system
+    enableHealthChecks: false, // Disable health checks completely
+    enableMetrics: false, // Disable metrics
+    enablePerformanceMonitoring: false, // Disable performance monitoring
+    enableAuditLogging: false, // Disable audit logging
+    enableAnalytics: false, // Disable analytics
   },
   
-  // Reduce memory usage
+  // Minimal performance settings
   performance: {
-    maxConcurrentRequests: 50,
+    maxConcurrentRequests: 20, // Reduced significantly
     requestTimeout: 30000,
     keepAliveTimeout: 65000,
   },
   
-  // Health check configuration
+  // Disable health checks completely
   healthCheck: {
-    interval: 300000, // 5 minutes instead of every minute
-    timeout: 10000,
-    // Only check critical services
-    checks: ['database', 'memory', 'cpu'],
+    enabled: false,
+    interval: 0, // Disabled
+    timeout: 0,
+    checks: [], // No checks
   },
   
-  // Redis configuration
+  // Redis configuration - disabled
   redis: {
-    maxRetriesPerRequest: 1, // Fail fast if Redis is not available
+    enabled: false,
+    maxRetriesPerRequest: 0,
     enableOfflineQueue: false,
-    connectTimeout: 5000,
+    connectTimeout: 0,
   },
   
-  // Memory limits
+  // Aggressive memory limits
   memory: {
-    maxHeapUsagePercent: 85,
-    gcInterval: 60000, // Run garbage collection every minute
+    maxHeapUsagePercent: 75, // Lower threshold
+    gcInterval: 30000, // Run GC every 30 seconds
+    preventMemoryLeaks: true,
+  },
+  
+  // Logging - minimal
+  logging: {
+    level: process.env.LOG_LEVEL || 'error',
+    maxFiles: 0, // No file logging
+    console: true,
   }
 };
