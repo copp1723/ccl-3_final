@@ -34,5 +34,15 @@ echo "All monitoring and non-essential features disabled"
 # Force aggressive garbage collection
 export V8_FLAGS="--optimize-for-size --always-compact --gc-global"
 
-# Run the application
-exec node --expose-gc --optimize-for-size dist/index.js
+# Check if minimal mode is requested
+if [ "$USE_MINIMAL_SERVER" = "true" ]; then
+  echo "Starting minimal server (no agents, monitoring, or queues)..."
+  # First, build the minimal server if needed
+  if [ ! -f "dist/index-minimal.js" ]; then
+    npx esbuild server/index-minimal.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index-minimal.js
+  fi
+  exec node --expose-gc --optimize-for-size dist/index-minimal.js
+else
+  # Run the full application
+  exec node --expose-gc --optimize-for-size dist/index.js
+fi
