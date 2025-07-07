@@ -6,12 +6,26 @@ import { logger, CCLLogger } from './logger.js';
 
 // Get Redis configuration from environment
 const getRedisConfig = () => {
+  // Log environment for debugging
+  logger.info('Redis configuration check', {
+    hasRedisUrl: !!process.env.REDIS_URL,
+    redisUrlLength: process.env.REDIS_URL?.length || 0,
+    nodeEnv: process.env.NODE_ENV
+  });
+  
   // If REDIS_URL is provided (like from Render), it takes precedence
   if (process.env.REDIS_URL) {
+    logger.info('Using REDIS_URL from environment');
     return process.env.REDIS_URL;
   }
   
   // Otherwise, use individual settings
+  logger.info('Using individual Redis settings', {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || '6379',
+    hasPassword: !!process.env.REDIS_PASSWORD
+  });
+  
   return {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
