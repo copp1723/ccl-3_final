@@ -27,11 +27,11 @@ esbuild server/index-optimized.ts \
   --bundle \
   --format=esm \
   --outdir=dist \
+  --packages=external \
   --tree-shaking=true \
   --minify \
-  --external:pg-native \
-  --external:bufferutil \
-  --external:utf-8-validate
+  --target=node18 \
+  --loader:.node=file
 
 # Create necessary directories
 echo "📁 Creating required directories..."
