@@ -150,19 +150,35 @@ app.use('/api/monitoring', monitoringRoutes); // Comprehensive monitoring and ob
 // app.use('/api/email', emailCampaignsRoutes); // Temporarily disabled
 
 // Session configuration
-app.use(session({
+const sessionConfig: any = {
   secret: process.env.SESSION_SECRET || 'ccl3-swarm-secret-key',
   resave: false,
   saveUninitialized: false,
-  store: new MemoryStoreSession({
-    checkPeriod: 86400000 // 24 hours
-  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    maxAge: process.env.NODE_ENV === 'production' ? 86400000 : 7 * 24 * 60 * 60 * 1000 // 1 day in prod, 7 days in dev
   }
-}));
+};
+
+// Use Redis for sessions in production if available
+if (process.env.NODE_ENV === 'production' && sessionRedis) {
+  const RedisStore = require('connect-redis').default;
+  sessionConfig.store = new RedisStore({
+    client: sessionRedis,
+    prefix: 'ccl3:sess:',
+  });
+  logger.info('Using Redis for session storage');
+} else {
+  sessionConfig.store = new MemoryStoreSession({
+    checkPeriod: 3600000, // 1 hour
+    max: 1000, // Maximum 1000 sessions in memory
+    ttl: 86400000, // 1 day
+  });
+  logger.info('Using MemoryStore for session storage');
+}
+
+app.use(session(sessionConfig));
 
 // Passport configuration
 app.use(passport.initialize());
