@@ -1,0 +1,52 @@
+{
+  "templates": [
+    {
+      "id": "welcome",
+      "subject": "Welcome {{name}}! Quick question about your needs",
+      "body": "Hi {{name}},\n\nThanks for your interest! I wanted to reach out personally to understand what brought you here.\n\nAre you looking for a specific solution, or just exploring options?\n\nBest regards,\nThe Team",
+      "delayMinutes": 0,
+      "expectedReplyPatterns": ["looking for", "need", "interested", "exploring"]
+    },
+    {
+      "id": "follow-up-1",
+      "subject": "Following up - how can we help?",
+      "body": "Hi {{name}},\n\nI noticed you haven't had a chance to reply yet. No worries at all!\n\nI'm here when you're ready. What's the biggest challenge you're facing right now?\n\nTalk soon,\nThe Team",
+      "delayMinutes": 1440,
+      "expectedReplyPatterns": ["challenge", "problem", "issue", "help"]
+    },
+    {
+      "id": "follow-up-2",
+      "subject": "Last check-in",
+      "body": "Hi {{name}},\n\nI'll keep this brief - just wanted to make sure you got my previous messages.\n\nIf now's not the right time, no problem at all. When would be better for you?\n\nBest,\nThe Team",
+      "delayMinutes": 2880,
+      "expectedReplyPatterns": ["time", "busy", "later", "schedule"]
+    },
+    {
+      "id": "value-prop",
+      "subject": "Quick tip that might help",
+      "body": "Hi {{name}},\n\nI've been thinking about common challenges in your industry.\n\nMany companies struggle with [specific pain point]. We recently helped a similar business reduce their [metric] by 40%.\n\nWould something like this be valuable for you?\n\nBest,\nThe Team",
+      "delayMinutes": 4320,
+      "expectedReplyPatterns": ["valuable", "interesting", "yes", "tell me more"]
+    },
+    {
+      "id": "social-proof",
+      "subject": "Success story you might like",
+      "body": "Hi {{name}},\n\nQuick story: [Similar Company] was facing [challenge] just like many businesses today.\n\nAfter implementing our solution, they saw:\n• 50% reduction in time spent on [task]\n• 3x improvement in [metric]\n• $X saved annually\n\nCurious if you're facing similar challenges?\n\nBest,\nThe Team",
+      "delayMinutes": 7200,
+      "expectedReplyPatterns": ["curious", "similar", "facing", "interested"]
+    },
+    {
+      "id": "final-attempt",
+      "subject": "Should I close your file?",
+      "body": "Hi {{name}},\n\nI've reached out a few times but haven't heard back. I completely understand - timing might not be right.\n\nI'll go ahead and close your file for now. If things change and you'd like to explore how we can help, just reply to any of these emails.\n\nWishing you all the best!\n\nThe Team",
+      "delayMinutes": 10080,
+      "expectedReplyPatterns": ["wait", "don't close", "interested", "let's talk"]
+    }
+  ],
+  "settings": {
+    "maxTemplates": 6,
+    "stopOnReply": true,
+    "aiTakeover": true,
+    "trackingEnabled": true
+  }
+}

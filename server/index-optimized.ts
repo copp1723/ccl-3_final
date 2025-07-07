@@ -14,7 +14,9 @@ const lazyImports = {
   agents: () => import('./agents-lazy'),
   session: () => import('express-session'),
   redis: () => import('./utils/redis-simple'),
-  logger: () => import('./utils/logger-simple')
+  logger: () => import('./utils/logger-simple'),
+  emailWebhooks: () => import('./routes/email-webhooks'),
+  emailConversationManager: () => import('./services/email-conversation-manager')
 };
 
 const __filename = fileURLToPath(import.meta.url);
@@ -107,6 +109,16 @@ const leadSchema = z.object({
   metadata: z.record(z.any()).optional()
 });
 
+// Email webhook routes (before session middleware)
+if (process.env.EMAIL_TEMPLATES_ENABLED === 'true') {
+  lazyImports.emailWebhooks().then(module => {
+    app.use(module.default);
+    logger.info('Email webhook routes loaded');
+  }).catch(err => {
+    logger.error('Failed to load email webhooks:', err);
+  });
+}
+
 // Core API Routes
 app.get('/api/leads', async (req, res) => {
   try {
@@ -145,6 +157,19 @@ app.post('/api/leads', async (req, res) => {
       'New lead received',
       { source: data.source }
     );
+    
+    // Initialize email conversation if enabled
+    if (lead.email && process.env.EMAIL_TEMPLATES_ENABLED === 'true') {
+      const { emailConversationManager } = await lazyImports.emailConversationManager();
+      setImmediate(async () => {
+        try {
+          await emailConversationManager.initializeConversation(lead);
+          logger.info(`Email conversation initialized for lead ${lead.id}`);
+        } catch (error) {
+          logger.error(`Failed to initialize email conversation for lead ${lead.id}:`, error);
+        }
+      });
+    }
     
     // Process with agents if enabled and memory allows
     if (config.enableAgents && process.memoryUsage().heapUsed < config.memoryLimit * 0.8 * 1024 * 1024) {
