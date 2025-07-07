@@ -4,12 +4,25 @@
 import Redis from 'ioredis';
 import { logger, CCLLogger } from './logger.js';
 
+// Get Redis configuration from environment
+const getRedisConfig = () => {
+  // If REDIS_URL is provided (like from Render), it takes precedence
+  if (process.env.REDIS_URL) {
+    return process.env.REDIS_URL;
+  }
+  
+  // Otherwise, use individual settings
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || '0'),
+  };
+};
+
 // Redis connection options
 const redisOptions = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  db: parseInt(process.env.REDIS_DB || '0'),
+  ...(typeof getRedisConfig() === 'string' ? {} : getRedisConfig()),
   retryStrategy: (times: number) => {
     if (times > 3) {
       logger.warn('Redis connection failed after 3 retries, falling back to memory storage');
@@ -35,21 +48,35 @@ export let sessionRedis: Redis | null = null;
 // Initialize Redis connections
 export async function initializeRedis(): Promise<void> {
   try {
+    const config = getRedisConfig();
+    
     // Main Redis client for general caching
-    redisClient = new Redis(redisOptions);
+    redisClient = typeof config === 'string' 
+      ? new Redis(config, redisOptions)
+      : new Redis(redisOptions);
     
     // Dedicated instance for rate limiting (different key prefix)
-    rateLimitRedis = new Redis({
-      ...redisOptions,
-      keyPrefix: 'ccl3:ratelimit:',
-    });
+    rateLimitRedis = typeof config === 'string'
+      ? new Redis(config, {
+          ...redisOptions,
+          keyPrefix: 'ccl3:ratelimit:',
+        })
+      : new Redis({
+          ...redisOptions,
+          keyPrefix: 'ccl3:ratelimit:',
+        });
     
     // Dedicated instance for sessions (different DB)
-    sessionRedis = new Redis({
-      ...redisOptions,
-      keyPrefix: 'ccl3:session:',
-      db: 1, // Use different database for sessions
-    });
+    sessionRedis = typeof config === 'string'
+      ? new Redis(config, {
+          ...redisOptions,
+          keyPrefix: 'ccl3:session:',
+        })
+      : new Redis({
+          ...redisOptions,
+          keyPrefix: 'ccl3:session:',
+          db: 1, // Use different database for sessions
+        });
 
     // Setup event handlers for main client
     redisClient.on('connect', () => {

@@ -797,12 +797,20 @@ app.get('/api/leads/stats/summary', async (req, res) => {
   }
 });
 
-// Serve static files from client dist directory
-app.use(express.static(join(__dirname, '../client/dist')));
+// Serve static files - adjust path based on environment
+const staticPath = process.env.NODE_ENV === 'production' 
+  ? join(__dirname, './client')  // In production, client files are in dist/client
+  : join(__dirname, '../client/dist'); // In development, use original structure
+
+app.use(express.static(staticPath));
 
 // Serve chat widget files from public directory
-app.use('/chat-widget-embed.js', express.static(join(__dirname, '../client/public/chat-widget-embed.js')));
-app.use('/chat-demo.html', express.static(join(__dirname, '../client/public/chat-demo.html')));
+const publicPath = process.env.NODE_ENV === 'production'
+  ? join(__dirname, './client')  // In production, public files are copied to dist/client
+  : join(__dirname, '../client/public');
+
+app.use('/chat-widget-embed.js', express.static(join(publicPath, 'chat-widget-embed.js')));
+app.use('/chat-demo.html', express.static(join(publicPath, 'chat-demo.html')));
 
 // Serve React app for all non-API routes
 app.get('*', (req, res) => {
