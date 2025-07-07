@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ccl3
+      POSTGRES_USER: ccl3user
+      POSTGRES_PASSWORD: ccl3pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # API Service - Lightweight REST API
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://ccl3user:ccl3pass@postgres:5432/ccl3
+      AGENT_SERVICE_URL: http://agents:3002
+      NODE_OPTIONS: "--max-old-space-size=256"
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Agent Service - AI Processing
+  agents:
+    build:
+      context: .
+      dockerfile: services/agents/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://ccl3user:ccl3pass@postgres:5432/ccl3
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      EMAIL_SERVICE_URL: http://email:3004
+      SMS_SERVICE_URL: http://sms:3005
+      NODE_OPTIONS: "--max-old-space-size=512"
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # WebSocket Service - Real-time Chat
+  websocket:
+    build:
+      context: .
+      dockerfile: services/websocket/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://ccl3user:ccl3pass@postgres:5432/ccl3
+      AGENT_SERVICE_URL: http://agents:3002
+      NODE_OPTIONS: "--max-old-space-size=128"
+    depends_on:
+      - postgres
+      - agents
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
+      - websocket
+
+volumes:
+  postgres_data:

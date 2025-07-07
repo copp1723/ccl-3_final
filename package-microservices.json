@@ -1,0 +1,33 @@
+{
+  "name": "ccl3-microservices",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:api": "tsx services/api/index.ts",
+    "dev:agents": "tsx services/agents/index.ts", 
+    "dev:websocket": "tsx services/websocket/index.ts",
+    "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:agents\" \"npm run dev:websocket\"",
+    "build:all": "tsc",
+    "start:lightweight": "node dist/server/index-lightweight.js",
+    "docker:up": "docker-compose up",
+    "docker:build": "docker-compose build",
+    "vercel:deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.18.0",
+    "zod": "^3.25.67",
+    "nanoid": "^5.1.5",
+    "drizzle-orm": "^0.39.3",
+    "postgres": "^3.4.7",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.21",
+    "@types/ws": "^8.5.13",
+    "@vercel/node": "^3.0.0",
+    "concurrently": "^8.2.0",
+    "tsx": "^4.19.1",
+    "typescript": "5.6.3"
+  }
+}
