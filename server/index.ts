@@ -36,7 +36,7 @@ import { sanitizeRequest, validate } from './middleware/validation';
 import { feedbackService } from './services/feedback-service';
 import { z } from 'zod';
 import { logger, CCLLogger } from './utils/logger.js';
-import { initializeRedis, closeRedisConnections } from './utils/redis.js';
+import { initializeRedis, closeRedisConnections, sessionRedis } from './utils/redis.js';
 import { ipRateLimit, cclApiRateLimit, addRateLimitInfo } from './middleware/rate-limit.js';
 import { queueManager } from './workers/queue-manager.js';
 import { performanceMonitor } from './utils/performance-monitor.js';
