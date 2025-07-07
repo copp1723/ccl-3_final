@@ -8,6 +8,7 @@ import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { productionConfig } from './config/production.js';
 import boberdooRoutes from './routes/boberdoo';
 import campaignsRoutes from './routes/campaigns';
 import communicationsRoutes from './routes/communications';
@@ -57,24 +58,30 @@ await initializeRedis();
 // Initialize queue system (depends on Redis)
 logger.info('Initializing queue system...');
 
-// Initialize monitoring systems
-logger.info('Initializing monitoring systems...');
-try {
-  // Performance monitor and health checker initialize themselves
-  if (performanceMonitor.isReady() && healthChecker.isReady() && metricsCollector.isReady()) {
-    logger.info('Monitoring systems initialized successfully', {
-      components: ['performance-monitor', 'health-checker', 'metrics-collector']
+// Initialize monitoring systems (conditional for production)
+const config = process.env.NODE_ENV === 'production' ? productionConfig : { features: { enableHealthChecks: true, enableMetrics: true, enablePerformanceMonitoring: true } };
+
+if (config.features.enableHealthChecks || config.features.enableMetrics) {
+  logger.info('Initializing monitoring systems...');
+  try {
+    // Performance monitor and health checker initialize themselves
+    if (performanceMonitor.isReady() && healthChecker.isReady() && metricsCollector.isReady()) {
+      logger.info('Monitoring systems initialized successfully', {
+        components: ['performance-monitor', 'health-checker', 'metrics-collector']
+      });
+      CCLLogger.securityEvent('Monitoring systems initialized', 'low', {
+        components: ['performance-monitor', 'health-checker', 'metrics-collector']
+      });
+    } else {
+      logger.warn('Some monitoring components not ready at startup');
+    }
+  } catch (error) {
+    logger.error('Failed to initialize monitoring systems', {
+      error: (error as Error).message
     });
-    CCLLogger.securityEvent('Monitoring systems initialized', 'low', {
-      components: ['performance-monitor', 'health-checker', 'metrics-collector']
-    });
-  } else {
-    logger.warn('Some monitoring components not ready at startup');
   }
-} catch (error) {
-  logger.error('Failed to initialize monitoring systems', {
-    error: (error as Error).message
-  });
+} else {
+  logger.info('Monitoring systems disabled in production to save memory');
 }
 
 // Session store
