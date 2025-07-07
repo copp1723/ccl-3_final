@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { z } from 'zod';
+import os from 'os';
 
 // Lazy imports - only load when needed
 const lazyImports = {
@@ -23,12 +24,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Configuration based on environment
+// Default to 80% of 2GB (1638MB) if not specified, or 25% of total system memory (whichever is smaller)
+const defaultMemoryLimit = Math.min(1638, Math.floor(os.totalmem() / 1024 / 1024 * 0.25));
 const config = {
   enableAgents: process.env.ENABLE_AGENTS !== 'false',
   enableWebSocket: process.env.ENABLE_WEBSOCKET !== 'false',
   enableRedis: process.env.ENABLE_REDIS === 'true',
   enableMonitoring: process.env.ENABLE_MONITORING === 'true',
-  memoryLimit: parseInt(process.env.MEMORY_LIMIT || '512'),
+  memoryLimit: parseInt(process.env.MEMORY_LIMIT || String(defaultMemoryLimit)),
   port: process.env.PORT || 5000
 };
 
@@ -47,23 +50,25 @@ const server = createServer(app);
 // Essential middleware only
 app.use(express.json({ limit: '100kb' }));
 
-// Memory monitoring
+// Memory monitoring - always enable for production environments
 let memoryMonitor: NodeJS.Timer;
-if (config.memoryLimit < 1024) {
-  memoryMonitor = setInterval(() => {
-    const usage = process.memoryUsage();
-    const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
-    const heapPercentage = Math.round((usage.heapUsed / usage.heapTotal) * 100);
-    
-    if (heapPercentage > 80) {
-      logger.warn(`High memory usage: ${heapUsedMB}MB (${heapPercentage}%)`);
-      // Trigger garbage collection if available
-      if (global.gc) {
-        global.gc();
-      }
+memoryMonitor = setInterval(() => {
+  const usage = process.memoryUsage();
+  const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
+  const heapPercentage = Math.round((usage.heapUsed / usage.heapTotal) * 100);
+  const rssUsedMB = Math.round(usage.rss / 1024 / 1024);
+  
+  // Check against configured memory limit
+  const memoryUsagePercent = Math.round((rssUsedMB / config.memoryLimit) * 100);
+  
+  if (heapPercentage > 80 || memoryUsagePercent > 90) {
+    logger.warn(`High memory usage: Heap: ${heapUsedMB}MB (${heapPercentage}%), RSS: ${rssUsedMB}MB (${memoryUsagePercent}% of ${config.memoryLimit}MB limit)`);
+    // Trigger garbage collection if available
+    if (global.gc) {
+      global.gc();
     }
-  }, 30000); // Check every 30 seconds
-}
+  }
+}, 30000); // Check every 30 seconds
 
 // Health endpoint - always available
 app.get('/health', (req, res) => {
@@ -71,9 +76,12 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     memory: {
-      used: Math.round(mem.heapUsed / 1024 / 1024),
-      total: Math.round(mem.heapTotal / 1024 / 1024),
-      percent: Math.round((mem.heapUsed / mem.heapTotal) * 100)
+      heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+      rss: Math.round(mem.rss / 1024 / 1024),
+      limit: config.memoryLimit,
+      percent: Math.round((mem.heapUsed / mem.heapTotal) * 100),
+      rssPercent: Math.round((mem.rss / 1024 / 1024 / config.memoryLimit) * 100)
     },
     features: config
   });
@@ -172,7 +180,7 @@ app.post('/api/leads', async (req, res) => {
     }
     
     // Process with agents if enabled and memory allows
-    if (config.enableAgents && process.memoryUsage().heapUsed < config.memoryLimit * 0.8 * 1024 * 1024) {
+    if (config.enableAgents && process.memoryUsage().rss < config.memoryLimit * 0.8 * 1024 * 1024) {
       // Lazy load agents
       if (!agents) {
         agents = await lazyImports.agents();
@@ -339,7 +347,8 @@ app.get('*', (req, res) => {
 server.listen(config.port, () => {
   const mem = process.memoryUsage();
   logger.info(`CCL-3 Optimized Server started on port ${config.port}`);
-  logger.info(`Memory: ${Math.round(mem.heapUsed / 1024 / 1024)}MB / ${Math.round(mem.heapTotal / 1024 / 1024)}MB`);
+  logger.info(`Memory: RSS: ${Math.round(mem.rss / 1024 / 1024)}MB, Heap: ${Math.round(mem.heapUsed / 1024 / 1024)}MB / ${Math.round(mem.heapTotal / 1024 / 1024)}MB`);
+  logger.info(`Memory limit configured: ${config.memoryLimit}MB (agents will process when RSS < ${Math.round(config.memoryLimit * 0.8)}MB)`);
   logger.info('Enabled features:', config);
 });
 
