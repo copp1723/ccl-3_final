@@ -522,6 +522,62 @@ app.get('/api/email/campaigns', async (req, res) => {
   }
 });
 
+// Email campaigns POST endpoint - Create new campaign
+app.post('/api/email/campaigns', async (req, res) => {
+  try {
+    const { name, agentId, description, conversationMode, templates, scheduleType, settings } = req.body;
+    
+    // Validate required fields
+    if (!name || !agentId) {
+      return res.status(400).json({ error: 'Campaign name and agent ID are required' });
+    }
+    
+    // Create campaign object
+    const campaign = {
+      id: `campaign-${Date.now()}`, // Simple ID generation
+      name,
+      agentId,
+      description: description || '',
+      conversationMode: conversationMode || 'auto',
+      status: 'draft',
+      templates: templates || [],
+      scheduleType: scheduleType || 'template',
+      settings: settings || {
+        sendTimeOptimization: false,
+        enableAIMode: true,
+        dailyLimit: 50,
+        aiModeThreshold: 'first_reply',
+        handoverGoal: '',
+        handoverKeywords: [],
+        handoverFollowUp: {
+          enabled: false,
+          daysAfterHandover: 3,
+          maxAttempts: 2,
+          daysBetweenAttempts: 2
+        }
+      },
+      stats: {
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+        replied: 0,
+        bounced: 0
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    // TODO: Save to database when campaign storage is implemented
+    // For now, just return success with the created campaign
+    
+    logger.info(`Campaign created: ${campaign.name} (${campaign.id})`);
+    res.json({ success: true, data: campaign });
+  } catch (error) {
+    logger.error('Error creating email campaign:', error);
+    res.status(500).json({ error: 'Failed to create campaign' });
+  }
+});
+
 // WebSocket setup (only if enabled)
 if (config.enableWebSocket) {
   import('ws').then(({ WebSocketServer }) => {
