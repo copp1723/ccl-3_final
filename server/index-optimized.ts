@@ -127,6 +127,10 @@ if (process.env.EMAIL_TEMPLATES_ENABLED === 'true') {
   });
 }
 
+// API routes for missing endpoints
+import apiRoutes from './routes/api-routes.js';
+app.use('/api', apiRoutes);
+
 // Core API Routes
 app.get('/api/leads', async (req, res) => {
   try {
