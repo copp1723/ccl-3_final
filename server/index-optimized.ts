@@ -127,7 +127,7 @@ if (process.env.EMAIL_TEMPLATES_ENABLED === 'true') {
   });
 }
 
-// API routes for missing endpoints
+// API routes for missing endpoints (but specific routes below take precedence)
 import apiRoutes from './routes/api-routes.js';
 app.use('/api', apiRoutes);
 
@@ -137,7 +137,55 @@ app.get('/api/leads', async (req, res) => {
     const { LeadsRepository } = await getDB();
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const leads = await LeadsRepository.findAll({ limit });
-    res.json({ leads });
+    
+    // Transform leads to match the expected format for LeadView component
+    const transformedLeads = leads.map((lead: any) => {
+      // Map database status to UI status
+      let uiStatus: 'active' | 'replied' | 'handover' | 'completed' | 'unsubscribed' = 'active';
+      if (lead.status === 'contacted' || lead.status === 'qualified') {
+        uiStatus = 'active';
+      } else if (lead.status === 'sent_to_boberdoo') {
+        uiStatus = 'completed';
+      } else if (lead.status === 'rejected' || lead.status === 'archived') {
+        uiStatus = 'unsubscribed';
+      }
+      
+      // Extract any stored progress or metrics from metadata
+      const metadata = lead.metadata || {};
+      const conversationMode = metadata.conversationMode || 'template';
+      const templateProgress = metadata.templateProgress || {};
+      const aiEngagement = metadata.aiEngagement;
+      const metrics = metadata.metrics || {};
+      
+      return {
+        id: lead.id,
+        name: lead.name || 'Unknown',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        company: metadata.company || lead.campaign || '',
+        status: uiStatus,
+        conversationMode: conversationMode as 'template' | 'ai' | 'human',
+        templateProgress: {
+          current: templateProgress.current || 0,
+          total: templateProgress.total || 5,
+          lastSent: templateProgress.lastSent,
+          nextScheduled: templateProgress.nextScheduled
+        },
+        aiEngagement: aiEngagement,
+        metrics: {
+          emailsSent: metrics.emailsSent || 0,
+          emailsOpened: metrics.emailsOpened || 0,
+          linksClicked: metrics.linksClicked || 0,
+          repliesReceived: metrics.repliesReceived || 0
+        },
+        tags: metadata.tags || [lead.source, lead.campaign].filter(Boolean),
+        createdAt: lead.createdAt?.toISOString() || new Date().toISOString(),
+        lastActivity: lead.updatedAt?.toISOString() || lead.createdAt?.toISOString() || new Date().toISOString()
+      };
+    });
+    
+    // Return in consistent format with other endpoints
+    res.json({ data: transformedLeads });
   } catch (error) {
     logger.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Failed to fetch leads' });

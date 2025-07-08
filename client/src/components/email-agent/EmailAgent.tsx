@@ -57,6 +57,7 @@ export function EmailAgent() {
   const [activeTab, setActiveTab] = useState('overview');
   const [agents, setAgents] = useState<Agent[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showAgentForm, setShowAgentForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -64,6 +65,13 @@ export function EmailAgent() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    // Load leads when switching to leads tab
+    if (activeTab === 'leads') {
+      loadLeads();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -87,6 +95,22 @@ export function EmailAgent() {
       console.error('Error loading email agent data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLeads = async () => {
+    try {
+      const response = await fetch('/api/leads?limit=50');
+      if (response.ok) {
+        const data = await response.json();
+        setLeads(data.data || []);
+      } else {
+        console.error('Failed to load leads:', response.status);
+        setLeads([]);
+      }
+    } catch (error) {
+      console.error('Error loading leads:', error);
+      setLeads([]);
     }
   };
 
@@ -460,58 +484,7 @@ export function EmailAgent() {
         {/* Leads Tab */}
         <TabsContent value="leads">
           <LeadView 
-            leads={[
-              // Sample data - replace with actual API call
-              {
-                id: '1',
-                name: 'John Smith',
-                email: 'john.smith@example.com',
-                phone: '(555) 123-4567',
-                company: 'Acme Corp',
-                status: 'active' as const,
-                conversationMode: 'template' as const,
-                templateProgress: {
-                  current: 3,
-                  total: 5,
-                  lastSent: new Date().toISOString(),
-                  nextScheduled: new Date(Date.now() + 86400000).toISOString()
-                },
-                metrics: {
-                  emailsSent: 3,
-                  emailsOpened: 3,
-                  linksClicked: 2,
-                  repliesReceived: 0
-                },
-                tags: ['hot-lead', 'auto-finance'],
-                createdAt: new Date().toISOString(),
-                lastActivity: new Date().toISOString()
-              },
-              {
-                id: '2',
-                name: 'Sarah Johnson',
-                email: 'sarah.j@example.com',
-                status: 'replied' as const,
-                conversationMode: 'ai' as const,
-                templateProgress: {
-                  current: 5,
-                  total: 5
-                },
-                aiEngagement: {
-                  messagesExchanged: 8,
-                  lastInteraction: new Date().toISOString(),
-                  sentiment: 'positive' as const
-                },
-                metrics: {
-                  emailsSent: 5,
-                  emailsOpened: 5,
-                  linksClicked: 4,
-                  repliesReceived: 3
-                },
-                tags: ['qualified', 'ready-to-buy'],
-                createdAt: new Date().toISOString(),
-                lastActivity: new Date().toISOString()
-              }
-            ]}
+            leads={leads}
             onLeadSelect={(lead) => console.log('Selected lead:', lead)}
             onModeSwitch={(leadId, newMode) => console.log('Switch lead', leadId, 'to', newMode)}
           />
