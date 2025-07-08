@@ -24,6 +24,8 @@
     "db:migrate": "tsx server/db/migrate.ts",
     "db:fix": "node scripts/database/production-migration.js",
     "db:check": "node scripts/database/check-db-status.js",
+    "db:apply-migration": "node scripts/database/apply-migration.js",
+    "db:migrate-production": "./scripts/run-production-migration.sh",
     "test": "vitest",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
