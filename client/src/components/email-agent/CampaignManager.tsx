@@ -85,9 +85,9 @@ export function CampaignManager({ agents, campaigns, onUpdate }: CampaignManager
     }
   };
 
-  const filteredCampaigns = campaigns.filter(campaign => {
+  const filteredCampaigns = (campaigns || []).filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         agents.find(a => a.id === campaign.agentId)?.name.toLowerCase().includes(searchQuery.toLowerCase());
+                         (agents || []).find(a => a.id === campaign.agentId)?.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || campaign.status === filterStatus;
     return matchesSearch && matchesFilter;
   });

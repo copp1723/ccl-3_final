@@ -118,7 +118,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
     }
   };
 
-  const filteredLeads = leads.filter(lead => 
+  const filteredLeads = (leads || []).filter(lead => 
     filterMode === 'all' || lead.conversationMode === filterMode
   );
 
@@ -159,7 +159,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
               className="flex items-center space-x-1"
             >
               <FileText className="h-3 w-3" />
-              <span>Template ({leads.filter(l => l.conversationMode === 'template').length})</span>
+              <span>Template ({(leads || []).filter(l => l.conversationMode === 'template').length})</span>
             </Button>
             <Button
               variant={filterMode === 'ai' ? 'secondary' : 'ghost'}
@@ -168,7 +168,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
               className="flex items-center space-x-1"
             >
               <Brain className="h-3 w-3" />
-              <span>AI ({leads.filter(l => l.conversationMode === 'ai').length})</span>
+              <span>AI ({(leads || []).filter(l => l.conversationMode === 'ai').length})</span>
             </Button>
             <Button
               variant={filterMode === 'human' ? 'secondary' : 'ghost'}
@@ -177,7 +177,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
               className="flex items-center space-x-1"
             >
               <User className="h-3 w-3" />
-              <span>Human ({leads.filter(l => l.conversationMode === 'human').length})</span>
+              <span>Human ({(leads || []).filter(l => l.conversationMode === 'human').length})</span>
             </Button>
           </div>
 
@@ -207,7 +207,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Template Mode</p>
-                <p className="text-2xl font-bold">{leads.filter(l => l.conversationMode === 'template').length}</p>
+                <p className="text-2xl font-bold">{(leads || []).filter(l => l.conversationMode === 'template').length}</p>
               </div>
               <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                 <FileText className="h-5 w-5 text-blue-600" />
@@ -220,7 +220,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">AI Mode</p>
-                <p className="text-2xl font-bold">{leads.filter(l => l.conversationMode === 'ai').length}</p>
+                <p className="text-2xl font-bold">{(leads || []).filter(l => l.conversationMode === 'ai').length}</p>
               </div>
               <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
                 <Brain className="h-5 w-5 text-purple-600" />
@@ -233,7 +233,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Human Handover</p>
-                <p className="text-2xl font-bold">{leads.filter(l => l.conversationMode === 'human').length}</p>
+                <p className="text-2xl font-bold">{(leads || []).filter(l => l.conversationMode === 'human').length}</p>
               </div>
               <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
                 <User className="h-5 w-5 text-green-600" />
@@ -246,7 +246,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Conversations</p>
-                <p className="text-2xl font-bold">{leads.filter(l => l.status === 'replied').length}</p>
+                <p className="text-2xl font-bold">{(leads || []).filter(l => l.status === 'replied').length}</p>
               </div>
               <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
                 <MessageSquare className="h-5 w-5 text-orange-600" />
@@ -390,7 +390,7 @@ export function LeadView({ leads, onLeadSelect, onModeSwitch }: LeadViewProps) {
                     {/* Tags */}
                     {lead.tags && lead.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 pt-2">
-                        {lead.tags.map((tag, idx) => (
+                        {(lead.tags || []).map((tag, idx) => (
                           <Badge key={idx} variant="outline" className="text-xs">
                             {tag}
                           </Badge>

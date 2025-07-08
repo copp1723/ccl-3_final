@@ -54,7 +54,7 @@ export function CampaignAnalytics({ campaigns, agents }: CampaignAnalyticsProps)
     let filteredCampaigns = campaigns;
     
     if (selectedCampaign !== 'all') {
-      filteredCampaigns = campaigns.filter(c => c.id === selectedCampaign);
+      filteredCampaigns = (campaigns || []).filter(c => c.id === selectedCampaign);
     }
 
     const stats = filteredCampaigns.reduce((acc, campaign) => {
@@ -143,7 +143,7 @@ export function CampaignAnalytics({ campaigns, agents }: CampaignAnalyticsProps)
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Campaigns</SelectItem>
-              {campaigns.map((campaign) => (
+              {(campaigns || []).map((campaign) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
                   {campaign.name}
                 </SelectItem>
@@ -245,7 +245,7 @@ export function CampaignAnalytics({ campaigns, agents }: CampaignAnalyticsProps)
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analytics.topPerformingCampaigns.map((campaign) => {
+              {(analytics.topPerformingCampaigns || []).map((campaign) => {
                 const openRate = campaign.stats.sent > 0 
                   ? Math.round(campaign.stats.opened / campaign.stats.sent * 100)
                   : 0;
@@ -292,7 +292,7 @@ export function CampaignAnalytics({ campaigns, agents }: CampaignAnalyticsProps)
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analytics.topPerformingAgents.map((agent) => (
+              {(analytics.topPerformingAgents || []).map((agent) => (
                 <div key={agent.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
