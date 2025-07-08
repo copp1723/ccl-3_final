@@ -1,87 +1,119 @@
-# CCL-3 Repository Structure
+# CCL-3: AI-Powered Lead Re-engagement System
 
-This repository contains two versions of the CCL-3 system:
+This is the central repository for the Complete Car Loans (CCL) AI Recovery System, a multi-agent platform designed for intelligent lead re-engagement, communication orchestration, and automated data processing.
 
-## 📁 Directory Structure
+## 🌟 Features
+
+*   **Multi-Agent Architecture:** Specialized AI agents (Overlord, Email, SMS, Chat) handle distinct tasks for efficient process automation.
+*   **Real-time Communication:** WebSocket integration for live dashboard updates, chat interactions, and agent monitoring.
+*   **Lead Management:** Comprehensive tools for lead import, tracking, qualification, and submission to external systems (e.g., Boberdoo).
+*   **Multi-Channel Campaigns:** Supports email (Mailgun) and SMS (Twilio) campaigns with contextual AI-generated responses.
+*   **Web Chat Widget:** Embeddable chat interface for real-time customer interaction.
+*   **Robust Backend:** Built with Node.js, Express, and TypeScript, ensuring type safety and scalability.
+*   **Modern Frontend:** User-friendly dashboard and components built with React, TypeScript, Tailwind CSS, and shadcn/ui.
+*   **Relational Database:** PostgreSQL with Drizzle ORM for type-safe queries and data integrity.
+*   **Configurable AI:** Utilizes OpenAI GPT models, with per-agent configurability.
+
+## 🛠️ Tech Stack
+
+*   **Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Tanstack Query, Wouter
+*   **Backend:** Node.js, Express, TypeScript, WebSockets
+*   **Database:** PostgreSQL, Drizzle ORM
+*   **AI:** OpenAI (GPT models)
+*   **Email:** Mailgun
+*   **SMS:** Twilio
+*   **Deployment:** Render (configuration in `render.yaml`)
+
+## 📂 Project Structure
+
+The project is organized into several key directories:
 
 ```
-ccl-3/
-├── legacy-ccl3/          # Original CCL-3 implementation (ARCHIVED)
-│   └── [Original files will be moved here]
-│
-├── ccl3-swarm/          # NEW multi-agent implementation
-│   └── [SWARM-based system goes here]
-│
-├── docs/                # Shared documentation
-│   ├── HANDOFF_NOTES.md
-│   ├── CCL3_SWARM_MIGRATION_PLAN.md
-│   └── ARCHITECTURE_DECISIONS.md
-│
-└── README.md           # This file
+├── client/              # Frontend React application
+├── server/              # Backend Node.js server (including AI agents)
+├── email-system/        # Standalone email campaign processing system
+├── migrations/          # Database migration files (Drizzle ORM)
+├── docs/                # Comprehensive project documentation
+├── tests/               # Unit, integration, and E2E tests
+├── scripts/             # Utility and deployment scripts
+├── config/              # Environment configurations
+├── build-config/        # Build tool configurations (Vite, TypeScript, etc.)
+└── ... (other configuration files)
 ```
+
+For a more detailed breakdown, please see `PROJECT_STRUCTURE.md`.
 
 ## 🚀 Quick Start
 
-### For NEW Development (Recommended)
-```bash
-cd ccl3-swarm
-npm install
-npm run dev
-```
+Follow these steps to get the application running locally:
 
-### For Legacy Reference Only
-```bash
-cd legacy-ccl3
-# DO NOT USE FOR NEW DEVELOPMENT
-# This is kept for reference and migration purposes only
-```
+1.  **First-Time Setup (Do this once):**
+    ```bash
+    # Install all dependencies from the root directory
+    npm install
 
-## 🎯 Which Version Should I Use?
+    # Run the quick setup script (creates .env, may start mock services)
+    npm run setup:quick
+    ```
 
-- **ccl3-swarm**: ALL new development happens here
-- **legacy-ccl3**: Reference only, do not modify
+2.  **Start the Application:**
+    Open two terminal windows:
 
-## 🏗️ Architecture
+    *   **Terminal 1 - Backend:**
+        ```bash
+        # Starts a minimal backend server (often with in-memory data)
+        npm run dev:quick
+        ```
+        The backend will typically be available at `http://localhost:5000`.
 
-### Legacy CCL-3 (❌ Deprecated)
-- Monolithic architecture
-- Single application handling everything
-- Complex JWT auth
-- Over-engineered for internal tool
+    *   **Terminal 2 - Frontend:**
+        ```bash
+        # Starts the React frontend development server
+        npm run dev
+        ```
+        The frontend will typically be available at `http://localhost:5173`.
 
-### CCL-3 SWARM (✅ Active Development)
-- Multi-agent architecture
-- Specialized agents for different tasks:
-  - 🧠 Overlord Agent: Orchestrates everything
-  - 📧 Email Agent: Handles email communication
-  - 📱 SMS Agent: Manages text messaging
-  - 💬 Chat Agent: Website chat interface
-- Clean separation of concerns
-- Leverages existing SWARM PWA foundation
+3.  **Open Your Browser:**
+    Navigate to `http://localhost:5173` to see the CCL dashboard.
 
-## 📊 Migration Status
+ℹ️ The `dev:quick` script often uses mock data and services. For setup with a real database and external services, consult the detailed guides in the `docs/` directory, particularly regarding environment variable configuration (`.env` file based on `.env.example`).
 
-- [x] Architecture decision made
-- [x] Repository structure created
-- [ ] SWARM PWA forked and adapted
-- [ ] Legacy code moved to archive
-- [ ] Agents configured for business logic
-- [ ] External integrations connected
-- [ ] Production deployment
+##🧪 Running Tests
 
-## 👥 For New Developers
+Test files are located in the `tests/` directory. To run tests, you can typically use scripts defined in `package.json`. Look for scripts like:
 
-1. **Ignore legacy-ccl3** - It's only there for reference
-2. **Start in ccl3-swarm** - This is the active codebase
-3. **Read the migration plan** - `docs/CCL3_SWARM_MIGRATION_PLAN.md`
-4. **Understand the agents** - Each agent has one specific role
+*   `npm test`
+*   `npm run test:unit`
+*   `npm run test:e2e`
+*   `npm run test:integration`
 
-## 📝 Key Documents
+Please refer to `package.json` and any `README.md` files within the `tests/` directory for specific commands and testing procedures.
 
-- [Migration Plan](docs/CCL3_SWARM_MIGRATION_PLAN.md) - Why and how we're migrating
-- [Handoff Notes](docs/HANDOFF_NOTES.md) - Original system analysis
-- [Architecture Decisions](docs/ARCHITECTURE_DECISIONS.md) - Coming soon
+##☁️ Deployment
 
----
+This project is configured for deployment on [Render](https://render.com/). The deployment configuration can be found in `render.yaml`.
 
-**Questions?** The new multi-agent system is simpler and more maintainable than the legacy version. When in doubt, check the ccl3-swarm implementation.
+Key aspects of the deployment include:
+*   Building the frontend and backend assets.
+*   Running database migrations.
+*   Starting the server application.
+
+Refer to `docs/deployment/RENDER_DEPLOYMENT.md` for more detailed deployment instructions.
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory. Key documents include:
+
+*   `docs/TECHNICAL_ARCHITECTURE.md`: Detailed overview of the system architecture.
+*   `docs/IMPLEMENTATION_SUMMARY.md`: Summary of the project implementation.
+*   `PROJECT_STRUCTURE.md`: Explanation of the directory layout.
+*   `QUICK_START.md`: Quick setup guide.
+*   Various guides on specific features, integrations, and deployment.
+
+##🤝 Contributing
+
+(Contribution guidelines can be added here if they exist or are established in the future.)
+
+##📜 License
+
+(License information can be added here if a license file is present or chosen for the project.)
