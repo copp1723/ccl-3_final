@@ -104,6 +104,13 @@ cat > dist/package.json << EOF
 EOF
 
 echo "✅ Optimized build complete!"
+
+# Run database migrations if DATABASE_URL is set
+if [ ! -z "$DATABASE_URL" ]; then
+  echo "🗄️  Running database migrations..."
+  npm run db:push || echo "⚠️  Database migration failed - may already exist"
+fi
+
 echo "📊 Build size:"
 du -sh dist/
 
