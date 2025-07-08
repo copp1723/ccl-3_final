@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Mail, 
-  Brain, 
-  FileText, 
+import {
+  Mail,
+  Brain,
+  FileText,
   Calendar,
   ChevronRight,
   Clock,
@@ -19,7 +19,10 @@ import {
   Download,
   Info,
   Copy,
-  Library
+  Library,
+  Zap,
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 import { TemplateSequenceItem } from './TemplateSequenceItem';
 import { CampaignSettings } from './CampaignSettings';

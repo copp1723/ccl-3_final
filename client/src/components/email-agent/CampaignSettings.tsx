@@ -38,8 +38,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
             </div>
             <Switch
               checked={formData.settings.sendTimeOptimization}
-              onCheckedChange={(checked) => 
-                setFormData(prev => ({
+              onCheckedChange={(checked) =>
+                setFormData((prev: any) => ({
                   ...prev,
                   settings: { ...prev.settings, sendTimeOptimization: checked }
                 }))
@@ -57,8 +57,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
               </div>
               <Switch
                 checked={formData.settings.enableAIMode}
-                onCheckedChange={(checked) => 
-                  setFormData(prev => ({
+                onCheckedChange={(checked) =>
+                  setFormData((prev: any) => ({
                     ...prev,
                     settings: { ...prev.settings, enableAIMode: checked }
                   }))
@@ -73,8 +73,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
               id="dailyLimit"
               type="number"
               value={formData.settings.dailyLimit}
-              onChange={(e) => 
-                setFormData(prev => ({
+              onChange={(e) =>
+                setFormData((prev: any) => ({
                   ...prev,
                   settings: { ...prev.settings, dailyLimit: parseInt(e.target.value) }
                 }))
@@ -100,8 +100,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
               <Label>Switch to AI Mode When</Label>
               <Select
                 value={formData.settings.aiModeThreshold}
-                onValueChange={(value: any) => 
-                  setFormData(prev => ({
+                onValueChange={(value: any) =>
+                  setFormData((prev: any) => ({
                     ...prev,
                     settings: { ...prev.settings, aiModeThreshold: value }
                   }))
@@ -132,8 +132,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
             <Textarea
               id="handoverGoal"
               value={formData.settings.handoverGoal}
-              onChange={(e) => 
-                setFormData(prev => ({
+              onChange={(e) =>
+                setFormData((prev: any) => ({
                   ...prev,
                   settings: { ...prev.settings, handoverGoal: e.target.value }
                 }))
@@ -149,7 +149,7 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
           <div className="space-y-2">
             <Label>Handover Keywords</Label>
             <div className="flex flex-wrap gap-2 mb-2">
-              {formData.settings.handoverKeywords.map((keyword, idx) => (
+              {formData.settings.handoverKeywords.map((keyword: any, idx: any) => (
                 <Badge key={idx} variant="secondary" className="pr-1">
                   {keyword}
                   <Button
@@ -158,11 +158,11 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
                     size="sm"
                     className="h-4 w-4 p-0 ml-1"
                     onClick={() => {
-                      setFormData(prev => ({
+                      setFormData((prev: any) => ({
                         ...prev,
                         settings: {
                           ...prev.settings,
-                          handoverKeywords: prev.settings.handoverKeywords.filter((_, i) => i !== idx)
+                          handoverKeywords: prev.settings.handoverKeywords.filter((_: any, i: any) => i !== idx)
                         }
                       }));
                     }}
@@ -181,7 +181,7 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
                     e.preventDefault();
                     const input = e.target as HTMLInputElement;
                     if (input.value.trim()) {
-                      setFormData(prev => ({
+                      setFormData((prev: any) => ({
                         ...prev,
                         settings: {
                           ...prev.settings,
@@ -211,8 +211,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
             </div>
             <Switch
               checked={formData.settings.handoverFollowUp.enabled}
-              onCheckedChange={(checked) => 
-                setFormData(prev => ({
+              onCheckedChange={(checked) =>
+                setFormData((prev: any) => ({
                   ...prev,
                   settings: {
                     ...prev.settings,
@@ -234,8 +234,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
                   id="daysAfter"
                   type="number"
                   value={formData.settings.handoverFollowUp.daysAfterHandover}
-                  onChange={(e) => 
-                    setFormData(prev => ({
+                  onChange={(e) =>
+                    setFormData((prev: any) => ({
                       ...prev,
                       settings: {
                         ...prev.settings,
@@ -257,8 +257,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
                   id="maxAttempts"
                   type="number"
                   value={formData.settings.handoverFollowUp.maxAttempts}
-                  onChange={(e) => 
-                    setFormData(prev => ({
+                  onChange={(e) =>
+                    setFormData((prev: any) => ({
                       ...prev,
                       settings: {
                         ...prev.settings,
@@ -280,8 +280,8 @@ export function CampaignSettings({ formData, setFormData }: CampaignSettingsProp
                   id="daysBetweenAttempts"
                   type="number"
                   value={formData.settings.handoverFollowUp.daysBetweenAttempts}
-                  onChange={(e) => 
-                    setFormData(prev => ({
+                  onChange={(e) =>
+                    setFormData((prev: any) => ({
                       ...prev,
                       settings: {
                         ...prev.settings,
