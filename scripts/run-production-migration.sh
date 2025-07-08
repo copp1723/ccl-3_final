@@ -36,7 +36,7 @@ echo "✅ Dependencies ready"
 echo "🔄 Running database migration..."
 echo ""
 
-node scripts/database/apply-migration.js
+node scripts/database/apply-migration-fixed.js
 
 MIGRATION_EXIT_CODE=$?
 
