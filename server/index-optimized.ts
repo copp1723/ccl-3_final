@@ -336,6 +336,192 @@ app.post('/api/communications/sms', async (req, res) => {
   }
 });
 
+// Email agents endpoint
+app.get('/api/email-agents', async (req, res) => {
+  try {
+    // Return mock data for now
+    const agents = [
+      {
+        id: "agent-1",
+        name: "Sales Specialist",
+        role: "Senior Sales Executive",
+        endGoal: "Convert leads into paying customers through personalized email sequences",
+        instructions: {
+          dos: [
+            "Personalize emails based on lead's industry",
+            "Follow up within 24 hours",
+            "Provide value in every email"
+          ],
+          donts: [
+            "Don't use aggressive sales tactics",
+            "Avoid spammy language",
+            "Don't send more than 3 follow-ups without response"
+          ]
+        },
+        domainExpertise: ["SaaS", "B2B Sales", "Enterprise Software"],
+        personality: "professional",
+        isActive: true,
+        emailsSent: 1247,
+        responseRate: 23.5,
+        conversions: 47,
+        createdAt: new Date('2024-01-01').toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "agent-2",
+        name: "Support Assistant",
+        role: "Customer Support Specialist",
+        endGoal: "Resolve customer issues and provide excellent support experience",
+        instructions: {
+          dos: [
+            "Respond within 2 hours",
+            "Provide detailed solutions",
+            "Follow up on resolution"
+          ],
+          donts: [
+            "Don't dismiss concerns",
+            "Avoid technical jargon",
+            "Don't escalate unnecessarily"
+          ]
+        },
+        domainExpertise: ["Customer Service", "Technical Support", "Problem Resolution"],
+        personality: "helpful",
+        isActive: true,
+        emailsSent: 823,
+        responseRate: 87.2,
+        conversions: 156,
+        createdAt: new Date('2024-01-15').toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    res.json(agents);
+  } catch (error) {
+    logger.error('Error fetching email agents:', error);
+    res.status(500).json({ error: 'Failed to fetch email agents' });
+  }
+});
+
+// Email agents endpoint (alternative path used by frontend)
+app.get('/api/email/agents', async (req, res) => {
+  try {
+    // Return mock data for now
+    const agents = [
+      {
+        id: "agent-1",
+        name: "Sales Specialist",
+        role: "Senior Sales Executive",
+        endGoal: "Convert leads into paying customers through personalized email sequences",
+        instructions: {
+          dos: [
+            "Personalize emails based on lead's industry",
+            "Follow up within 24 hours",
+            "Provide value in every email"
+          ],
+          donts: [
+            "Don't use aggressive sales tactics",
+            "Avoid spammy language",
+            "Don't send more than 3 follow-ups without response"
+          ]
+        },
+        domainExpertise: ["SaaS", "B2B Sales", "Enterprise Software"],
+        personality: "professional",
+        isActive: true,
+        emailsSent: 1247,
+        responseRate: 23.5,
+        conversions: 47,
+        createdAt: new Date('2024-01-01').toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "agent-2",
+        name: "Support Assistant",
+        role: "Customer Support Specialist",
+        endGoal: "Resolve customer issues and provide excellent support experience",
+        instructions: {
+          dos: [
+            "Respond within 2 hours",
+            "Provide detailed solutions",
+            "Follow up on resolution"
+          ],
+          donts: [
+            "Don't dismiss concerns",
+            "Avoid technical jargon",
+            "Don't escalate unnecessarily"
+          ]
+        },
+        domainExpertise: ["Customer Service", "Technical Support", "Problem Resolution"],
+        personality: "helpful",
+        isActive: true,
+        emailsSent: 823,
+        responseRate: 87.2,
+        conversions: 156,
+        createdAt: new Date('2024-01-15').toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    res.json({ data: agents });
+  } catch (error) {
+    logger.error('Error fetching email agents:', error);
+    res.status(500).json({ error: 'Failed to fetch email agents' });
+  }
+});
+
+// Email campaigns endpoint
+app.get('/api/email/campaigns', async (req, res) => {
+  try {
+    // Return mock campaign data
+    const campaigns = [
+      {
+        id: "campaign-1",
+        name: "Welcome Series",
+        agentId: "agent-1",
+        status: "active",
+        templates: ["welcome-1", "welcome-2", "welcome-3"],
+        schedule: {
+          type: "sequential",
+          delays: [0, 24, 72] // hours
+        },
+        stats: {
+          sent: 156,
+          opened: 89,
+          clicked: 23,
+          replied: 12,
+          bounced: 3
+        },
+        createdAt: new Date('2024-01-01').toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "campaign-2",
+        name: "Follow-up Sequence",
+        agentId: "agent-1",
+        status: "active",
+        templates: ["followup-1", "followup-2"],
+        schedule: {
+          type: "sequential",
+          delays: [48, 168] // hours
+        },
+        stats: {
+          sent: 89,
+          opened: 52,
+          clicked: 15,
+          replied: 8,
+          bounced: 1
+        },
+        createdAt: new Date('2024-01-15').toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    res.json({ data: campaigns });
+  } catch (error) {
+    logger.error('Error fetching email campaigns:', error);
+    res.status(500).json({ error: 'Failed to fetch email campaigns' });
+  }
+});
+
 // WebSocket setup (only if enabled)
 if (config.enableWebSocket) {
   import('ws').then(({ WebSocketServer }) => {
