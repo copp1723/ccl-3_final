@@ -10,7 +10,7 @@ import {
 } from '../db';
 import { authenticate, authorize } from '../middleware/auth';
 import { auditExport } from '../middleware/audit';
-import { Parser } from 'json2csv';
+import { Parser } from '@json2csv/plainjs';
 import ExcelJS from 'exceljs';
 
 const router = Router();
