@@ -83,7 +83,7 @@ export const campaigns = pgTable('campaigns', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'), // Field that exists in production
-  agentId: text('agent_id'), // Field that exists in production
+  agentId: text('agent_id'), // Field that exists in production - keeping for backward compatibility
   status: text('status'), // Field that exists in production
   scheduleType: text('schedule_type'), // Field that exists in production
   conversationMode: text('conversation_mode'), // Field that exists in production
@@ -123,6 +123,34 @@ export const campaigns = pgTable('campaigns', {
     primary: 'email' | 'sms' | 'chat';
     fallback: ('email' | 'sms' | 'chat')[];
   }>().default({ primary: "email", fallback: ["sms"] }),
+  // Enhanced multi-agent support
+  assignedAgents: jsonb('assigned_agents').$type<{
+    agentId: string;
+    channels: ('email' | 'sms' | 'chat')[];
+    role: 'primary' | 'secondary' | 'fallback';
+    capabilities: {
+      email: boolean;
+      sms: boolean;
+      chat: boolean;
+    };
+    schedule?: {
+      timezone: string;
+      workingHours: { start: string; end: string };
+      workingDays: number[];
+    };
+  }[]>().default([]),
+  coordinationStrategy: text('coordination_strategy').$type<'round_robin' | 'priority_based' | 'channel_specific'>().default('channel_specific'),
+  messageCoordination: jsonb('message_coordination').$type<{
+    allowMultipleAgents: boolean;
+    messageGap: number; // minutes between messages from different agents
+    handoffEnabled: boolean;
+    syncSchedules: boolean;
+  }>().default({
+    allowMultipleAgents: true,
+    messageGap: 30,
+    handoffEnabled: true,
+    syncSchedules: true
+  }),
   active: boolean('active').default(true)
 });
 

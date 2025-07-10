@@ -125,7 +125,7 @@ export class AnalyticsRepository {
     }
     
     if (options?.campaignId) {
-      conditions.push(eq(leads.campaign, options.campaignId));
+      conditions.push(eq(leads.campaignId, options.campaignId));
     }
     
     if (options?.source) {
@@ -203,11 +203,12 @@ export class AnalyticsRepository {
 
   // Campaign performance
   static async getCampaignPerformance(campaignId?: string) {
-    const campaignCondition = campaignId ? eq(leads.campaign, campaignId) : undefined;
+    const numericCampaignId = campaignId ? parseInt(campaignId, 10) : undefined;
+    const campaignCondition = numericCampaignId && !isNaN(numericCampaignId) ? eq(leads.campaignId, numericCampaignId) : undefined;
 
     const performance = await db
       .select({
-        campaignId: leads.campaign,
+        campaignId: leads.campaignId,
         totalLeads: sql<number>`count(distinct ${leads.id})::int`,
         qualifiedLeads: sql<number>`count(distinct ${leads.id}) FILTER (WHERE ${leads.qualificationScore} >= 70)::int`,
         conversions: sql<number>`count(distinct ${leads.id}) FILTER (WHERE ${leads.boberdooId} IS NOT NULL)::int`,
@@ -220,7 +221,7 @@ export class AnalyticsRepository {
       .leftJoin(communications, eq(communications.leadId, leads.id))
       .leftJoin(conversations, eq(conversations.leadId, leads.id))
       .where(campaignCondition)
-      .groupBy(leads.campaign);
+      .groupBy(leads.campaignId);
 
     return performance;
   }

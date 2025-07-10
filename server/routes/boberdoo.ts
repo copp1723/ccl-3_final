@@ -40,14 +40,13 @@ router.post('/api/postLead',
     
     console.log(`Received ${isTestLead ? 'TEST' : 'LIVE'} lead from source: ${src}`);
 
-    // Create lead object
-    const lead: Lead = {
-      id: nanoid(),
+    // Create lead object (without id - let database generate it)
+    const leadData = {
       name: name || 'Unknown',
       email: email,
       phone: phone,
       source: src || 'api',
-      campaign: otherFields.campaign,
+      campaignId: otherFields.campaign ? parseInt(otherFields.campaign, 10) : null,
       status: 'new',
       assignedChannel: null,
       qualificationScore: 0,
@@ -57,9 +56,7 @@ router.post('/api/postLead',
         Test_Lead: Test_Lead,
         receivedAt: new Date().toISOString()
       },
-      boberdooId: null,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      boberdooId: null
     };
 
     // Get the Overlord agent to make a decision
@@ -67,11 +64,26 @@ router.post('/api/postLead',
     
     // For test leads, skip to Boberdoo submission
     if (isTestLead) {
-      const boberdooResult = await overlord.submitToBoberdoo(lead, true);
+      // Create a temporary lead object for Boberdoo submission with all required fields
+      const tempLead: Lead = {
+        ...leadData,
+        id: 9999999, // Use a fake numeric ID for test
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        conversationMode: null,
+        templateStage: null,
+        templateCurrent: null,
+        templateTotal: null,
+        aiSentiment: null,
+        modeSwitchedAt: null,
+        lastTemplateSentAt: null,
+        firstReplyAt: null
+      };
+      const boberdooResult = await overlord.submitToBoberdoo(tempLead, true);
       
       // Don't save test leads to database
       console.log('Test lead processed (not saved):', {
-        leadId: lead.id,
+        leadId: tempLead.id,
         matched: boberdooResult.matched,
         buyerId: boberdooResult.buyerId
       });
@@ -79,7 +91,7 @@ router.post('/api/postLead',
       // Return XML response
       return res.status(200).type('application/xml').send(formatXmlResponse({
         status: boberdooResult.matched ? 'matched' : 'unmatched',
-        lead_id: lead.id,
+        lead_id: tempLead.id.toString(),
         buyer_id: boberdooResult.buyerId || '',
         price: boberdooResult.price || 0,
         message: boberdooResult.matched ? 'Test lead matched successfully' : 'No buyer found for test lead'
@@ -87,25 +99,14 @@ router.post('/api/postLead',
     }
 
     // For live leads, save to database and process normally
-    const savedLead = await LeadsRepository.create({
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone,
-      source: lead.source,
-      campaign: lead.campaign,
-      status: lead.status,
-      assignedChannel: lead.assignedChannel,
-      qualificationScore: lead.qualificationScore,
-      metadata: lead.metadata,
-      boberdooId: lead.boberdooId
-    });
+    const savedLead = await LeadsRepository.create(leadData);
     
     // Make initial routing decision
     const decision = await overlord.makeDecision({ lead: savedLead });
     
     // Record the decision
     await AgentDecisionsRepository.create(
-      savedLead.id,
+      savedLead.id.toString(),
       'overlord',
       decision.action,
       decision.reasoning,

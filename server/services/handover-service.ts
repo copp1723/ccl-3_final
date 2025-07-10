@@ -2,6 +2,8 @@ import { ConversationsRepository } from '../db/conversations-repository';
 import { CampaignsRepository } from '../db/campaigns-repository';
 import { LeadsRepository } from '../db/leads-repository';
 import { CommunicationsRepository } from '../db/communications-repository';
+import { LeadDossierService } from './lead-dossier-service';
+import { HandoverEmailService } from './handover-email-service';
 import { logger } from '../utils/logger';
 
 export interface HandoverEvaluation {
@@ -43,7 +45,7 @@ export class HandoverService {
         throw new Error('Campaign not found');
       }
 
-      const criteria = campaign.handoverCriteria;
+      const criteria = campaign?.handoverCriteria;
       const analysis = await this.analyzeConversation(conversation, newMessage);
       
       const evaluation: HandoverEvaluation = {
@@ -53,6 +55,12 @@ export class HandoverService {
         triggeredCriteria: [],
         nextActions: []
       };
+
+      // If no criteria available, use defaults
+      if (!criteria) {
+        logger.warn('No handover criteria found, using defaults', { conversationId });
+        return evaluation;
+      }
 
       // Check qualification score threshold
       if (analysis.qualificationScore >= criteria.qualificationScore) {
@@ -208,7 +216,7 @@ export class HandoverService {
   }
 
   /**
-   * Execute handover to human agent
+   * Execute handover to human agent with comprehensive dossier
    */
   static async executeHandover(
     conversationId: string,
@@ -227,13 +235,26 @@ export class HandoverService {
         ? await CampaignsRepository.findById(conversation.campaignId)
         : await CampaignsRepository.getDefaultCampaign();
 
+      // Generate handover evaluation for dossier
+      const handoverEvaluation = await this.evaluateHandover(conversationId);
+      
+      // Generate comprehensive lead dossier
+      const dossier = await LeadDossierService.generateDossier(
+        conversation.leadId,
+        handoverEvaluation,
+        conversationId
+      );
+
+      // Format dossier for human consumption
+      const formattedDossier = LeadDossierService.formatDossierForHandover(dossier);
+
       // Add handover message to conversation
       const handoverRecipients = campaign?.handoverCriteria?.handoverRecipients || [];
       const recipientList = handoverRecipients.map(r => `${r.name} (${r.email})`).join(', ');
       
       await ConversationsRepository.addMessage(conversationId, {
         role: 'agent',
-        content: `🤝 **Handover Initiated**\n\nReason: ${reason}\n\nNotified recipients: ${recipientList || 'Default team'}\n\nA human agent will be with you shortly to assist with your inquiry.`,
+        content: `🤝 **Handover Initiated**\n\nReason: ${reason}\n\nNotified recipients: ${recipientList || 'Default team'}\n\nA comprehensive lead dossier has been generated and sent to the human representatives. A human agent will be with you shortly to assist with your inquiry.`,
         timestamp: new Date().toISOString()
       });
 
@@ -245,7 +266,7 @@ export class HandoverService {
         );
       }
 
-      // Create communication record with handover recipient details
+      // Create communication record with handover details and dossier
       await CommunicationsRepository.create(
         conversation.leadId,
         conversation.channel,
@@ -257,21 +278,60 @@ export class HandoverService {
           handoverRecipients,
           reason,
           conversationId,
-          handoverTime: new Date().toISOString()
+          handoverTime: new Date().toISOString(),
+          dossier: formattedDossier,
+          qualificationScore: handoverEvaluation.score,
+          urgency: dossier.handoverTrigger.urgency,
+          recommendedNextSteps: dossier.recommendations.nextSteps,
+          approachStrategy: dossier.recommendations.approachStrategy
         }
       );
 
-      logger.info('Handover executed successfully', {
+      // Send email notifications with dossier to handover recipients
+      if (handoverRecipients.length > 0) {
+        const emailSent = await HandoverEmailService.sendHandoverNotification(
+          dossier.leadSnapshot.name,
+          dossier,
+          handoverRecipients,
+          conversationId
+        );
+
+        if (!emailSent) {
+          logger.warn('Failed to send some handover notification emails', {
+            conversationId,
+            recipientCount: handoverRecipients.length
+          });
+        }
+
+        // Send Slack notification for urgent handovers
+        if (dossier.handoverTrigger.urgency === 'high') {
+          await HandoverEmailService.sendSlackNotification(
+            dossier.leadSnapshot.name,
+            dossier,
+            conversationId
+          );
+        }
+      } else {
+        logger.warn('No handover recipients configured, dossier generated but not sent', {
+          conversationId,
+          campaignId: conversation.campaignId
+        });
+      }
+      
+      logger.info('Handover executed successfully with dossier', {
         conversationId,
         leadId: conversation.leadId,
         reason,
         handoverRecipients: handoverRecipients.map(r => r.email),
+        qualificationScore: handoverEvaluation.score,
+        urgency: dossier.handoverTrigger.urgency,
+        emailsSent: handoverRecipients.length > 0,
         humanAgentId
       });
 
       return true;
     } catch (error) {
-      logger.error('Error executing handover', { conversationId, error: (error as Error).message });
+      logger.error('Error executing handover with dossier', { conversationId, error: (error as Error).message });
       return false;
     }
   }

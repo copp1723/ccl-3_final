@@ -79,7 +79,7 @@ export class LeadProcessor {
         { lead, campaign },
         decision.data.initialMessageFocus || 'general inquiry'
       );
-      subject = `Thank you for your interest${lead.campaign ? ` in ${lead.campaign}` : ''}`;
+      subject = `Thank you for your interest${campaign?.name ? ` in ${campaign.name}` : ''}`;
     } else if (channel === 'sms') {
       const smsAgent = getSMSAgent();
       messageContent = await smsAgent.generateInitialSMS(

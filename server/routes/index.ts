@@ -1,4 +1,9 @@
 import { Express } from 'express';
+import { cclApiRateLimit } from '../middleware/rate-limit.js';
+import { healthHandler } from '../api/unified-handlers';
+
+// Route imports
+import authRoutes from './auth';
 import boberdooRoutes from './boberdoo';
 import campaignsRoutes from './campaigns';
 import communicationsRoutes from './communications';
@@ -8,77 +13,71 @@ import emailAgentsRoutes from './email-agents';
 import emailTemplatesRoutes from './email-templates';
 import agentConfigurationsRoutes from './agent-configurations';
 import notificationsRoutes from './notifications';
-import authRoutes from './auth';
 import usersRoutes from './users';
 import analyticsRoutes from './analytics';
 import leadDetailsRoutes from './lead-details';
 import exportRoutes from './export';
 import systemHealthRoutes from './system-health';
-import queueMonitoringRoutes from './queue-monitoring';
-import monitoringRoutes from './monitoring';
-import { cclApiRateLimit } from '../middleware/rate-limit.js';
+import multiAgentCampaignsRoutes from './multi-agent-campaigns';
+import handoverRoutes from './handover';
 
-/**
- * Register all application routes
- */
-export function registerRoutes(app: Express) {
-  // Auth routes (before session middleware)
-  app.use(authRoutes);
-
-  // Boberdoo routes (before session middleware for API endpoints)
-  app.use(cclApiRateLimit, boberdooRoutes);
-
-  // Public API routes (before session middleware)
-  app.use('/api/webhooks', cclApiRateLimit, communicationsRoutes); // Webhooks don't need auth
-
-  // Protected API routes (will add auth middleware)
-  app.use(cclApiRateLimit, campaignsRoutes);
-  app.use(cclApiRateLimit, communicationsRoutes);
-  app.use(cclApiRateLimit, agentDecisionsRoutes);
-  app.use(cclApiRateLimit, importRoutes);
-  app.use(cclApiRateLimit, emailTemplatesRoutes);
-  app.use(cclApiRateLimit, agentConfigurationsRoutes);
-  app.use(cclApiRateLimit, notificationsRoutes);
-  app.use(cclApiRateLimit, usersRoutes);
-  app.use(cclApiRateLimit, analyticsRoutes);
-  app.use(cclApiRateLimit, leadDetailsRoutes);
-  app.use(cclApiRateLimit, exportRoutes);
-  app.use('/api/email', cclApiRateLimit, emailAgentsRoutes);
-  
-  // System routes (monitoring, health, etc.)
-  app.use('/api/system', systemHealthRoutes);
-  app.use('/api/queues', queueMonitoringRoutes);
-  app.use('/api/monitoring', monitoringRoutes);
+// Route configuration
+interface RouteConfig {
+  path: string;
+  router: any;
+  middleware?: any[];
+  public?: boolean;
 }
 
+const routes: RouteConfig[] = [
+  // Public routes (no auth required)
+  { path: '/api/auth', router: authRoutes, public: true },
+  { path: '/api/webhooks', router: communicationsRoutes, public: true },
+  
+  // Protected API routes
+  { path: '/api/boberdoo', router: boberdooRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/campaigns', router: campaignsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/communications', router: communicationsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/agent-decisions', router: agentDecisionsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/import', router: importRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/email', router: emailAgentsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/email-templates', router: emailTemplatesRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/agent-configurations', router: agentConfigurationsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/notifications', router: notificationsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/users', router: usersRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/analytics', router: analyticsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/lead-details', router: leadDetailsRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/export', router: exportRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/handover', router: handoverRoutes, middleware: [cclApiRateLimit] },
+  { path: '/api/multi-agent-campaigns', router: multiAgentCampaignsRoutes, middleware: [cclApiRateLimit] },
+  
+  // System routes
+  { path: '/api/system', router: systemHealthRoutes },
+  // { path: '/api/queues', router: queueMonitoringRoutes },
+  // { path: '/api/monitoring', router: monitoringRoutes }
+];
+
 /**
- * Route configuration for easy management
+ * Register all application routes with standardized middleware
  */
-export const routeConfig = {
-  rateLimited: [
-    { path: '/api/boberdoo', router: boberdooRoutes },
-    { path: '/api/campaigns', router: campaignsRoutes },
-    { path: '/api/communications', router: communicationsRoutes },
-    { path: '/api/agent-decisions', router: agentDecisionsRoutes },
-    { path: '/api/import', router: importRoutes },
-    { path: '/api/email-templates', router: emailTemplatesRoutes },
-    { path: '/api/agent-configurations', router: agentConfigurationsRoutes },
-    { path: '/api/notifications', router: notificationsRoutes },
-    { path: '/api/users', router: usersRoutes },
-    { path: '/api/analytics', router: analyticsRoutes },
-    { path: '/api/lead-details', router: leadDetailsRoutes },
-    { path: '/api/export', router: exportRoutes },
-    { path: '/api/email', router: emailAgentsRoutes }
-  ],
-  public: [
-    { path: '/api/webhooks', router: communicationsRoutes }
-  ],
-  system: [
-    { path: '/api/system', router: systemHealthRoutes },
-    { path: '/api/queues', router: queueMonitoringRoutes },
-    { path: '/api/monitoring', router: monitoringRoutes }
-  ],
-  auth: [
-    { path: '/api/auth', router: authRoutes }
-  ]
-};
+export function registerRoutes(app: Express) {
+  // Global health endpoint
+  app.get('/health', healthHandler.check);
+  app.get('/api/health', healthHandler.check);
+  
+  // Register all routes
+  routes.forEach(({ path, router, middleware = [], public: isPublic }) => {
+    try {
+      if (isPublic) {
+        app.use(path, router);
+      } else {
+        app.use(path, ...middleware, router);
+      }
+    } catch (error) {
+      console.warn(`Failed to register route ${path}:`, error);
+    }
+  });
+}
+
+// Export route configuration for external use
+export { routes as routeConfig };

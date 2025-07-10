@@ -24,7 +24,7 @@ export const leadHandler = {
       const leads = await LeadsRepository.findAll({
         status: status as any,
         source: source as string,
-        campaign: campaign as string,
+        campaignId: campaign as string,
         assignedChannel: channel as any,
         limit: limit ? parseInt(limit as string) : undefined
       });
@@ -49,7 +49,7 @@ export const leadHandler = {
           email: leadData.email,
           phone: leadData.phone,
           source: leadData.source || 'api',
-          campaign: leadData.campaign,
+          campaignId: leadData.campaign ? parseInt(leadData.campaign, 10) : null,
           status: 'new',
           assignedChannel: null,
           qualificationScore: 0,
@@ -59,14 +59,14 @@ export const leadHandler = {
         
         // Record the initial creation decision
         await AgentDecisionsRepository.create(
-          lead.id,
+          lead.id.toString(),
           'overlord',
           'lead_created',
           'New lead received and saved to database',
           { source: leadData.source }
         );
         
-        CCLLogger.leadCreated(lead.id, { leadData: lead });
+        new CCLLogger().info('Lead created', { leadId: lead.id, leadData: lead });
         
         // Notify clients about new lead
         broadcastToClients({
@@ -77,7 +77,7 @@ export const leadHandler = {
         // Process the lead (background job if available, otherwise immediate)
         const useBackgroundProcessing = process.env.USE_BACKGROUND_JOBS !== 'false';
         leadProcessor.processNewLead(lead, useBackgroundProcessing).catch(error => {
-          CCLLogger.leadError(lead.id, error as Error, { step: 'async_processing' });
+          new CCLLogger().error('Lead processing error', { leadId: lead.id, error: (error as Error).message, step: 'async_processing' });
         });
         
         res.json({ success: true, leadId: lead.id, lead });
