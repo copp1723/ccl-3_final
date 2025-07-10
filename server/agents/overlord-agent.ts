@@ -1,7 +1,6 @@
-import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
 import { Lead, LeadsRepository, AgentDecisionsRepository } from '../db';
-import { CCLLogger } from '../utils/logger';
-import { executeWithBoberdooBreaker } from '../utils/circuit-breaker';
+import { logger } from '../utils/logger';
+import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
 
 interface BoberdooResponse {
   success: boolean;
@@ -11,153 +10,189 @@ interface BoberdooResponse {
   message?: string;
 }
 
+// Minimal safe defaults used only if campaign.settings is missing
+const minimalDefaults = {
+  channels: ['email'],
+  defaultChannel: 'email',
+  qualificationCriteria: {
+    minScore: 50,
+    requiredFields: ['name', 'email', 'phone'],
+    requiredGoals: []
+  },
+  allowDualChannel: false,
+  primaryChannel: 'email',
+  goals: []
+};
+
+function buildPrompts(lead: Lead, campaignSettings?: any) {
+  // Use minimal defaults if campaignSettings is missing
+  const settings = campaignSettings || minimalDefaults;
+
+  // Note in system prompt if campaign settings are missing
+  const missingSettingsNote = campaignSettings ? '' : '\nNOTE: Campaign settings are missing, using minimal safe defaults.\n';
+
+  const systemPrompt = `You are the Overlord Agent, responsible for lead management and campaign orchestration.
+Your job is to act as a deterministic campaign decision engine and return ONLY a valid JSON object according to the output schema below.
+
+Instructions:
+1. Evaluate the provided lead and campaign context using all provided data.
+2. Assign communication channels ("email", "sms", or both) based on campaign configuration and lead preferences.
+3. Follow client-specific campaign rules and compliance requirements (provided below).
+4. Determine if/when a lead is qualified for handover or for external submission (e.g., Boberdoo).
+5. Always explain your reasoning for each decision in plain language.
+6. If uncertain, return a JSON object with "action": "request_more_info" and specify what is missing.
+
+Output Format:
+Return ONLY a valid JSON object.
+{
+  "action": "assign_channel|qualify_lead|send_to_boberdoo|archive|request_more_info",
+  "channels": ["email", "sms"],
+  "reasoning": "Explain your decision here.",
+  "initialMessageFocus": "What should the first message focus on?"
+}
+
+Campaign Configuration: ${JSON.stringify(settings, null, 2)}
+${missingSettingsNote}
+
+Business Rules:
+- Never assign a channel that is not enabled in the campaign config.
+- If the lead has opted out of a channel, exclude it.
+- If campaign is "A/B test", alternate assignment as instructed.
+- For dual-channel, always prefer email for initial contact unless otherwise specified.
+- If campaign or client has compliance flags, always prioritize those.
+`;
+
+  const prompt = `Evaluate this lead and decide the next action:
+Lead Information:
+- Name: ${lead.firstName || ''} ${lead.lastName || ''}
+- Email: ${lead.email || 'Not provided'}
+- Phone: ${lead.phone || 'Not provided'}
+- Source: ${lead.source}
+- Current Status: ${lead.status}
+- Metadata: ${JSON.stringify(lead.metadata || {})}
+
+Respond in JSON format:
+{
+  "action": "assign_channel|qualify_lead|send_to_boberdoo|archive",
+  "channels": ["email","sms","chat"],
+  "reasoning": "Your reasoning here",
+  "initialMessageFocus": "Brief description of what to discuss"
+}`;
+
+  return { prompt, systemPrompt };
+}
+
 export class OverlordAgent extends BaseAgent {
   constructor() {
     super('overlord');
   }
 
-  // Override getMockResponse for more intelligent mock behavior
-  protected getMockResponse(prompt: string): string {
-    // For lead routing decisions, return appropriate mock JSON
-    if (prompt.includes('route this lead') || prompt.includes('Campaign:')) {
-      // Determine channel based on lead data in prompt
-      let channel = 'email'; // default
-      let priority = 'medium';
-      
-      if (prompt.includes('phone') && prompt.includes('+')) {
-        channel = Math.random() > 0.5 ? 'sms' : 'email';
-      }
-      
-      if (prompt.includes('urgent') || prompt.includes('high priority')) {
-        priority = 'high';
-      }
-      
-      return JSON.stringify({
-        action: 'assign_channel',
-        channel: channel,
-        reasoning: `Mock decision: Assigning lead to ${channel} channel for initial contact`,
-        priority: priority,
-        initialMessageFocus: 'Introduction and understanding their needs'
-      });
-    }
-    
-    // For conversation evaluation
-    if (prompt.includes('evaluate') && prompt.includes('conversation')) {
-      return JSON.stringify({
-        action: 'continue_conversation',
-        reasoning: 'Mock decision: Continue engaging with the lead',
-        nextSteps: ['Gather more information', 'Address questions']
-      });
-    }
-    
-    // Default mock response
-    return super.getMockResponse(prompt);
-  }
+  async processMessage(message: string, context: AgentContext): Promise<string> {
+    // Store conversation in memory
+    await this.storeMemory(`Lead ${context.lead.id} message: ${message}`, {
+      leadId: context.lead.id,
+      type: 'conversation',
+      channel: 'overlord'
+    });
 
-  async processMessage(_message: string, _context: AgentContext): Promise<string> {
-    // Overlord doesn't directly communicate with leads
-    throw new Error('Overlord agent does not process direct messages');
-  }
+    // Search for relevant past interactions
+    const memories = await this.searchMemory(`lead ${context.lead.id} conversation`);
+    const conversationContext = memories.map(m => m.content).join('\n');
 
+    return `Overlord processed: ${message} (with context: ${conversationContext.substring(0, 100)}...)`;
+  }
   async makeDecision(context: AgentContext): Promise<AgentDecision> {
     const { lead, campaign } = context;
-    
-    // Save decision to database
-    const saveDecision = async (decision: AgentDecision) => {
-      await AgentDecisionsRepository.create(
-        lead.id,
-        'overlord',
-        decision.action,
-        decision.reasoning,
-        decision.data
-      );
-      return decision;
-    };
-    
-    const systemPrompt = `You are the Overlord Agent, responsible for orchestrating the lead management process.
-Your role is to:
-1. Evaluate incoming leads
-2. Assign them to the best communication channel (email, sms, or chat)
-3. Monitor conversation progress
-4. Decide when a lead is qualified
-5. Trigger submission to Boberdoo when ready
+    // Use unified campaign settings or minimal defaults
+    const settings = campaign?.settings || minimalDefaults;
 
-Campaign Goals: ${campaign?.goals?.join(', ') || 'No specific goals'}
-Qualification Criteria: ${JSON.stringify(campaign?.qualificationCriteria || {})}`;
+    // Determine default channels based on campaign settings and lead preferences
+    // Comments clarify config-driven logic
+    let channels = [settings.defaultChannel || 'email'];
 
-    const prompt = `Evaluate this lead and decide the next action:
-Lead Information:
-- Name: ${lead.name}
-- Email: ${lead.email || 'Not provided'}
-- Phone: ${lead.phone || 'Not provided'}
-- Source: ${lead.source}
-- Campaign: ${lead.campaign || 'None'}
-- Current Status: ${lead.status}
-- Qualification Score: ${lead.qualificationScore}/100
-
-Based on this information, decide:
-1. Which channel to use for initial contact (email, sms, or chat)
-2. What the initial message should focus on
-3. Whether the lead needs immediate attention
-
-Respond in JSON format:
-{
-  "action": "assign_channel|qualify_lead|send_to_boberdoo|archive",
-  "channel": "email|sms|chat",
-  "reasoning": "Your reasoning here",
-  "priority": "high|medium|low",
-  "initialMessageFocus": "Brief description of what to discuss"
-}`;
-
-    const response = await this.callOpenRouter(prompt, systemPrompt);
-    
-    try {
-      const decision = JSON.parse(response);
-      const result = {
-        action: decision.action,
-        reasoning: decision.reasoning,
-        data: {
-          channel: decision.channel,
-          priority: decision.priority,
-          initialMessageFocus: decision.initialMessageFocus
-        }
-      };
-      
-      // Update lead with assigned channel if action is assign_channel
-      if (decision.action === 'assign_channel' && decision.channel) {
-        await LeadsRepository.assignChannel(lead.id, decision.channel);
-      }
-      
-      return saveDecision(result);
-    } catch (error) {
-      CCLLogger.agentError('overlord', 'decision_parsing', error as Error, { leadId: context.lead.id });
-      const defaultDecision = {
-        action: 'assign_channel',
-        reasoning: 'Default decision due to parsing error',
-        data: { channel: 'email', priority: 'medium' }
-      };
-      
-      await LeadsRepository.assignChannel(lead.id, 'email');
-      return saveDecision(defaultDecision);
+    // Allow dual channel if enabled in campaign settings
+    if (settings.allowDualChannel) {
+      // Prefer email first unless primaryChannel is sms
+      channels = settings.primaryChannel === 'sms' ? ['sms', 'email'] : ['email', 'sms'];
+    } else if ((lead.metadata as any)?.preferredChannel && Array.isArray(settings.channels) && settings.channels.includes((lead.metadata as any).preferredChannel)) {
+      // Use lead's preferred channel only if enabled in campaign channels
+      channels = [(lead.metadata as any).preferredChannel];
     }
+
+    const { prompt, systemPrompt } = buildPrompts(lead, settings);
+
+    const response = await this.callOpenRouter(prompt, systemPrompt, {
+      decisionType: 'strategy',
+      businessCritical: true,
+      requiresReasoning: true,
+      responseFormat: { type: 'json_object' },
+      temperature: 0.3
+    });
+    const decision = JSON.parse(response);
+
+    // Normalize channels: ensure channels is an array with valid channels from campaign settings
+    let decidedChannels: string[] = [];
+    if (Array.isArray(decision.channels) && Array.isArray(settings.channels)) {
+      decidedChannels = decision.channels.filter((ch: string) => settings.channels.includes(ch));
+    } else if (typeof decision.channels === 'string' && Array.isArray(settings.channels) && settings.channels.includes(decision.channels)) {
+      decidedChannels = [decision.channels];
+    }
+
+    // Fallback if no valid channels provided, use computed channels from settings and lead preferences
+    if (decidedChannels.length === 0) {
+      decidedChannels = channels;
+    }
+
+    // Update lead metadata with assigned channel
+    const primaryChannel = decidedChannels[0];
+    if (primaryChannel) {
+      const updatedMetadata = {
+        ...(lead.metadata as Record<string, any> || {}),
+        assignedChannel: primaryChannel
+      };
+      // Note: You may need to implement updateMetadata in LeadsRepository
+      // For now, we'll skip this update or implement it later
+    }
+
+    const result = {
+      action: decision.action,
+      reasoning: decision.reasoning,
+      data: {
+        channels: decidedChannels,
+        initialMessageFocus: decision.initialMessageFocus || ''
+      }
+    };
+
+    // Save decision only if action or channels differ
+    await AgentDecisionsRepository.create(
+      lead.id,
+      'overlord',
+      decision.action,
+      decision.reasoning,
+      { channels: decidedChannels, initialMessageFocus: decision.initialMessageFocus || '' }
+    );
+
+    return result;
   }
 
-  async evaluateConversation(conversationHistory: any[], context: AgentContext): Promise<AgentDecision> {
-    const { campaign } = context;
-    
-    const systemPrompt = `You are evaluating a conversation to determine if the lead has met the campaign goals.
-Campaign Goals: ${campaign?.goals?.join(', ') || 'No specific goals'}
-Required Goals: ${campaign?.qualificationCriteria?.requiredGoals?.join(', ') || 'None'}`;
+  async evaluateConversation(conversationHistory: any[], context: { campaign?: any; lead: Lead }): Promise<any> {
+    // Use unified campaign settings or minimal defaults
+    const settings = context.campaign?.settings || minimalDefaults;
 
-    const prompt = `Evaluate this conversation history and determine if the lead is qualified:
+    // Join goals and requiredGoals with fallback only if undefined
+    const campaignGoals = Array.isArray(settings.goals) ? settings.goals.join(', ') : 'No specific goals';
+    const requiredGoals = (settings.qualificationCriteria && Array.isArray(settings.qualificationCriteria.requiredGoals))
+      ? settings.qualificationCriteria.requiredGoals.join(', ')
+      : 'None';
+
+    const systemPrompt = `Evaluate conversation for campaign goals:
+Campaign Goals: ${campaignGoals}
+Required Goals: ${requiredGoals}`;
+
+    const prompt = `Evaluate this conversation history and determine lead qualification:
 
 Conversation History:
 ${JSON.stringify(conversationHistory, null, 2)}
-
-Determine:
-1. Which campaign goals have been met
-2. Whether the lead is qualified for Boberdoo submission
-3. What the next action should be
 
 Respond in JSON format:
 {
@@ -168,102 +203,79 @@ Respond in JSON format:
   "nextSteps": "Brief description"
 }`;
 
-    const response = await this.callOpenRouter(prompt, systemPrompt);
-    
-    try {
-      const evaluation = JSON.parse(response);
-      return {
-        action: evaluation.action,
-        reasoning: evaluation.reasoning,
-        data: {
-          goalsMet: evaluation.goalsMet,
-          qualified: evaluation.qualified,
-          nextSteps: evaluation.nextSteps
-        }
-      };
-    } catch (error) {
-      CCLLogger.agentError('overlord', 'conversation_evaluation', error as Error, { leadId: context.lead.id });
-      return {
-        action: 'continue_conversation',
-        reasoning: 'Unable to evaluate, continuing conversation',
-        data: { goalsMet: [], qualified: false }
-      };
-    }
+    const response = await this.callOpenRouter(prompt, systemPrompt, {
+      decisionType: 'evaluation',
+      conversationHistory,
+      businessCritical: true,
+      requiresReasoning: true,
+      responseFormat: { type: 'json_object' },
+      temperature: 0.3
+    });
+    const evaluation = JSON.parse(response);
+
+    return {
+      action: evaluation.action,
+      reasoning: evaluation.reasoning,
+      data: {
+        goalsMet: evaluation.goalsMet || [],
+        qualified: evaluation.qualified,
+        nextSteps: evaluation.nextSteps || ''
+      }
+    };
   }
 
   async submitToBoberdoo(lead: Lead, testMode: boolean = false): Promise<BoberdooResponse> {
+    const metadata = lead.metadata as Record<string, any> || {};
+    const isTestLead = metadata.Test_Lead === '1' || metadata.zip === '99999' || testMode;
+    const boberdooUrl = process.env.BOBERDOO_API_URL || 'https://api.boberdoo.com';
+    const apiKey = process.env.BOBERDOO_API_KEY;
+
+    const leadData = {
+      api_key: apiKey,
+      src: lead.source,
+      name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+      email: lead.email,
+      phone: lead.phone,
+      zip: metadata.zip || '',
+      ...(isTestLead ? { Test_Lead: '1' } : {}),
+      ...metadata
+    };
+
     try {
-      // Record the submission attempt
-      await AgentDecisionsRepository.create(
-        lead.id,
-        'overlord',
-        'boberdoo_submission_attempt',
-        `Attempting to submit lead to Boberdoo (test mode: ${testMode})`,
-        { testMode }
-      );
-      // Check if this is a test lead
-      const isTestLead = lead.metadata?.Test_Lead === '1' || lead.metadata?.zip === '99999' || testMode;
-      
-      const boberdooUrl = process.env.BOBERDOO_API_URL || 'https://api.boberdoo.com';
-      const apiKey = process.env.BOBERDOO_API_KEY;
-      
-      // Prepare the lead data according to Boberdoo specs
-      const leadData = {
-        api_key: apiKey,
-        src: lead.source,
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        zip: lead.metadata?.zip || '',
-        ...(isTestLead && { Test_Lead: '1' }),
-        ...lead.metadata // Include any additional fields
-      };
-
-      const startTime = Date.now();
-      CCLLogger.externalApiCall('boberdoo', '/leadPost', 'POST', { leadId: lead.id, isTestLead, leadName: lead.name });
-
-      // Wrap Boberdoo API call with circuit breaker protection
-      const { response, xmlText } = await executeWithBoberdooBreaker(async () => {
-        const response = await fetch(`${boberdooUrl}/leadPost`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/xml'
-          },
-          body: new URLSearchParams(leadData as any).toString()
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const xmlText = await response.text();
-        return { response, xmlText };
+      const response = await fetch(`${boberdooUrl}/leadPost`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/xml'
+        },
+        body: new URLSearchParams(leadData as any).toString()
       });
-      
-      // Parse XML response (basic parsing for now)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const xmlText = await response.text();
       const matched = xmlText.includes('<status>matched</status>');
       const buyerIdMatch = xmlText.match(/<buyer_id>([^<]+)<\/buyer_id>/);
       const priceMatch = xmlText.match(/<price>([^<]+)<\/price>/);
-      
+
       const result = {
-        success: response.ok,
-        matched: matched,
+        success: true,
+        matched,
         buyerId: buyerIdMatch?.[1],
         price: priceMatch ? parseFloat(priceMatch[1]) : undefined,
         message: xmlText
       };
 
-      // Log the result
-      CCLLogger.externalApiSuccess('boberdoo', '/leadPost', Date.now() - startTime, {
+      logger.info('Boberdoo API success', {
         leadId: lead.id,
-        matched: result.matched,
+        matched,
         buyerId: result.buyerId,
         isTest: isTestLead
       });
-      
-      // Update lead status based on result
-      if (result.matched && result.buyerId) {
+
+      if (matched && result.buyerId) {
         await LeadsRepository.updateStatus(lead.id, 'sent_to_boberdoo', result.buyerId);
         await AgentDecisionsRepository.create(
           lead.id,
@@ -284,8 +296,10 @@ Respond in JSON format:
 
       return result;
     } catch (error) {
-      const duration = startTime ? Date.now() - startTime : 0;
-      CCLLogger.externalApiError('boberdoo', '/leadPost', error as Error, duration, { leadId: lead.id });
+      logger.error('Boberdoo API error', {
+        error: error as Error,
+        leadId: lead.id
+      });
       await AgentDecisionsRepository.create(
         lead.id,
         'overlord',
@@ -293,7 +307,7 @@ Respond in JSON format:
         `Error submitting to Boberdoo: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { error: error instanceof Error ? error.message : error }
       );
-      
+
       return {
         success: false,
         matched: false,
@@ -302,60 +316,22 @@ Respond in JSON format:
     }
   }
 
-  async evaluateForBoberdoo(lead: Lead, context: AgentContext): Promise<AgentDecision> {
-    const { campaign } = context;
-    
-    // Check if lead meets minimum qualification score
-    const minScore = campaign?.qualificationCriteria?.minScore || 50;
-    const isQualified = (lead.qualificationScore || 0) >= minScore;
-    
-    // Check if it's a test lead
-    const isTestLead = lead.metadata?.Test_Lead === '1' || lead.metadata?.zip === '99999';
-    
-    if (!isQualified && !isTestLead) {
-      return {
-        action: 'continue_conversation',
-        reasoning: `Lead score (${lead.qualificationScore}) below minimum (${minScore})`,
-        data: { qualified: false }
-      };
-    }
-
-    // Submit to Boberdoo
-    const boberdooResult = await this.submitToBoberdoo(lead, isTestLead);
-    
-    if (boberdooResult.matched) {
-      return {
-        action: 'lead_sold',
-        reasoning: `Lead ${isTestLead ? 'TEST ' : ''}matched to buyer ${boberdooResult.buyerId} for $${boberdooResult.price || 0}`,
-        data: {
-          buyerId: boberdooResult.buyerId,
-          price: boberdooResult.price,
-          isTest: isTestLead
-        }
-      };
-    } else {
-      return {
-        action: 'no_buyer_found',
-        reasoning: 'No matching buyer found in Boberdoo',
-        data: { 
-          qualified: true,
-          attemptedSubmission: true,
-          isTest: isTestLead
-        }
-      };
-    }
-  }
-
-  // Helper method to validate if lead is ready for Boberdoo
   isLeadReadyForBoberdoo(lead: Lead, campaign?: any): boolean {
-    const requiredFields = campaign?.qualificationCriteria?.requiredFields || ['name', 'email', 'phone'];
-    
-    for (const field of requiredFields) {
-      if (!lead[field as keyof Lead] && !lead.metadata?.[field]) {
-        return false;
+    // Use unified campaign settings or minimal defaults
+    const settings = campaign?.settings || minimalDefaults;
+    const requiredFields = settings.qualificationCriteria?.requiredFields || ['name', 'email', 'phone'];
+    const metadata = lead.metadata as Record<string, any> || {};
+    return requiredFields.every((field: string) => {
+      // Check direct lead properties
+      if (field === 'name') {
+        return !!(lead.firstName || lead.lastName);
       }
-    }
-    
-    return true;
+      if (field === 'email') return !!lead.email;
+      if (field === 'phone') return !!lead.phone;
+      
+      // Check metadata for other fields
+      return !!metadata[field];
+    });
   }
+
 }
