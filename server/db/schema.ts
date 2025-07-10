@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, integer, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, integer, boolean, pgEnum, serial } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
@@ -18,19 +18,28 @@ export const agentTypeEnum = pgEnum('agent_type', ['overlord', 'email', 'sms', '
 
 // Tables
 export const leads = pgTable('leads', {
-  id: text('id').primaryKey(),
+  id: serial('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email'),
   phone: text('phone'),
   source: text('source').notNull(), // e.g., 'website', 'facebook', 'google'
-  campaignId: text('campaign_id').references(() => campaigns.id),
-  status: leadStatusEnum('status').notNull().default('new'),
+  campaignId: integer('campaign_id'), // References campaigns.id
+  status: text('status').notNull().default('new'), // Using text instead of enum for compatibility
   assignedChannel: channelEnum('assigned_channel'),
   qualificationScore: integer('qualification_score').default(0),
   metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
   boberdooId: text('boberdoo_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow()
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  // Additional fields that exist in production
+  conversationMode: text('conversation_mode'),
+  templateStage: integer('template_stage'),
+  templateCurrent: integer('template_current'),
+  templateTotal: integer('template_total'),
+  aiSentiment: text('ai_sentiment'),
+  modeSwitchedAt: timestamp('mode_switched_at'),
+  lastTemplateSentAt: timestamp('last_template_sent_at'),
+  firstReplyAt: timestamp('first_reply_at')
 });
 
 export const conversations = pgTable('conversations', {
@@ -71,14 +80,24 @@ export const agentDecisions = pgTable('agent_decisions', {
 });
 
 export const campaigns = pgTable('campaigns', {
-  id: text('id').primaryKey(),
+  id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  goals: jsonb('goals').$type<string[]>().notNull().default([]),
+  description: text('description'), // Field that exists in production
+  agentId: text('agent_id'), // Field that exists in production
+  status: text('status'), // Field that exists in production
+  scheduleType: text('schedule_type'), // Field that exists in production
+  conversationMode: text('conversation_mode'), // Field that exists in production
+  templateCount: integer('template_count'), // Field that exists in production
+  settings: jsonb('settings').$type<Record<string, any>>().default({}), // Field that exists in production
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  // New fields added by migration
+  goals: jsonb('goals').$type<string[]>().default([]),
   qualificationCriteria: jsonb('qualification_criteria').$type<{
     minScore: number;
     requiredFields: string[];
     requiredGoals: string[];
-  }>().notNull(),
+  }>().default({ minScore: 7, requiredFields: ["name", "email"], requiredGoals: [] }),
   handoverCriteria: jsonb('handover_criteria').$type<{
     qualificationScore: number;
     conversationLength: number;
@@ -91,15 +110,20 @@ export const campaigns = pgTable('campaigns', {
       role: string;
       priority: 'high' | 'medium' | 'low';
     }[];
-  }>().notNull(),
-  selectedLeads: jsonb('selected_leads').$type<string[]>().notNull().default([]),
+  }>().default({
+    qualificationScore: 7,
+    conversationLength: 5,
+    timeThreshold: 300,
+    keywordTriggers: [],
+    goalCompletionRequired: [],
+    handoverRecipients: []
+  }),
+  selectedLeads: jsonb('selected_leads').$type<string[]>().default([]),
   channelPreferences: jsonb('channel_preferences').$type<{
     primary: 'email' | 'sms' | 'chat';
     fallback: ('email' | 'sms' | 'chat')[];
-  }>().notNull(),
-  active: boolean('active').notNull().default(true),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow()
+  }>().default({ primary: "email", fallback: ["sms"] }),
+  active: boolean('active').default(true)
 });
 
 export const communications = pgTable('communications', {

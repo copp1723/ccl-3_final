@@ -22,6 +22,31 @@ interface Schedule {
   config?: any;
 }
 
+interface HandoverRecipient {
+  name: string;
+  email: string;
+  role: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+interface HandoverCriteria {
+  qualificationScore: number;
+  conversationLength: number;
+  timeThreshold: number;
+  keywordTriggers: string[];
+  goalCompletionRequired: string[];
+  handoverRecipients: HandoverRecipient[];
+}
+
+interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  tags?: string[];
+}
+
 interface CampaignFormData {
   name: string;
   description: string;
@@ -31,6 +56,8 @@ interface CampaignFormData {
   scheduleType: 'template' | 'fixed' | 'custom';
   fixedInterval: { days: number; emails: number };
   conversationMode: 'auto' | 'template' | 'ai';
+  selectedLeads: string[];
+  handoverCriteria: HandoverCriteria;
   audience: {
     filters: any[];
     targetCount: number;
@@ -62,6 +89,15 @@ const getInitialFormData = (): CampaignFormData => ({
   scheduleType: 'template',
   fixedInterval: { days: 3, emails: 5 },
   conversationMode: 'auto',
+  selectedLeads: [],
+  handoverCriteria: {
+    qualificationScore: 7,
+    conversationLength: 5,
+    timeThreshold: 300,
+    keywordTriggers: [],
+    goalCompletionRequired: [],
+    handoverRecipients: []
+  },
   audience: {
     filters: [],
     targetCount: 0
@@ -108,6 +144,15 @@ export function useCampaignForm(campaign?: any) {
         scheduleType: campaign.scheduleType || 'template',
         fixedInterval: campaign.fixedInterval || { days: 3, emails: 5 },
         conversationMode: campaign.conversationMode || 'auto',
+        selectedLeads: campaign.selectedLeads || [],
+        handoverCriteria: campaign.handoverCriteria || {
+          qualificationScore: 7,
+          conversationLength: 5,
+          timeThreshold: 300,
+          keywordTriggers: [],
+          goalCompletionRequired: [],
+          handoverRecipients: []
+        },
         settings: {
           sendTimeOptimization: campaign.settings?.sendTimeOptimization ?? true,
           enableAIMode: campaign.settings?.enableAIMode ?? true,

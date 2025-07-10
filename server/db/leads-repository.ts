@@ -8,8 +8,7 @@ export class LeadsRepository {
    * Create a new lead
    */
   static async create(leadData: Omit<NewLead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> {
-    const lead: NewLead = {
-      id: nanoid(),
+    const lead = {
       ...leadData,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -22,8 +21,10 @@ export class LeadsRepository {
   /**
    * Find a lead by ID
    */
-  static async findById(id: string): Promise<Lead | null> {
-    const [lead] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+  static async findById(id: string | number): Promise<Lead | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    const [lead] = await db.select().from(leads).where(eq(leads.id, numericId)).limit(1);
     return lead || null;
   }
 
@@ -37,7 +38,10 @@ export class LeadsRepository {
   /**
    * Update lead status
    */
-  static async updateStatus(id: string, status: Lead['status'], boberdooId?: string): Promise<Lead | null> {
+  static async updateStatus(id: string | number, status: Lead['status'], boberdooId?: string): Promise<Lead | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
     const updateData: Partial<Lead> = {
       status,
       updatedAt: new Date()
@@ -50,7 +54,7 @@ export class LeadsRepository {
     const [updated] = await db
       .update(leads)
       .set(updateData)
-      .where(eq(leads.id, id))
+      .where(eq(leads.id, numericId))
       .returning();
 
     return updated || null;
@@ -59,14 +63,17 @@ export class LeadsRepository {
   /**
    * Update lead qualification score
    */
-  static async updateQualificationScore(id: string, score: number): Promise<Lead | null> {
+  static async updateQualificationScore(id: string | number, score: number): Promise<Lead | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
     const [updated] = await db
       .update(leads)
       .set({
         qualificationScore: score,
         updatedAt: new Date()
       })
-      .where(eq(leads.id, id))
+      .where(eq(leads.id, numericId))
       .returning();
 
     return updated || null;
@@ -75,14 +82,17 @@ export class LeadsRepository {
   /**
    * Assign a channel to a lead
    */
-  static async assignChannel(id: string, channel: Lead['assignedChannel']): Promise<Lead | null> {
+  static async assignChannel(id: string | number, channel: Lead['assignedChannel']): Promise<Lead | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
     const [updated] = await db
       .update(leads)
       .set({
         assignedChannel: channel,
         updatedAt: new Date()
       })
-      .where(eq(leads.id, id))
+      .where(eq(leads.id, numericId))
       .returning();
 
     return updated || null;
@@ -94,7 +104,7 @@ export class LeadsRepository {
   static async findAll(filters?: {
     status?: Lead['status'];
     source?: string;
-    campaignId?: string;
+    campaignId?: string | number;
     assignedChannel?: Lead['assignedChannel'];
     fromDate?: Date;
     limit?: number;
@@ -110,7 +120,10 @@ export class LeadsRepository {
       conditions.push(eq(leads.source, filters.source));
     }
     if (filters?.campaignId) {
-      conditions.push(eq(leads.campaignId, filters.campaignId));
+      const numericCampaignId = typeof filters.campaignId === 'string' ? parseInt(filters.campaignId, 10) : filters.campaignId;
+      if (!isNaN(numericCampaignId)) {
+        conditions.push(eq(leads.campaignId, numericCampaignId));
+      }
     }
     if (filters?.assignedChannel) {
       conditions.push(eq(leads.assignedChannel, filters.assignedChannel));
@@ -156,8 +169,11 @@ export class LeadsRepository {
   /**
    * Update lead metadata
    */
-  static async updateMetadata(id: string, metadata: Record<string, any>): Promise<Lead | null> {
-    const lead = await this.findById(id);
+  static async updateMetadata(id: string | number, metadata: Record<string, any>): Promise<Lead | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
+    const lead = await this.findById(numericId);
     if (!lead) return null;
 
     const [updated] = await db
@@ -166,7 +182,7 @@ export class LeadsRepository {
         metadata: { ...lead.metadata, ...metadata },
         updatedAt: new Date()
       })
-      .where(eq(leads.id, id))
+      .where(eq(leads.id, numericId))
       .returning();
 
     return updated || null;

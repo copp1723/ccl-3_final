@@ -257,10 +257,17 @@ router.post('/api/campaigns/:id/clone', async (req, res) => {
     
     const cloned = await CampaignsRepository.create(
       name,
-      original.goals,
-      original.qualificationCriteria,
-      original.handoverCriteria,
-      original.channelPreferences
+      original.goals || [],
+      original.qualificationCriteria || { minScore: 7, requiredFields: ["name", "email"], requiredGoals: [] },
+      original.handoverCriteria || {
+        qualificationScore: 7,
+        conversationLength: 5,
+        timeThreshold: 300,
+        keywordTriggers: [],
+        goalCompletionRequired: [],
+        handoverRecipients: []
+      },
+      original.channelPreferences || { primary: "email", fallback: ["sms"] }
     );
     
     res.status(201).json({ 
@@ -413,10 +420,12 @@ router.post('/api/campaigns/:id/leads', async (req, res) => {
       const lead = await LeadsRepository.findById(leadId);
       if (lead) {
         // Update the lead's campaignId
+        const campaignId = parseInt(req.params.id, 10);
+        const leadIdNum = typeof leadId === 'string' ? parseInt(leadId, 10) : leadId;
         const updatedLead = await db
           .update(leads)
-          .set({ campaignId: req.params.id, updatedAt: new Date() })
-          .where(eq(leads.id, leadId))
+          .set({ campaignId: campaignId, updatedAt: new Date() })
+          .where(eq(leads.id, leadIdNum))
           .returning();
         
         if (updatedLead[0]) {
@@ -452,10 +461,11 @@ router.delete('/api/campaigns/:id/leads/:leadId', async (req, res) => {
     }
     
     // Remove campaign association
+    const leadIdNum = parseInt(req.params.leadId, 10);
     const [updatedLead] = await db
       .update(leads)
       .set({ campaignId: null, updatedAt: new Date() })
-      .where(eq(leads.id, req.params.leadId))
+      .where(eq(leads.id, leadIdNum))
       .returning();
     
     res.json({
@@ -533,13 +543,14 @@ router.put('/api/campaigns/:id/handover-criteria', async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
     
+    const campaignId = parseInt(req.params.id, 10);
     const [updated] = await db
       .update(campaigns)
       .set({
         handoverCriteria: validationResult.data,
         updatedAt: new Date()
       })
-      .where(eq(campaigns.id, req.params.id))
+      .where(eq(campaigns.id, campaignId))
       .returning();
     
     res.json({

@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { TemplateSequenceItem } from './TemplateSequenceItem';
 import { CampaignSettings } from './CampaignSettings';
+import { LeadSelector } from './LeadSelector';
+import { HandoverConfig } from './HandoverConfig';
 import { useCampaignForm } from '@/hooks/useCampaignForm';
 
 interface CampaignEditorProps {
@@ -170,6 +172,12 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
           )}
         </CardContent>
       </Card>
+
+      {/* Lead Selection */}
+      <LeadSelector
+        selectedLeads={formData.selectedLeads || []}
+        onLeadsChange={(leads) => setFormData(prev => ({ ...prev, selectedLeads: leads }))}
+      />
 
       {/* Email Templates - Dynamic Management */}
       <Card>
@@ -390,6 +398,20 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
       </Card>
 
       <CampaignSettings formData={formData} setFormData={setFormData} />
+
+      {/* Handover Configuration */}
+      <HandoverConfig
+        handoverCriteria={formData.handoverCriteria || {
+          qualificationScore: 7,
+          conversationLength: 5,
+          timeThreshold: 300,
+          keywordTriggers: [],
+          goalCompletionRequired: [],
+          handoverRecipients: []
+        }}
+        onHandoverCriteriaChange={(criteria) => setFormData(prev => ({ ...prev, handoverCriteria: criteria }))}
+        campaignGoals={selectedAgent?.endGoal ? [selectedAgent.endGoal] : []}
+      />
 
       {/* Action Buttons */}
       <div className="flex items-center justify-end space-x-4">

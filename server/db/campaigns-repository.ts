@@ -40,7 +40,6 @@ export class CampaignsRepository {
     channelPreferences: ChannelPreferences
   ): Promise<Campaign> {
     const campaign = {
-      id: nanoid(),
       name,
       goals,
       qualificationCriteria,
@@ -58,11 +57,14 @@ export class CampaignsRepository {
   /**
    * Find campaign by ID
    */
-  static async findById(id: string): Promise<Campaign | null> {
+  static async findById(id: string | number): Promise<Campaign | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
     const [campaign] = await db
       .select()
       .from(campaigns)
-      .where(eq(campaigns.id, id))
+      .where(eq(campaigns.id, numericId))
       .limit(1);
 
     return campaign || null;
@@ -106,7 +108,7 @@ export class CampaignsRepository {
    * Update campaign
    */
   static async update(
-    id: string,
+    id: string | number,
     updates: Partial<{
       name: string;
       goals: string[];
@@ -115,13 +117,16 @@ export class CampaignsRepository {
       active: boolean;
     }>
   ): Promise<Campaign | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
     const [updated] = await db
       .update(campaigns)
       .set({
         ...updates,
         updatedAt: new Date()
       })
-      .where(eq(campaigns.id, id))
+      .where(eq(campaigns.id, numericId))
       .returning();
 
     return updated || null;
@@ -130,8 +135,11 @@ export class CampaignsRepository {
   /**
    * Toggle campaign active status
    */
-  static async toggleActive(id: string): Promise<Campaign | null> {
-    const campaign = await this.findById(id);
+  static async toggleActive(id: string | number): Promise<Campaign | null> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+    
+    const campaign = await this.findById(numericId);
     if (!campaign) return null;
 
     const [updated] = await db
@@ -140,7 +148,7 @@ export class CampaignsRepository {
         active: !campaign.active,
         updatedAt: new Date()
       })
-      .where(eq(campaigns.id, id))
+      .where(eq(campaigns.id, numericId))
       .returning();
 
     return updated || null;
@@ -149,10 +157,13 @@ export class CampaignsRepository {
   /**
    * Delete campaign
    */
-  static async delete(id: string): Promise<boolean> {
+  static async delete(id: string | number): Promise<boolean> {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return false;
+    
     const result = await db
       .delete(campaigns)
-      .where(eq(campaigns.id, id))
+      .where(eq(campaigns.id, numericId))
       .returning();
 
     return result.length > 0;
@@ -202,14 +213,17 @@ export class CampaignsRepository {
   /**
    * Get campaign statistics
    */
-  static async getCampaignStats(campaignId: string): Promise<{
+  static async getCampaignStats(campaignId: string | number): Promise<{
     totalLeads: number;
     leadsByStatus: Record<string, number>;
     leadsByChannel: Record<string, number>;
     conversionRate: number;
   } | null> {
+    const numericCampaignId = typeof campaignId === 'string' ? parseInt(campaignId, 10) : campaignId;
+    if (isNaN(numericCampaignId)) return null;
+    
     // Check if campaign exists
-    const campaign = await this.findById(campaignId);
+    const campaign = await this.findById(numericCampaignId);
     if (!campaign) return null;
 
     // Get leads for this campaign
