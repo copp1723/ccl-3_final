@@ -2,31 +2,57 @@ import { Router } from 'express';
 import { CampaignsRepository } from '../db';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import { db } from '../db/client';
+import { leads, campaigns } from '../db/schema';
+import { eq, desc, isNull } from 'drizzle-orm';
 
 const router = Router();
 
 // Validation schemas
+const handoverRecipientSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  role: z.string(),
+  priority: z.enum(['high', 'medium', 'low'])
+});
+
+const handoverCriteriaSchema = z.object({
+  qualificationScore: z.number().min(0).max(100),
+  conversationLength: z.number().min(1),
+  timeThreshold: z.number().min(1),
+  keywordTriggers: z.array(z.string()),
+  goalCompletionRequired: z.array(z.string()),
+  handoverRecipients: z.array(handoverRecipientSchema)
+});
+
+const qualificationCriteriaSchema = z.object({
+  minScore: z.number().min(0).max(100),
+  requiredFields: z.array(z.string()),
+  requiredGoals: z.array(z.string())
+});
+
+const channelPreferencesSchema = z.object({
+  primary: z.enum(['email', 'sms', 'chat']),
+  fallback: z.array(z.enum(['email', 'sms', 'chat']))
+});
+
 const campaignSchema = z.object({
   name: z.string().min(1).max(255),
   goals: z.array(z.string()).min(1),
-  qualificationCriteria: z.object({
-    minCreditScore: z.number().optional(),
-    minIncome: z.number().optional(),
-    validStates: z.array(z.string()).optional(),
-    requiredDocuments: z.array(z.string()).optional()
-  }),
-  channelPreferences: z.object({
-    primary: z.enum(['email', 'sms', 'chat']),
-    secondary: z.enum(['email', 'sms', 'chat']).optional(),
-    timeRestrictions: z.record(z.object({
-      start: z.string(),
-      end: z.string()
-    })).optional()
-  })
+  qualificationCriteria: qualificationCriteriaSchema,
+  handoverCriteria: handoverCriteriaSchema,
+  channelPreferences: channelPreferencesSchema,
+  selectedLeads: z.array(z.string()).optional()
 });
 
-const updateCampaignSchema = campaignSchema.partial().extend({
-  active: z.boolean().optional()
+const updateCampaignSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  goals: z.array(z.string()).min(1).optional(),
+  qualificationCriteria: qualificationCriteriaSchema.optional(),
+  handoverCriteria: handoverCriteriaSchema.optional(),
+  channelPreferences: channelPreferencesSchema.optional(),
+  active: z.boolean().optional(),
+  selectedLeads: z.array(z.string()).optional()
 });
 
 // Get all campaigns
@@ -94,7 +120,7 @@ router.post('/api/campaigns', async (req, res) => {
       });
     }
     
-    const { name, goals, qualificationCriteria, channelPreferences } = validationResult.data;
+    const { name, goals, qualificationCriteria, channelPreferences, handoverCriteria, selectedLeads } = validationResult.data;
     
     // Check for duplicate name
     const existing = await CampaignsRepository.findByName(name);
@@ -106,6 +132,7 @@ router.post('/api/campaigns', async (req, res) => {
       name,
       goals,
       qualificationCriteria,
+      handoverCriteria,
       channelPreferences
     );
     
@@ -144,7 +171,13 @@ router.put('/api/campaigns/:id', async (req, res) => {
       }
     }
     
-    const campaign = await CampaignsRepository.update(req.params.id, validationResult.data);
+    const campaign = await CampaignsRepository.update(req.params.id, {
+      ...(validationResult.data.name && { name: validationResult.data.name }),
+      ...(validationResult.data.goals && { goals: validationResult.data.goals }),
+      ...(validationResult.data.qualificationCriteria && { qualificationCriteria: validationResult.data.qualificationCriteria }),
+      ...(validationResult.data.channelPreferences && { channelPreferences: validationResult.data.channelPreferences }),
+      ...(validationResult.data.active !== undefined && { active: validationResult.data.active })
+    });
     
     res.json({ success: true, campaign });
   } catch (error) {
@@ -226,6 +259,7 @@ router.post('/api/campaigns/:id/clone', async (req, res) => {
       name,
       original.goals,
       original.qualificationCriteria,
+      original.handoverCriteria,
       original.channelPreferences
     );
     
@@ -354,6 +388,168 @@ router.get('/api/campaigns/:id/templates', async (req, res) => {
   } catch (error) {
     console.error('Error fetching campaign templates:', error);
     res.status(500).json({ error: 'Failed to fetch campaign templates' });
+  }
+});
+
+// Associate leads with campaign
+router.post('/api/campaigns/:id/leads', async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+    
+    if (!Array.isArray(leadIds)) {
+      return res.status(400).json({ error: 'leadIds must be an array' });
+    }
+    
+    const campaign = await CampaignsRepository.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    // Update leads to associate with this campaign
+    const { LeadsRepository } = await import('../db');
+    const updatedLeads = [];
+    
+    for (const leadId of leadIds) {
+      const lead = await LeadsRepository.findById(leadId);
+      if (lead) {
+        // Update the lead's campaignId
+        const updatedLead = await db
+          .update(leads)
+          .set({ campaignId: req.params.id, updatedAt: new Date() })
+          .where(eq(leads.id, leadId))
+          .returning();
+        
+        if (updatedLead[0]) {
+          updatedLeads.push(updatedLead[0]);
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      campaign,
+      associatedLeads: updatedLeads.length,
+      leads: updatedLeads
+    });
+  } catch (error) {
+    console.error('Error associating leads:', error);
+    res.status(500).json({ error: 'Failed to associate leads with campaign' });
+  }
+});
+
+// Remove lead association from campaign
+router.delete('/api/campaigns/:id/leads/:leadId', async (req, res) => {
+  try {
+    const campaign = await CampaignsRepository.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const { LeadsRepository } = await import('../db');
+    const lead = await LeadsRepository.findById(req.params.leadId);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    // Remove campaign association
+    const [updatedLead] = await db
+      .update(leads)
+      .set({ campaignId: null, updatedAt: new Date() })
+      .where(eq(leads.id, req.params.leadId))
+      .returning();
+    
+    res.json({
+      success: true,
+      message: 'Lead disassociated from campaign',
+      lead: updatedLead
+    });
+  } catch (error) {
+    console.error('Error removing lead association:', error);
+    res.status(500).json({ error: 'Failed to remove lead association' });
+  }
+});
+
+// Get all leads for a campaign
+router.get('/api/campaigns/:id/leads', async (req, res) => {
+  try {
+    const campaign = await CampaignsRepository.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const { LeadsRepository } = await import('../db');
+    const campaignLeads = await LeadsRepository.findAll({
+      campaignId: req.params.id
+    });
+    
+    res.json({
+      campaign,
+      leads: campaignLeads,
+      total: campaignLeads.length
+    });
+  } catch (error) {
+    console.error('Error fetching campaign leads:', error);
+    res.status(500).json({ error: 'Failed to fetch campaign leads' });
+  }
+});
+
+// Get available leads (not associated with any campaign)
+router.get('/api/campaigns/available-leads', async (req, res) => {
+  try {
+    const { LeadsRepository } = await import('../db');
+    
+    // Get leads without campaign association
+    const availableLeads = await db
+      .select()
+      .from(leads)
+      .where(isNull(leads.campaignId))
+      .orderBy(desc(leads.createdAt));
+    
+    res.json({
+      leads: availableLeads,
+      total: availableLeads.length
+    });
+  } catch (error) {
+    console.error('Error fetching available leads:', error);
+    res.status(500).json({ error: 'Failed to fetch available leads' });
+  }
+});
+
+// Update campaign handover criteria
+router.put('/api/campaigns/:id/handover-criteria', async (req, res) => {
+  try {
+    const validationResult = handoverCriteriaSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      const validationError = fromZodError(validationResult.error);
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationError.toString()
+      });
+    }
+    
+    const campaign = await CampaignsRepository.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const [updated] = await db
+      .update(campaigns)
+      .set({
+        handoverCriteria: validationResult.data,
+        updatedAt: new Date()
+      })
+      .where(eq(campaigns.id, req.params.id))
+      .returning();
+    
+    res.json({
+      success: true,
+      campaign: updated,
+      message: 'Handover criteria updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating handover criteria:', error);
+    res.status(500).json({ error: 'Failed to update handover criteria' });
   }
 });
 

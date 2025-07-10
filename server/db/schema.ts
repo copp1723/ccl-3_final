@@ -23,7 +23,7 @@ export const leads = pgTable('leads', {
   email: text('email'),
   phone: text('phone'),
   source: text('source').notNull(), // e.g., 'website', 'facebook', 'google'
-  campaign: text('campaign'),
+  campaignId: text('campaign_id').references(() => campaigns.id),
   status: leadStatusEnum('status').notNull().default('new'),
   assignedChannel: channelEnum('assigned_channel'),
   qualificationScore: integer('qualification_score').default(0),
@@ -85,7 +85,14 @@ export const campaigns = pgTable('campaigns', {
     keywordTriggers: string[];
     timeThreshold: number;
     goalCompletionRequired: string[];
+    handoverRecipients: {
+      email: string;
+      name: string;
+      role: string;
+      priority: 'high' | 'medium' | 'low';
+    }[];
   }>().notNull(),
+  selectedLeads: jsonb('selected_leads').$type<string[]>().notNull().default([]),
   channelPreferences: jsonb('channel_preferences').$type<{
     primary: 'email' | 'sms' | 'chat';
     fallback: ('email' | 'sms' | 'chat')[];

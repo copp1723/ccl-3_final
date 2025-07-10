@@ -1,4 +1,4 @@
-import { eq, desc, and, or, gte, sql } from 'drizzle-orm';
+import { eq, desc, and, or, gte, sql, ilike } from 'drizzle-orm';
 import { db } from './client';
 import { leads, conversations, agentDecisions, communications, Lead, NewLead } from './schema';
 import { nanoid } from 'nanoid';
@@ -94,7 +94,7 @@ export class LeadsRepository {
   static async findAll(filters?: {
     status?: Lead['status'];
     source?: string;
-    campaign?: string;
+    campaignId?: string;
     assignedChannel?: Lead['assignedChannel'];
     fromDate?: Date;
     limit?: number;
@@ -109,8 +109,8 @@ export class LeadsRepository {
     if (filters?.source) {
       conditions.push(eq(leads.source, filters.source));
     }
-    if (filters?.campaign) {
-      conditions.push(eq(leads.campaign, filters.campaign));
+    if (filters?.campaignId) {
+      conditions.push(eq(leads.campaignId, filters.campaignId));
     }
     if (filters?.assignedChannel) {
       conditions.push(eq(leads.assignedChannel, filters.assignedChannel));
@@ -120,16 +120,16 @@ export class LeadsRepository {
     }
 
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      query = query.where(and(...conditions)) as typeof query;
     }
 
-    query = query.orderBy(desc(leads.createdAt));
+    query = query.orderBy(desc(leads.createdAt)) as typeof query;
 
     if (filters?.limit) {
-      query = query.limit(filters.limit);
+      query = query.limit(filters.limit) as typeof query;
     }
 
-    return query;
+    return await query;
   }
 
   /**
@@ -211,9 +211,9 @@ export class LeadsRepository {
       .from(leads)
       .where(
         or(
-          leads.name.ilike(searchTerm),
-          leads.email.ilike(searchTerm),
-          leads.phone.ilike(searchTerm)
+          ilike(leads.name, searchTerm),
+          ilike(leads.email, searchTerm),
+          ilike(leads.phone, searchTerm)
         )
       )
       .orderBy(desc(leads.createdAt));

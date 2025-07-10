@@ -15,6 +15,12 @@ export interface HandoverCriteria {
   keywordTriggers: string[];
   timeThreshold: number;
   goalCompletionRequired: string[];
+  handoverRecipients: {
+    email: string;
+    name: string;
+    role: string;
+    priority: 'high' | 'medium' | 'low';
+  }[];
 }
 
 export interface ChannelPreferences {
@@ -176,7 +182,15 @@ export class CampaignsRepository {
         conversationLength: 5,
         keywordTriggers: ['ready to buy', 'interested', 'when can we meet'],
         timeThreshold: 300, // 5 minutes
-        goalCompletionRequired: ['Convert lead to customer']
+        goalCompletionRequired: ['Convert lead to customer'],
+        handoverRecipients: [
+          {
+            email: 'sales@company.com',
+            name: 'Sales Team',
+            role: 'Sales Representative',
+            priority: 'high' as const
+          }
+        ]
       },
       {
         primary: 'chat',
@@ -206,7 +220,7 @@ export class CampaignsRepository {
         count: sql<number>`count(*)::int`
       })
       .from(leads)
-      .where(eq(leads.campaign, campaign.name))
+      .where(eq(leads.campaignId, campaign.id))
       .groupBy(leads.status, leads.assignedChannel);
 
     // Calculate statistics

@@ -222,10 +222,18 @@ export class HandoverService {
       const conversation = await ConversationsRepository.findById(conversationId);
       if (!conversation) return false;
 
+      // Get campaign to access handover recipients
+      const campaign = conversation.campaignId
+        ? await CampaignsRepository.findById(conversation.campaignId)
+        : await CampaignsRepository.getDefaultCampaign();
+
       // Add handover message to conversation
+      const handoverRecipients = campaign?.handoverCriteria?.handoverRecipients || [];
+      const recipientList = handoverRecipients.map(r => `${r.name} (${r.email})`).join(', ');
+      
       await ConversationsRepository.addMessage(conversationId, {
         role: 'agent',
-        content: `🤝 **Handover Initiated**\n\nReason: ${reason}\n\nA human agent will be with you shortly to assist with your inquiry.`,
+        content: `🤝 **Handover Initiated**\n\nReason: ${reason}\n\nNotified recipients: ${recipientList || 'Default team'}\n\nA human agent will be with you shortly to assist with your inquiry.`,
         timestamp: new Date().toISOString()
       });
 
@@ -237,19 +245,27 @@ export class HandoverService {
         );
       }
 
-      // Create communication record
+      // Create communication record with handover recipient details
       await CommunicationsRepository.create(
         conversation.leadId,
         conversation.channel,
         'outbound',
         `Handover to human agent: ${reason}`,
-        'completed'
+        'completed',
+        undefined,
+        {
+          handoverRecipients,
+          reason,
+          conversationId,
+          handoverTime: new Date().toISOString()
+        }
       );
 
       logger.info('Handover executed successfully', {
         conversationId,
         leadId: conversation.leadId,
         reason,
+        handoverRecipients: handoverRecipients.map(r => r.email),
         humanAgentId
       });
 

@@ -241,10 +241,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
     try {
       // Get the lead to find their campaign
       const lead = await LeadsRepository.findById(updatedConversation.leadId as unknown as string);
-      if (lead && lead.campaign) {
-        // Get campaign to access handover criteria (using campaign name as id for now)
-        const campaigns = await CampaignsRepository.findAll();
-        const campaign = campaigns.find(c => c.name === lead.campaign);
+      if (lead && lead.campaignId) {
+        // Get campaign to access handover criteria
+        const campaign = await CampaignsRepository.findById(lead.campaignId);
         
         if (campaign && campaign.handoverCriteria) {
           // Get the latest message that was just added
