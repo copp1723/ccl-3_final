@@ -40,10 +40,23 @@ export class SMSAgent extends BaseAgent {
   async processMessage(message: string, context: AgentContext): Promise<string> {
     const { lead, campaign } = context;
     
+    // Store incoming SMS in supermemory
+    await this.storeMemory(`SMS from ${lead.name}: ${message}`, {
+      leadId: lead.id,
+      type: 'sms_received',
+      phone: lead.phone
+    });
+
+    // Search for previous SMS interactions
+    const memories = await this.searchMemory(`SMS ${lead.name} ${lead.phone}`);
+    const smsHistory = memories.filter(m => m.metadata?.type?.includes('sms')).slice(0, 2);
+    
     const systemPrompt = `You are an SMS Agent communicating with a potential customer via text message.
 Keep responses brief, friendly, and focused on the campaign goals.
 Campaign Goals: ${campaign?.goals?.join(', ') || 'General engagement'}
-SMS messages should be under 160 characters when possible.`;
+SMS messages should be under 160 characters when possible.
+
+Previous SMS: ${smsHistory.map(h => h.content).join('\n')}`;
 
     const prompt = `Generate a brief SMS response:
 Customer Name: ${lead.name}
@@ -59,7 +72,16 @@ Create a concise, friendly text that:
 3. Uses conversational language
 4. Stays under 160 characters if possible`;
 
-    return await this.callOpenRouter(prompt, systemPrompt);
+    const response = await this.callOpenRouter(prompt, systemPrompt);
+    
+    // Store outgoing SMS in supermemory
+    await this.storeMemory(`SMS response to ${lead.name}: ${response}`, {
+      leadId: lead.id,
+      type: 'sms_sent',
+      campaign: campaign?.name
+    });
+
+    return response;
   }
 
   async makeDecision(_context: AgentContext): Promise<AgentDecision> {
@@ -96,6 +118,14 @@ Create a concise, friendly text that:
         });
       });
       
+      // Store successful SMS send in supermemory
+      await this.storeMemory(`SMS sent to ${to}: ${body}`, {
+        recipient: to,
+        type: 'sms_delivery',
+        status: 'sent',
+        externalId: message.sid
+      });
+      
       CCLLogger.communicationSent('sms', '', { recipient: to, externalId: message.sid });
       return message;
     } catch (error) {
@@ -116,8 +146,14 @@ Create a concise, friendly text that:
   async generateInitialSMS(context: AgentContext, focus: string): Promise<string> {
     const { lead } = context;
     
+    // Search for successful initial SMS patterns
+    const memories = await this.searchMemory(`initial SMS ${focus}`);
+    const successfulPatterns = memories.slice(0, 2).map(m => m.content).join('\n');
+    
     const systemPrompt = `You are crafting the first SMS to a potential customer.
-Keep it very brief, friendly, and engaging. Maximum 160 characters.`;
+Keep it very brief, friendly, and engaging. Maximum 160 characters.
+
+Successful patterns: ${successfulPatterns}`;
 
     const prompt = `Create an initial SMS for:
 Customer Name: ${lead.name}
@@ -130,6 +166,16 @@ The SMS should:
 4. Be under 160 characters
 5. Sound conversational, not robotic`;
 
-    return await this.callOpenRouter(prompt, systemPrompt);
+    const sms = await this.callOpenRouter(prompt, systemPrompt);
+    
+    // Store initial SMS in supermemory
+    await this.storeMemory(`Initial SMS to ${lead.name}: ${sms}`, {
+      leadId: lead.id,
+      type: 'initial_sms',
+      focus,
+      phone: lead.phone
+    });
+
+    return sms;
   }
 }

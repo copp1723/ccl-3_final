@@ -25,6 +25,20 @@
   // Get configuration
   var config = window.CCLChatConfig || {};
   
+  // Auto-detect client from domain
+  var detectClient = function() {
+    var hostname = window.location.hostname;
+    var subdomain = hostname.split('.')[0];
+    
+    if (subdomain && subdomain !== 'www' && subdomain !== hostname) {
+      return subdomain;
+    }
+    
+    return hostname === 'localhost' ? 'localhost' : null;
+  };
+  
+  var clientId = config.clientId || detectClient();
+  
   // Default configuration
   var defaults = {
     apiEndpoint: window.location.origin,
@@ -34,7 +48,11 @@
     placeholderText: 'Type your message...',
     welcomeMessage: 'Hi! How can I help you today?',
     startMinimized: false,
-    soundEnabled: true
+    soundEnabled: true,
+    clientId: clientId,
+    agentId: null,
+    agentPersonality: null,
+    agentTone: null
   };
   
   // Merge configurations
@@ -65,17 +83,45 @@
   root.id = 'ccl-chat-root';
   document.body.appendChild(root);
   
-  // Load the widget bundle
-  var script = document.createElement('script');
-  script.src = config.apiEndpoint + '/chat-widget.bundle.js';
-  script.async = true;
-  script.onload = function() {
-    console.log('CCL Chat Widget loaded successfully');
+  // Load branding first, then widget
+  loadBranding(function() {
+    // Load the widget bundle
+    var script = document.createElement('script');
+    script.src = config.apiEndpoint + '/chat-widget.bundle.js';
+    script.async = true;
+    script.onload = function() {
+      console.log('CCL Chat Widget loaded successfully');
+    };
+    script.onerror = function() {
+      console.error('Failed to load CCL Chat Widget');
+    };
+    document.body.appendChild(script);
+  });
+  
+  // Fetch client branding if clientId is detected
+  var loadBranding = function(callback) {
+    if (!clientId) {
+      callback();
+      return;
+    }
+    
+    fetch(config.apiEndpoint + '/api/branding/' + clientId)
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data.success && data.branding) {
+          var branding = data.branding.branding;
+          // Apply branding to config
+          config.primaryColor = branding.primaryColor || config.primaryColor;
+          config.headerText = branding.companyName || config.headerText;
+          config.welcomeMessage = 'Hi! Welcome to ' + branding.companyName + '. How can I help you today?';
+        }
+        callback();
+      })
+      .catch(function(error) {
+        console.warn('Failed to load branding:', error);
+        callback();
+      });
   };
-  script.onerror = function() {
-    console.error('Failed to load CCL Chat Widget');
-  };
-  document.body.appendChild(script);
   
   // Expose API
   window.CCLChat = {
@@ -104,9 +150,15 @@
         detail: { metadata: metadata } 
       }));
     },
-    setLeadId: function(leadId) {
-      window.dispatchEvent(new CustomEvent('ccl-chat-leadid', { 
-        detail: { leadId: leadId } 
+    setAgentConfig: function(agentConfig) {
+      window.dispatchEvent(new CustomEvent('ccl-chat-agent-config', { 
+        detail: { agentConfig: agentConfig } 
+      }));
+    },
+    setBranding: function(branding) {
+      Object.assign(config, branding);
+      window.dispatchEvent(new CustomEvent('ccl-chat-branding', {
+        detail: { branding: branding }
       }));
     }
   };

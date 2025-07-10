@@ -24,4 +24,4 @@ export interface Stats {
   conversionRate: number;
 }
 
-export type ViewType = 'dashboard' | 'leads' | 'agents' | 'email' | 'multi-agent' | 'conversations';
+export type ViewType = 'dashboard' | 'leads' | 'agents' | 'email' | 'multi-agent' | 'conversations' | 'branding';

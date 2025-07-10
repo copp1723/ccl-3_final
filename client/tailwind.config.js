@@ -21,12 +21,17 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "hsl(var(--primary, 214 88% 52%))",
+          foreground: "hsl(var(--primary-foreground, 0 0% 98%))",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "hsl(var(--secondary, 214 88% 45%))",
+          foreground: "hsl(var(--secondary-foreground, 0 0% 98%))",
+        },
+        // Brand colors that can be dynamically updated
+        brand: {
+          primary: "var(--primary-color, #2563eb)",
+          secondary: "var(--secondary-color, #1d4ed8)",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",

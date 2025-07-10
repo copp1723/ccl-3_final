@@ -1,3 +1,17 @@
+// ARCHIVED: Previous BullMQ/Redis queue system for CCL-3. Replaced with simple in-memory queue.
+
+/*
+  Lean, Redis-free in-memory queue.
+  - Handles job objects with .type and .payload.
+  - No priorities, just FIFO processing.
+  - Supports basic retries per job (maxRetries, default=1).
+  - Direct function call routing: function must exist globally with the same name as job.type.
+  - Usage example:
+    simpleQueue.addJob({ type: "sendEmail", payload: {...}, maxRetries: 2 });
+  Replace job handler logic as needed.
+*/
+
+/*
 // Enhanced BullMQ queue system for CCL-3 SWARM
 // Based on foundation's queue system with CCL-3 specific enhancements
 
@@ -613,3 +627,54 @@ export default {
   CCLJobType,
   CCLJobPriority
 };
+*/
+
+// Minimal in-memory queue system for current needs
+
+type SimpleJob = {
+  type: string;
+  payload: any;
+  onComplete?: (result: any) => void;
+  retryCount?: number;
+  maxRetries?: number;
+};
+
+class InMemoryQueue {
+  private queue: SimpleJob[] = [];
+  private isProcessing = false;
+
+  addJob(job: SimpleJob) {
+    this.queue.push({ ...job, retryCount: 0 });
+    this.process();
+  }
+
+  private async process() {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+    while (this.queue.length) {
+      const job = this.queue.shift();
+      if (!job) continue;
+      try {
+        // Directly call operation handler (to be customized per use case)
+        const result = await this.handleJob(job);
+        job.onComplete?.(result);
+      } catch (e) {
+        if ((job.retryCount ?? 0) < (job.maxRetries ?? 1)) {
+          job.retryCount = (job.retryCount ?? 0) + 1;
+          this.queue.push(job);
+        }
+      }
+    }
+    this.isProcessing = false;
+  }
+
+  private async handleJob(job: SimpleJob): Promise<any> {
+    // Replace with your direct function call or operation switch
+    if (typeof job.type === "string" && typeof (globalThis as any)[job.type] === "function") {
+      return await (globalThis as any)[job.type](job.payload);
+    }
+    throw new Error("Unknown job type: " + job.type);
+  }
+}
+
+export const simpleQueue = new InMemoryQueue();

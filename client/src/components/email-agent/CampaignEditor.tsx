@@ -1,3 +1,4 @@
+// All campaign config is managed under the unified 'settings' object per CampaignSettings schema.
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import { CampaignSettings } from './CampaignSettings';
 import { LeadSelector } from './LeadSelector';
 import { HandoverConfig } from './HandoverConfig';
 import { useCampaignForm } from '@/hooks/useCampaignForm';
+import { CampaignTouchSequenceEditor } from './CampaignTouchSequenceEditor';
 
 interface CampaignEditorProps {
   campaign?: any;
@@ -57,9 +59,36 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
     availableTemplates
   } = useCampaignForm(campaign);
 
+  // Ensure settings exists in formData
+  React.useEffect(() => {
+    if (!formData.settings) {
+      setFormData(prev => ({
+        ...prev,
+        settings: {
+          goals: [],
+          qualificationCriteria: {},
+          handoverCriteria: {},
+          channelPreferences: {},
+        }
+      }));
+    }
+  // eslint-disable-next-line
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(prepareFormData());
+    // Always call onSave with unified settings object
+    onSave({
+      name: formData.name,
+      agentId: formData.agentId,
+      description: formData.description,
+      templates: formData.templates,
+      scheduleType: formData.scheduleType,
+      fixedInterval: formData.fixedInterval,
+      selectedLeads: formData.selectedLeads,
+      conversationMode: formData.conversationMode,
+      settings: formData.settings,
+    });
   };
 
   const selectedAgent = agents.find(a => a.id === formData.agentId);
@@ -397,11 +426,32 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
         </CardContent>
       </Card>
 
-      <CampaignSettings formData={formData} setFormData={setFormData} />
+      {/* Touch Sequence Editor - all touch steps (email/SMS) managed in settings */}
+      <CampaignTouchSequenceEditor
+        sequence={formData.settings?.touchSequence || []}
+        onChange={sequence =>
+          setFormData(prev => ({
+            ...prev,
+            settings: {
+              ...prev.settings,
+              touchSequence: sequence
+            }
+          }))
+        }
+      />
 
-      {/* Handover Configuration */}
+      {/* Campaign Settings - all advanced config under settings */}
+      // All multi-step touch/email/SMS scheduling is now managed in settings.touchSequence.
+      <CampaignSettings
+        settings={formData.settings || {}}
+        onChange={(newSettings) =>
+          setFormData(prev => ({ ...prev, settings: { ...prev.settings, ...newSettings } }))
+        }
+      />
+
+      {/* Handover Configuration (now inside settings) */}
       <HandoverConfig
-        handoverCriteria={formData.handoverCriteria || {
+        handoverCriteria={formData.settings?.handoverCriteria || {
           qualificationScore: 7,
           conversationLength: 5,
           timeThreshold: 300,
@@ -409,7 +459,15 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
           goalCompletionRequired: [],
           handoverRecipients: []
         }}
-        onHandoverCriteriaChange={(criteria) => setFormData(prev => ({ ...prev, handoverCriteria: criteria }))}
+        onHandoverCriteriaChange={(criteria) =>
+          setFormData(prev => ({
+            ...prev,
+            settings: {
+              ...prev.settings,
+              handoverCriteria: criteria
+            }
+          }))
+        }
         campaignGoals={selectedAgent?.endGoal ? [selectedAgent.endGoal] : []}
       />
 

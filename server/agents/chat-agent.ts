@@ -1,4 +1,5 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
+import { AgentConfigurationsRepository } from '../db';
 
 export class ChatAgent extends BaseAgent {
   constructor() {
@@ -25,12 +26,54 @@ export class ChatAgent extends BaseAgent {
   async processMessage(message: string, context: AgentContext): Promise<string> {
     const { lead, campaign } = context;
     
-    const systemPrompt = `You are a Chat Agent providing real-time support on a website.
+    // Store incoming chat message in supermemory
+    await this.storeMemory(`Chat from ${lead.name || 'Visitor'}: ${message}`, {
+      leadId: lead.id,
+      type: 'chat_received',
+      source: lead.source
+    });
+
+    // Search for previous chat interactions and patterns
+    const memories = await this.searchMemory(`chat ${lead.name || 'visitor'} ${message.substring(0, 20)}`);
+    const chatHistory = memories.filter(m => m.metadata?.type?.includes('chat')).slice(0, 3);
+    
+    // Get active chat agent configuration
+    const agentConfig = await AgentConfigurationsRepository.getActiveByType('chat');
+    
+    let systemPrompt: string;
+    let prompt: string;
+    
+    if (agentConfig) {
+      // Use configured agent
+      systemPrompt = AgentConfigurationsRepository.generatePromptFromConfig(agentConfig, {
+        leadInfo: lead,
+        conversationHistory: context.conversationHistory || '',
+        chatMemories: chatHistory.map(h => h.content).join('\n')
+      });
+      
+      prompt = `Generate a chat response:
+Visitor Name: ${lead.name || 'Visitor'}
+Their Message: "${message}"
+
+Context:
+- Source: ${lead.source}
+- Campaign: ${lead.campaign || 'General'}
+- Time on site: Active chat session
+
+Respond according to your configuration.`;
+      
+      // Track performance
+      await AgentConfigurationsRepository.updatePerformance(agentConfig.id, 'conversations');
+    } else {
+      // Fallback to default behavior
+      systemPrompt = `You are a Chat Agent providing real-time support on a website.
 Be responsive, helpful, and guide visitors towards the campaign goals.
 Campaign Goals: ${campaign?.goals?.join(', ') || 'General assistance'}
-Respond quickly with clear, conversational messages.`;
+Respond quickly with clear, conversational messages.
 
-    const prompt = `Generate a chat response:
+Previous chat context: ${chatHistory.map(h => h.content).join('\n')}`;
+
+      prompt = `Generate a chat response:
 Visitor Name: ${lead.name || 'Visitor'}
 Their Message: "${message}"
 
@@ -45,8 +88,21 @@ Create a helpful chat response that:
 3. Guides towards campaign goals
 4. Maintains conversational tone
 5. Keeps it concise (2-3 sentences max)`;
+    }
 
-    return await this.callOpenRouter(prompt, systemPrompt);
+    const response = await this.callOpenRouter(prompt, systemPrompt, {
+      temperature: agentConfig?.temperature ? agentConfig.temperature / 100 : 0.7,
+      max_tokens: agentConfig?.maxTokens || 300
+    });
+    
+    // Store outgoing chat response in supermemory
+    await this.storeMemory(`Chat response to ${lead.name || 'Visitor'}: ${response}`, {
+      leadId: lead.id,
+      type: 'chat_sent',
+      campaign: campaign?.name
+    });
+
+    return response;
   }
 
   async makeDecision(_context: AgentContext): Promise<AgentDecision> {
@@ -60,8 +116,14 @@ Create a helpful chat response that:
   async generateInitialMessage(context: AgentContext, focus: string): Promise<string> {
     const { lead } = context;
     
+    // Search for successful initial chat patterns
+    const memories = await this.searchMemory(`initial chat greeting ${focus}`);
+    const successfulGreetings = memories.slice(0, 2).map(m => m.content).join('\n');
+    
     const systemPrompt = `You are starting a website chat conversation.
-Be welcoming and immediately helpful.`;
+Be welcoming and immediately helpful.
+
+Successful greeting patterns: ${successfulGreetings}`;
 
     const prompt = `Create an initial chat greeting for:
 Visitor Name: ${lead.name || 'Visitor'}
@@ -74,7 +136,16 @@ The message should:
 4. Ask how you can assist
 5. Be brief and friendly (2-3 sentences)`;
 
-    return await this.callOpenRouter(prompt, systemPrompt);
+    const greeting = await this.callOpenRouter(prompt, systemPrompt);
+    
+    // Store initial chat greeting in supermemory
+    await this.storeMemory(`Initial chat greeting to ${lead.name || 'Visitor'}: ${greeting}`, {
+      leadId: lead.id,
+      type: 'initial_chat',
+      focus
+    });
+
+    return greeting;
   }
 
   // Chat-specific method for quick responses

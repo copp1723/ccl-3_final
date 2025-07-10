@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Circle, CheckCircle2, TrendingUp } from 'lucide-react';
+import { useBrandingContext } from '@/components/BrandingProvider';
 import { Stats } from '@/types';
 
 export function DashboardView() {
+  const { branding } = useBrandingContext();
   const [stats, setStats] = useState<Stats>({
     totalLeads: 0,
     newLeads: 0,
@@ -30,7 +32,7 @@ export function DashboardView() {
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Leads</CardTitle>
-            <Users className="h-5 w-5 text-blue-500" />
+            <Users className="h-5 w-5" style={{ color: branding.primaryColor }} />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-gray-900">{stats.totalLeads}</div>
@@ -40,10 +42,10 @@ export function DashboardView() {
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">New Leads</CardTitle>
-            <Circle className="h-5 w-5 text-blue-500" />
+            <Circle className="h-5 w-5" style={{ color: branding.primaryColor }} />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{stats.newLeads}</div>
+            <div className="text-3xl font-bold" style={{ color: branding.primaryColor }}>{stats.newLeads}</div>
             <p className="text-xs text-gray-500 mt-1">Awaiting contact</p>
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-# 🚀 CCL Quick Start Guide
+# 🚀 SWARM Quick Start Guide
 
 ## Get Your App Running in 5 Minutes
 
@@ -27,7 +27,7 @@ npm run dev
 This starts the React frontend on http://localhost:5173
 
 ### 3. Open Your Browser
-Go to http://localhost:5173 and you should see your CCL dashboard!
+Go to http://localhost:5173 and you should see your SWARM dashboard!
 
 ## What Works Right Now
 - ✅ Dashboard with stats

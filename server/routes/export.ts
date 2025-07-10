@@ -10,7 +10,7 @@ import {
 } from '../db';
 import { authenticate, authorize } from '../middleware/auth';
 import { auditExport } from '../middleware/audit';
-import { Parser } from 'json2csv';
+import { Parser } from '@json2csv/plainjs';
 import ExcelJS from 'exceljs';
 
 const router = Router();
@@ -48,8 +48,8 @@ router.get('/api/export/leads',
           'boberdooId', 'createdAt', 'updatedAt'
         ];
         
-        const parser = new Parser({ fields });
-        const csv = parser.parse(filteredLeads);
+        const json2csv = new JSONPath({ fields });
+        const csv = json2csv.parse(filteredLeads);
         
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="leads_export.csv"');
@@ -130,8 +130,8 @@ router.get('/api/export/communications',
           'externalId', 'createdAt'
         ];
         
-        const parser = new Parser({ fields });
-        const csv = parser.parse(communications);
+        const json2csv = new JSONPath({ fields });
+        const csv = json2csv.parse(communications);
         
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="communications_export.csv"');
@@ -169,8 +169,8 @@ router.get('/api/export/campaigns',
           updatedAt: c.updatedAt
         }));
         
-        const parser = new Parser();
-        const csv = parser.parse(flattenedCampaigns);
+        const json2csv = new JSONPath();
+        const csv = json2csv.parse(flattenedCampaigns);
         
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="campaigns_export.csv"');
@@ -209,8 +209,8 @@ router.get('/api/export/audit-logs',
           'ipAddress', 'userAgent', 'createdAt'
         ];
         
-        const parser = new Parser({ fields });
-        const csv = parser.parse(logs);
+        const json2csv = new JSONPath({ fields });
+        const csv = json2csv.parse(logs);
         
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="audit_logs_export.csv"');

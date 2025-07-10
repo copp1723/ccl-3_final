@@ -492,3 +492,71 @@ export function createApiError(code: string, message: string, category: string =
     { category }
   );
 }
+// ARCHIVED: Previous overengineered error system removed in favor of simple error types and handling.
+// Lean error handling for CCL-3
+import { Request, Response, NextFunction } from 'express';
+
+// Essential error types
+export type SimpleErrorCode =
+  | 'VALIDATION_ERROR'
+  | 'AUTH_ERROR'
+  | 'EXTERNAL_API_ERROR'
+  | 'DATABASE_ERROR'
+  | 'NOT_FOUND'
+  | 'SYSTEM_ERROR';
+
+export class SimpleError extends Error {
+  code: SimpleErrorCode;
+  status: number;
+  constructor(message: string, code: SimpleErrorCode = 'SYSTEM_ERROR', status = 500) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
+// Express error middleware
+export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
+  let status = 500;
+  let code: SimpleErrorCode = 'SYSTEM_ERROR';
+  let message = err.message || 'An unexpected error occurred.';
+
+  if (err instanceof SimpleError) {
+    status = err.status;
+    code = err.code;
+    message = err.message;
+  } else if (err.name === 'ValidationError') {
+    status = 400;
+    code = 'VALIDATION_ERROR';
+    message = err.message;
+  } else if (err.name === 'UnauthorizedError') {
+    status = 401;
+    code = 'AUTH_ERROR';
+    message = 'Unauthorized';
+  } else if (err.name === 'ForbiddenError') {
+    status = 403;
+    code = 'AUTH_ERROR';
+    message = 'Forbidden';
+  } else if (err.name === 'NotFoundError') {
+    status = 404;
+    code = 'NOT_FOUND';
+    message = 'Not found';
+  }
+
+  // Log only the basics
+  if (status >= 500) {
+    console.error(`[SYSTEM ERROR]`, { url: req.url, code, message, stack: err.stack });
+  } else {
+    console.warn(`[ERROR]`, { url: req.url, code, message });
+  }
+
+  res.status(status).json({
+    success: false,
+    error: {
+      code,
+      message,
+      status
+    }
+  });
+}
+

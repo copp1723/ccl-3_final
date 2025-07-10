@@ -6,51 +6,101 @@ import { db } from '../db/client';
 import { leads, campaigns } from '../db/schema';
 import { eq, desc, isNull } from 'drizzle-orm';
 
+// Unified campaign settings interface (source of truth for config-driven logic)
+export interface CampaignSettings {
+  goals: string[];
+  qualificationCriteria: {
+    minScore: number;
+    requiredFields: string[];
+    requiredGoals: string[];
+  };
+  handoverCriteria: {
+    qualificationScore: number;
+    conversationLength: number;
+    timeThreshold: number;
+    keywordTriggers: string[];
+    goalCompletionRequired: string[];
+    handoverRecipients: {
+      name: string;
+      email: string;
+      role: string;
+      priority: 'high' | 'medium' | 'low';
+    }[];
+  };
+  channelPreferences: {
+    primary: 'email' | 'sms' | 'chat';
+    fallback: Array<'email' | 'sms' | 'chat'>;
+  };
+  /**
+   * Multi-step campaign sequence settings:
+   * Each object represents a touch (email/SMS/etc) to be sent with delays and conditions.
+   */
+  touchSequence: Array<{
+    templateId: string;
+    delayDays: number;
+    delayHours: number;
+    conditions?: any;
+  }>;
+  // Add all future config here
+}
+
+export const campaignSettingsSchema = z.object({
+  goals: z.array(z.string()).min(1),
+  qualificationCriteria: z.object({
+    minScore: z.number().min(0).max(100),
+    requiredFields: z.array(z.string()),
+    requiredGoals: z.array(z.string())
+  }),
+  handoverCriteria: z.object({
+    qualificationScore: z.number().min(0).max(100),
+    conversationLength: z.number().min(1),
+    timeThreshold: z.number().min(1),
+    keywordTriggers: z.array(z.string()),
+    goalCompletionRequired: z.array(z.string()),
+    handoverRecipients: z.array(z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      role: z.string(),
+      priority: z.enum(['high', 'medium', 'low'])
+    }))
+  }),
+  channelPreferences: z.object({
+    primary: z.enum(['email', 'sms', 'chat']),
+    fallback: z.array(z.enum(['email', 'sms', 'chat']))
+  }),
+  /**
+   * Multi-step campaign sequence settings:
+   * Each object represents a touch (email/SMS/etc) to be sent with delays and conditions.
+   */
+  touchSequence: z.array(
+    z.object({
+      templateId: z.string().min(1),
+      delayDays: z.number().min(0),
+      delayHours: z.number().min(0).max(23),
+      conditions: z.any().optional(),
+    })
+  ),
+  // Extend here as needed
+});
+
+/*
+  All campaign configuration is managed via the CampaignSettings interface and schema above.
+  When adding new business logic, always extend this interface and schema, then update the UI/API to match.
+  Overlord and all agents should consume the unified settings object for campaign-driven intelligence.
+*/
+
 const router = Router();
 
 // Validation schemas
-const handoverRecipientSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  role: z.string(),
-  priority: z.enum(['high', 'medium', 'low'])
-});
-
-const handoverCriteriaSchema = z.object({
-  qualificationScore: z.number().min(0).max(100),
-  conversationLength: z.number().min(1),
-  timeThreshold: z.number().min(1),
-  keywordTriggers: z.array(z.string()),
-  goalCompletionRequired: z.array(z.string()),
-  handoverRecipients: z.array(handoverRecipientSchema)
-});
-
-const qualificationCriteriaSchema = z.object({
-  minScore: z.number().min(0).max(100),
-  requiredFields: z.array(z.string()),
-  requiredGoals: z.array(z.string())
-});
-
-const channelPreferencesSchema = z.object({
-  primary: z.enum(['email', 'sms', 'chat']),
-  fallback: z.array(z.enum(['email', 'sms', 'chat']))
-});
-
 const campaignSchema = z.object({
   name: z.string().min(1).max(255),
-  goals: z.array(z.string()).min(1),
-  qualificationCriteria: qualificationCriteriaSchema,
-  handoverCriteria: handoverCriteriaSchema,
-  channelPreferences: channelPreferencesSchema,
+  settings: campaignSettingsSchema,
   selectedLeads: z.array(z.string()).optional()
 });
 
 const updateCampaignSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  goals: z.array(z.string()).min(1).optional(),
-  qualificationCriteria: qualificationCriteriaSchema.optional(),
-  handoverCriteria: handoverCriteriaSchema.optional(),
-  channelPreferences: channelPreferencesSchema.optional(),
+  settings: campaignSettingsSchema.optional(),
   active: z.boolean().optional(),
   selectedLeads: z.array(z.string()).optional()
 });
@@ -111,31 +161,29 @@ router.post('/api/campaigns', async (req, res) => {
   try {
     // Validate request body
     const validationResult = campaignSchema.safeParse(req.body);
-    
+
     if (!validationResult.success) {
       const validationError = fromZodError(validationResult.error);
-      return res.status(400).json({ 
-        error: 'Validation failed', 
-        details: validationError.toString() 
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationError.toString()
       });
     }
-    
-    const { name, goals, qualificationCriteria, channelPreferences, handoverCriteria, selectedLeads } = validationResult.data;
-    
+
+    const { name, settings, selectedLeads } = validationResult.data;
+
     // Check for duplicate name
     const existing = await CampaignsRepository.findByName(name);
     if (existing) {
       return res.status(409).json({ error: 'Campaign with this name already exists' });
     }
-    
+
+    // Save the full settings blob in the DB
     const campaign = await CampaignsRepository.create(
       name,
-      goals,
-      qualificationCriteria,
-      handoverCriteria,
-      channelPreferences
+      settings
     );
-    
+
     res.status(201).json({ success: true, campaign });
   } catch (error) {
     console.error('Error creating campaign:', error);
@@ -148,21 +196,21 @@ router.put('/api/campaigns/:id', async (req, res) => {
   try {
     // Validate request body
     const validationResult = updateCampaignSchema.safeParse(req.body);
-    
+
     if (!validationResult.success) {
       const validationError = fromZodError(validationResult.error);
-      return res.status(400).json({ 
-        error: 'Validation failed', 
-        details: validationError.toString() 
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationError.toString()
       });
     }
-    
+
     // Check if campaign exists
     const existing = await CampaignsRepository.findById(req.params.id);
     if (!existing) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
     // Check for duplicate name if name is being changed
     if (validationResult.data.name && validationResult.data.name !== existing.name) {
       const duplicate = await CampaignsRepository.findByName(validationResult.data.name);
@@ -170,15 +218,16 @@ router.put('/api/campaigns/:id', async (req, res) => {
         return res.status(409).json({ error: 'Campaign with this name already exists' });
       }
     }
-    
-    const campaign = await CampaignsRepository.update(req.params.id, {
-      ...(validationResult.data.name && { name: validationResult.data.name }),
-      ...(validationResult.data.goals && { goals: validationResult.data.goals }),
-      ...(validationResult.data.qualificationCriteria && { qualificationCriteria: validationResult.data.qualificationCriteria }),
-      ...(validationResult.data.channelPreferences && { channelPreferences: validationResult.data.channelPreferences }),
-      ...(validationResult.data.active !== undefined && { active: validationResult.data.active })
-    });
-    
+
+    // Always save the full settings blob if provided
+    const updateObj: any = {};
+    if (validationResult.data.name) updateObj.name = validationResult.data.name;
+    if (validationResult.data.settings) updateObj.settings = validationResult.data.settings;
+    if (validationResult.data.active !== undefined) updateObj.active = validationResult.data.active;
+    // selectedLeads is not persisted on campaign row, so skip
+
+    const campaign = await CampaignsRepository.update(req.params.id, updateObj);
+
     res.json({ success: true, campaign });
   } catch (error) {
     console.error('Error updating campaign:', error);
@@ -239,39 +288,46 @@ router.delete('/api/campaigns/:id', async (req, res) => {
 router.post('/api/campaigns/:id/clone', async (req, res) => {
   try {
     const { name } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'New campaign name is required' });
     }
-    
+
     const original = await CampaignsRepository.findById(req.params.id);
     if (!original) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
     // Check for duplicate name
     const existing = await CampaignsRepository.findByName(name);
     if (existing) {
       return res.status(409).json({ error: 'Campaign with this name already exists' });
     }
-    
+
+    // Clone the settings blob if present, else fallback to defaults
+    const clonedSettings =
+      original.settings ||
+      {
+        goals: original.goals || [],
+        qualificationCriteria: original.qualificationCriteria || { minScore: 7, requiredFields: ["name", "email"], requiredGoals: [] },
+        handoverCriteria: original.handoverCriteria || {
+          qualificationScore: 7,
+          conversationLength: 5,
+          timeThreshold: 300,
+          keywordTriggers: [],
+          goalCompletionRequired: [],
+          handoverRecipients: []
+        },
+        channelPreferences: original.channelPreferences || { primary: "email", fallback: ["sms"] }
+      };
+
     const cloned = await CampaignsRepository.create(
       name,
-      original.goals || [],
-      original.qualificationCriteria || { minScore: 7, requiredFields: ["name", "email"], requiredGoals: [] },
-      original.handoverCriteria || {
-        qualificationScore: 7,
-        conversationLength: 5,
-        timeThreshold: 300,
-        keywordTriggers: [],
-        goalCompletionRequired: [],
-        handoverRecipients: []
-      },
-      original.channelPreferences || { primary: "email", fallback: ["sms"] }
+      clonedSettings
     );
-    
-    res.status(201).json({ 
-      success: true, 
+
+    res.status(201).json({
+      success: true,
       campaign: cloned,
       message: 'Campaign cloned successfully'
     });
@@ -528,31 +584,38 @@ router.get('/api/campaigns/available-leads', async (req, res) => {
 // Update campaign handover criteria
 router.put('/api/campaigns/:id/handover-criteria', async (req, res) => {
   try {
-    const validationResult = handoverCriteriaSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      const validationError = fromZodError(validationResult.error);
+    // Validate the new handoverCriteria using the campaignSettingsSchema
+    const settingsPatch = { handoverCriteria: req.body };
+    const settingsValidation = campaignSettingsSchema.shape.handoverCriteria.safeParse(req.body);
+    if (!settingsValidation.success) {
+      const validationError = fromZodError(settingsValidation.error);
       return res.status(400).json({
         error: 'Validation failed',
         details: validationError.toString()
       });
     }
-    
+
+    // Get campaign
     const campaign = await CampaignsRepository.findById(req.params.id);
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
+    // Merge new handoverCriteria into settings
+    const newSettings = {
+      ...(campaign.settings || {}),
+      handoverCriteria: req.body
+    };
     const campaignId = parseInt(req.params.id, 10);
     const [updated] = await db
       .update(campaigns)
       .set({
-        handoverCriteria: validationResult.data,
+        settings: newSettings,
         updatedAt: new Date()
       })
       .where(eq(campaigns.id, campaignId))
       .returning();
-    
+
     res.json({
       success: true,
       campaign: updated,

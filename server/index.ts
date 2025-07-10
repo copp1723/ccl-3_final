@@ -14,7 +14,7 @@ import { registerRoutes } from './routes';
 import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
 import { sanitizeRequest } from './middleware/validation';
-import { ipRateLimit, addRateLimitInfo } from './middleware/rate-limit';
+import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -48,7 +48,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeRequest);
 app.use(requestTimeout(30000));
 app.use(addRateLimitInfo);
-app.use(ipRateLimit);
+app.use(apiRateLimit);
 
 // Memory monitoring
 const memoryMonitor = setInterval(() => {

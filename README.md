@@ -1,6 +1,6 @@
-# CCL-3: AI-Powered Lead Re-engagement System
+# SWARM: AI-Powered Marketing Automation Platform
 
-This is the central repository for the Complete Car Loans (CCL) AI Recovery System, a multi-agent platform designed for intelligent lead re-engagement, communication orchestration, and automated data processing.
+This is the central repository for SWARM (Scalable Workforce of Automated Resource Management), a multi-agent AI marketing automation platform designed for intelligent lead management, communication orchestration, and automated data processing.
 
 ## 🌟 Features
 

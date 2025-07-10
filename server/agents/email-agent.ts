@@ -1,5 +1,5 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
-import Mailgun from 'mailgun';
+import Mailgun from 'mailgun-js';
 import formData from 'form-data';
 import { CCLLogger } from '../utils/logger';
 import { executeWithMailgunBreaker } from '../utils/circuit-breaker';
@@ -51,10 +51,23 @@ Looking forward to hearing from you!`;
   async processMessage(message: string, context: AgentContext): Promise<string> {
     const { lead, campaign } = context;
     
+    // Store incoming message in supermemory
+    await this.storeMemory(`Email from ${lead.name}: ${message}`, {
+      leadId: lead.id,
+      type: 'email_received',
+      source: lead.source
+    });
+
+    // Search for previous email interactions
+    const memories = await this.searchMemory(`email ${lead.name} ${lead.id}`);
+    const emailHistory = memories.filter(m => m.metadata?.type?.includes('email')).slice(0, 3);
+    
     const systemPrompt = `You are an Email Agent communicating with a potential customer.
 Your goal is to engage them professionally and move them towards the campaign goals.
 Campaign Goals: ${campaign?.goals?.join(', ') || 'General engagement'}
-Be friendly, helpful, and focus on understanding their needs.`;
+Be friendly, helpful, and focus on understanding their needs.
+
+Previous interactions: ${emailHistory.map(h => h.content).join('\n')}`;
 
     const prompt = `Generate a response to this customer email:
 Customer Name: ${lead.name}
@@ -70,7 +83,16 @@ Create a professional, engaging email response that:
 3. Asks relevant qualifying questions
 4. Maintains a helpful, non-pushy tone`;
 
-    return await this.callOpenRouter(prompt, systemPrompt);
+    const response = await this.callOpenRouter(prompt, systemPrompt);
+    
+    // Store outgoing response in supermemory
+    await this.storeMemory(`Email response to ${lead.name}: ${response}`, {
+      leadId: lead.id,
+      type: 'email_sent',
+      campaign: campaign?.name
+    });
+
+    return response;
   }
 
   async makeDecision(_context: AgentContext): Promise<AgentDecision> {
@@ -108,6 +130,15 @@ Create a professional, engaging email response that:
         return await this.mailgun.messages.create(this.domain, messageData);
       });
       
+      // Store successful email send in supermemory
+      await this.storeMemory(`Email sent to ${to}: ${subject}`, {
+        recipient: to,
+        subject,
+        type: 'email_delivery',
+        status: 'sent',
+        externalId: response.id
+      });
+      
       CCLLogger.communicationSent('email', '', { recipient: to, subject, externalId: response.id });
       return response;
     } catch (error) {
@@ -124,8 +155,14 @@ Create a professional, engaging email response that:
   async generateInitialEmail(context: AgentContext, focus: string): Promise<string> {
     const { lead } = context;
     
+    // Search for similar leads or previous campaigns for context
+    const memories = await this.searchMemory(`initial email ${lead.source} ${focus}`);
+    const similarInteractions = memories.slice(0, 2).map(m => m.content).join('\n');
+    
     const systemPrompt = `You are crafting the first email to a potential customer.
-Make it welcoming, professional, and focused on understanding their needs.`;
+Make it welcoming, professional, and focused on understanding their needs.
+
+Similar successful interactions: ${similarInteractions}`;
 
     const prompt = `Create an initial email for:
 Customer Name: ${lead.name}
@@ -139,6 +176,16 @@ The email should:
 4. Be concise (under 150 words)
 5. End with a clear call-to-action`;
 
-    return await this.callOpenRouter(prompt, systemPrompt);
+    const email = await this.callOpenRouter(prompt, systemPrompt);
+    
+    // Store initial email in supermemory
+    await this.storeMemory(`Initial email to ${lead.name}: ${email}`, {
+      leadId: lead.id,
+      type: 'initial_email',
+      focus,
+      source: lead.source
+    });
+
+    return email;
   }
 }
