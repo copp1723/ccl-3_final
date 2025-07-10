@@ -36,14 +36,26 @@ export const leads = pgTable('leads', {
 export const conversations = pgTable('conversations', {
   id: text('id').primaryKey(),
   leadId: text('lead_id').notNull().references(() => leads.id),
+  campaignId: text('campaign_id').references(() => campaigns.id),
   channel: channelEnum('channel').notNull(),
   agentType: agentTypeEnum('agent_type').notNull(),
   messages: jsonb('messages').$type<Array<{
     role: 'agent' | 'lead';
     content: string;
     timestamp: string;
+    qualificationScoreChange?: number;
+    triggeredKeywords?: string[];
   }>>().notNull().default([]),
-  status: text('status').notNull().default('active'), // active, completed, failed
+  currentQualificationScore: integer('current_qualification_score').default(0),
+  goalProgress: jsonb('goal_progress').$type<Record<string, boolean>>().default({}),
+  handoverTriggered: boolean('handover_triggered').default(false),
+  handoverReason: text('handover_reason'),
+  crossChannelContext: jsonb('cross_channel_context').$type<{
+    previousChannels: string[];
+    sharedNotes: string[];
+    leadPreferences: Record<string, any>;
+  }>().default({ previousChannels: [], sharedNotes: [], leadPreferences: {} }),
+  status: text('status').notNull().default('active'), // active, handover_pending, human_takeover, completed, failed
   startedAt: timestamp('started_at').notNull().defaultNow(),
   endedAt: timestamp('ended_at')
 });
@@ -66,6 +78,13 @@ export const campaigns = pgTable('campaigns', {
     minScore: number;
     requiredFields: string[];
     requiredGoals: string[];
+  }>().notNull(),
+  handoverCriteria: jsonb('handover_criteria').$type<{
+    qualificationScore: number;
+    conversationLength: number;
+    keywordTriggers: string[];
+    timeThreshold: number;
+    goalCompletionRequired: string[];
   }>().notNull(),
   channelPreferences: jsonb('channel_preferences').$type<{
     primary: 'email' | 'sms' | 'chat';

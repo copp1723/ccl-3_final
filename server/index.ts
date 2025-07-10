@@ -52,8 +52,9 @@ if (config.features.enableHealthChecks || config.features.enableMetrics) {
       logger.info('Monitoring systems initialized successfully', {
         components: ['performance-monitor', 'health-checker', 'metrics-collector']
       });
-      CCLLogger.securityEvent('Monitoring systems initialized', 'low', {
-        components: ['performance-monitor', 'health-checker', 'metrics-collector']
+      logger.info('Monitoring systems initialized successfully', {
+        components: ['performance-monitor', 'health-checker', 'metrics-collector'],
+        level: 'info'
       });
     } else {
       logger.warn('Some monitoring components not ready at startup');
@@ -248,7 +249,6 @@ app.use(globalErrorHandler);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   logger.info('CCL-3 SWARM server started successfully', { port: PORT, agents: ['Overlord', 'Email', 'SMS', 'Chat'] });
-  CCLLogger.securityEvent('Server startup completed', 'low', { port: PORT });
 });
 
 // Graceful shutdown

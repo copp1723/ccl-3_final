@@ -4,7 +4,21 @@ import * as schema from './schema';
 
 // Create postgres connection
 const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/ccl3_swarm';
-const sql = postgres(connectionString);
+
+// Configure SSL for production databases
+const isProduction = process.env.NODE_ENV === 'production';
+const isExternalDatabase = connectionString.includes('render.com') || connectionString.includes('amazonaws.com') || connectionString.includes('supabase.com');
+
+const sql = postgres(connectionString, {
+  ssl: (isProduction || isExternalDatabase) ? 'require' : false,
+  transform: {
+    undefined: null,
+  },
+  connection: {
+    application_name: 'ccl3_swarm',
+  },
+  onnotice: () => {}, // Suppress notices
+});
 
 // Create drizzle instance with schema
 export const db = drizzle(sql, { schema });

@@ -9,6 +9,14 @@ export interface QualificationCriteria {
   requiredGoals: string[];
 }
 
+export interface HandoverCriteria {
+  qualificationScore: number;
+  conversationLength: number;
+  keywordTriggers: string[];
+  timeThreshold: number;
+  goalCompletionRequired: string[];
+}
+
 export interface ChannelPreferences {
   primary: 'email' | 'sms' | 'chat';
   fallback: ('email' | 'sms' | 'chat')[];
@@ -22,6 +30,7 @@ export class CampaignsRepository {
     name: string,
     goals: string[],
     qualificationCriteria: QualificationCriteria,
+    handoverCriteria: HandoverCriteria,
     channelPreferences: ChannelPreferences
   ): Promise<Campaign> {
     const campaign = {
@@ -29,6 +38,7 @@ export class CampaignsRepository {
       name,
       goals,
       qualificationCriteria,
+      handoverCriteria,
       channelPreferences,
       active: true,
       createdAt: new Date(),
@@ -160,6 +170,13 @@ export class CampaignsRepository {
         minScore: 5,
         requiredFields: ['email', 'phone'],
         requiredGoals: ['Convert lead to customer']
+      },
+      {
+        qualificationScore: 7,
+        conversationLength: 5,
+        keywordTriggers: ['ready to buy', 'interested', 'when can we meet'],
+        timeThreshold: 300, // 5 minutes
+        goalCompletionRequired: ['Convert lead to customer']
       },
       {
         primary: 'chat',

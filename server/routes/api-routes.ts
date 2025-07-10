@@ -61,15 +61,72 @@ router.get('/email/templates', async (req, res) => {
     data: [
       {
         id: 'template-1',
-        name: 'Welcome Template',
-        subject: 'Welcome! Quick question about your needs',
-        category: 'welcome'
+        name: 'Welcome Email',
+        subject: 'Welcome to {{companyName}}, {{firstName}}!',
+        content: `Hi {{firstName}},
+
+Welcome to {{companyName}}! We're excited to have you on board.
+
+Here's what you can expect:
+- Personalized service from our team
+- Regular updates on your {{vehicleInterest}} search
+- Exclusive deals and financing options
+
+If you have any questions, feel free to reach out to us at any time.
+
+Best regards,
+The {{companyName}} Team`,
+        category: 'welcome',
+        variables: ['firstName', 'companyName', 'vehicleInterest'],
+        isActive: true,
+        createdAt: new Date('2024-01-01').toISOString()
       },
       {
         id: 'template-2',
-        name: 'Follow-up 1',
-        subject: 'Did you find what you were looking for?',
-        category: 'follow-up'
+        name: 'Follow-up Email',
+        subject: 'Still looking for your {{vehicleInterest}}, {{firstName}}?',
+        content: `Hi {{firstName}},
+
+I wanted to follow up on your interest in {{vehicleInterest}}.
+
+We have some great new options that might be perfect for you:
+- Competitive financing rates starting at {{interestRate}}%
+- Extended warranty options
+- Trade-in evaluations
+
+Would you like to schedule a quick call to discuss your options?
+
+Best regards,
+{{agentName}}
+{{companyName}}`,
+        category: 'followup',
+        variables: ['firstName', 'vehicleInterest', 'interestRate', 'agentName', 'companyName'],
+        isActive: true,
+        createdAt: new Date('2024-01-05').toISOString()
+      },
+      {
+        id: 'template-3',
+        name: 'Special Offer',
+        subject: 'Exclusive offer for {{firstName}} - Limited time!',
+        content: `Hi {{firstName}},
+
+We have an exclusive offer just for you on {{vehicleInterest}}:
+
+🎉 Special Financing: {{specialRate}}% APR
+🎉 No payments for 90 days
+🎉 Extended warranty included
+
+This offer expires on {{expirationDate}}, so don't wait!
+
+Click here to claim your offer: {{offerLink}}
+
+Best regards,
+{{agentName}}
+{{companyName}}`,
+        category: 'promotion',
+        variables: ['firstName', 'vehicleInterest', 'specialRate', 'expirationDate', 'offerLink', 'agentName', 'companyName'],
+        isActive: true,
+        createdAt: new Date('2024-01-10').toISOString()
       }
     ]
   });

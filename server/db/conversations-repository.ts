@@ -181,4 +181,107 @@ export class ConversationsRepository {
 
     return updated || null;
   }
+
+  /**
+   * Update cross-channel context for a conversation
+   */
+  static async updateCrossChannelContext(
+    conversationId: string,
+    context: {
+      previousChannels?: string[];
+      sharedNotes?: string[];
+      leadPreferences?: Record<string, any>;
+    }
+  ): Promise<Conversation | null> {
+    // Ensure all required properties are present
+    const fullContext = {
+      previousChannels: context.previousChannels || [],
+      sharedNotes: context.sharedNotes || [],
+      leadPreferences: context.leadPreferences || {}
+    };
+
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        crossChannelContext: fullContext
+      })
+      .where(eq(conversations.id, conversationId))
+      .returning();
+
+    return updated || null;
+  }
+
+  /**
+   * Update qualification score for a conversation
+   */
+  static async updateQualificationScore(
+    conversationId: string,
+    score: number
+  ): Promise<Conversation | null> {
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        currentQualificationScore: score
+      })
+      .where(eq(conversations.id, conversationId))
+      .returning();
+
+    return updated || null;
+  }
+
+  /**
+   * Update goal progress for a conversation
+   */
+  static async updateGoalProgress(
+    conversationId: string,
+    goalProgress: Record<string, boolean>
+  ): Promise<Conversation | null> {
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        goalProgress
+      })
+      .where(eq(conversations.id, conversationId))
+      .returning();
+
+    return updated || null;
+  }
+
+  /**
+   * Update conversation with handover analysis results
+   */
+  static async updateWithHandoverAnalysis(
+    conversationId: string,
+    analysis: {
+      qualificationScore?: number;
+      goalProgress?: Record<string, boolean>;
+      crossChannelContext?: {
+        previousChannels?: string[];
+        sharedNotes?: string[];
+        leadPreferences?: Record<string, any>;
+      };
+    }
+  ): Promise<Conversation | null> {
+    const updateData: any = {};
+    
+    if (analysis.qualificationScore !== undefined) {
+      updateData.currentQualificationScore = analysis.qualificationScore;
+    }
+    
+    if (analysis.goalProgress) {
+      updateData.goalProgress = analysis.goalProgress;
+    }
+    
+    if (analysis.crossChannelContext) {
+      updateData.crossChannelContext = analysis.crossChannelContext;
+    }
+
+    const [updated] = await db
+      .update(conversations)
+      .set(updateData)
+      .where(eq(conversations.id, conversationId))
+      .returning();
+
+    return updated || null;
+  }
 }

@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { db } from "../../email-system/database/db";
+import { AgentConfigurationsRepository } from "../db/agent-configurations-repository";
+import { EmailTemplatesRepository } from "../db/email-templates-repository";
+import { CampaignsRepository } from "../db/campaigns-repository";
 import { nanoid } from "nanoid";
 
 const router = Router();
@@ -7,37 +9,27 @@ const router = Router();
 // Email agent endpoints
 router.get("/agents", async (req, res) => {
   try {
-    // For now, return mock data until we implement the database schema
-    const agents = [
-      {
-        id: "agent-1",
-        name: "Sales Specialist",
-        role: "Senior Sales Executive",
-        endGoal: "Convert leads into paying customers through personalized email sequences",
-        instructions: {
-          dos: [
-            "Personalize emails based on lead's industry",
-            "Follow up within 24 hours",
-            "Provide value in every email"
-          ],
-          donts: [
-            "Don't use aggressive sales tactics",
-            "Avoid spammy language",
-            "Don't send more than 3 follow-ups without response"
-          ]
-        },
-        domainExpertise: ["SaaS", "B2B Sales", "Enterprise Software"],
-        personality: "professional",
-        tone: "friendly",
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
+    // Get all email agents from database
+    const agents = await AgentConfigurationsRepository.findByType('email');
+
+    // Transform to match frontend expected format
+    const transformedAgents = agents.map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      role: agent.role,
+      endGoal: agent.endGoal,
+      instructions: agent.instructions,
+      domainExpertise: agent.domainExpertise,
+      personality: agent.personality,
+      tone: agent.tone,
+      isActive: agent.active,
+      createdAt: agent.createdAt.toISOString(),
+      updatedAt: agent.updatedAt.toISOString()
+    }));
 
     res.json({
       success: true,
-      data: agents,
+      data: transformedAgents,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -55,18 +47,30 @@ router.get("/agents", async (req, res) => {
 
 router.post("/agents", async (req, res) => {
   try {
-    const agentData = {
-      id: nanoid(),
+    // Create agent using repository
+    const agent = await AgentConfigurationsRepository.create({
       ...req.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      type: 'email' // Ensure it's an email agent
+    });
+
+    // Transform to match frontend expected format
+    const transformedAgent = {
+      id: agent.id,
+      name: agent.name,
+      role: agent.role,
+      endGoal: agent.endGoal,
+      instructions: agent.instructions,
+      domainExpertise: agent.domainExpertise,
+      personality: agent.personality,
+      tone: agent.tone,
+      isActive: agent.active,
+      createdAt: agent.createdAt.toISOString(),
+      updatedAt: agent.updatedAt.toISOString()
     };
 
-    // TODO: Save to database when schema is ready
-    
     res.json({
       success: true,
-      data: agentData,
+      data: transformedAgent,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -85,17 +89,39 @@ router.post("/agents", async (req, res) => {
 router.put("/agents/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const agentData = {
-      ...req.body,
-      id,
-      updatedAt: new Date().toISOString()
-    };
+    
+    // Update agent using repository
+    const agent = await AgentConfigurationsRepository.update(id, req.body);
+    
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "AGENT_NOT_FOUND",
+          message: "Agent not found",
+          category: "not_found"
+        }
+      });
+    }
 
-    // TODO: Update in database when schema is ready
+    // Transform to match frontend expected format
+    const transformedAgent = {
+      id: agent.id,
+      name: agent.name,
+      role: agent.role,
+      endGoal: agent.endGoal,
+      instructions: agent.instructions,
+      domainExpertise: agent.domainExpertise,
+      personality: agent.personality,
+      tone: agent.tone,
+      isActive: agent.active,
+      createdAt: agent.createdAt.toISOString(),
+      updatedAt: agent.updatedAt.toISOString()
+    };
     
     res.json({
       success: true,
-      data: agentData,
+      data: transformedAgent,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -115,7 +141,19 @@ router.delete("/agents/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // TODO: Delete from database when schema is ready
+    // Delete agent using repository
+    const deleted = await AgentConfigurationsRepository.delete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "AGENT_NOT_FOUND",
+          message: "Agent not found",
+          category: "not_found"
+        }
+      });
+    }
     
     res.json({
       success: true,
@@ -138,30 +176,42 @@ router.delete("/agents/:id", async (req, res) => {
 // Email campaigns endpoints
 router.get("/campaigns", async (req, res) => {
   try {
-    // Return mock data for now
-    const campaigns = [
-      {
-        id: "campaign-1",
-        name: "Q4 Sales Push",
-        agentId: "agent-1",
-        status: "active",
-        templates: ["template-1", "template-2"],
-        schedule: {
-          id: "schedule-1",
-          name: "Standard Follow-up"
+    // Get all campaigns from database
+    const campaigns = await CampaignsRepository.findAll();
+
+    // Transform to match frontend expected format
+    const transformedCampaigns = await Promise.all(campaigns.map(async (campaign) => {
+      // Get campaign stats
+      const stats = await CampaignsRepository.getCampaignStats(campaign.id);
+      
+      return {
+        id: campaign.id,
+        name: campaign.name,
+        goals: campaign.goals,
+        qualificationCriteria: campaign.qualificationCriteria,
+        channelPreferences: campaign.channelPreferences,
+        status: campaign.active ? "active" : "inactive",
+        templates: [], // TODO: Add template association
+        schedule: null, // TODO: Add schedule association
+        stats: stats ? {
+          sent: stats.totalLeads,
+          opened: 0, // TODO: Add email tracking
+          clicked: 0, // TODO: Add email tracking
+          replied: 0 // TODO: Add email tracking
+        } : {
+          sent: 0,
+          opened: 0,
+          clicked: 0,
+          replied: 0
         },
-        stats: {
-          sent: 150,
-          opened: 75,
-          clicked: 30,
-          replied: 10
-        }
-      }
-    ];
+        createdAt: campaign.createdAt.toISOString(),
+        updatedAt: campaign.updatedAt.toISOString()
+      };
+    }));
 
     res.json({
       success: true,
-      data: campaigns,
+      data: transformedCampaigns,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -179,18 +229,49 @@ router.get("/campaigns", async (req, res) => {
 
 router.post("/campaigns", async (req, res) => {
   try {
-    const campaignData = {
-      id: nanoid(),
-      ...req.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Extract required fields and provide defaults
+    const { name, goals, qualificationCriteria, handoverCriteria, channelPreferences } = req.body;
+    
+    // Create campaign using repository
+    const campaign = await CampaignsRepository.create(
+      name,
+      goals || ['Convert lead to customer'],
+      qualificationCriteria || {
+        minScore: 5,
+        requiredFields: ['email'],
+        requiredGoals: ['Convert lead to customer']
+      },
+      handoverCriteria || {
+        qualificationScore: 7,
+        conversationLength: 5,
+        keywordTriggers: ['ready to buy', 'interested', 'when can we meet'],
+        timeThreshold: 300,
+        goalCompletionRequired: ['Convert lead to customer']
+      },
+      channelPreferences || {
+        primary: 'email',
+        fallback: ['sms', 'chat']
+      }
+    );
 
-    // TODO: Save to database when schema is ready
+    // Transform to match frontend expected format
+    const transformedCampaign = {
+      id: campaign.id,
+      name: campaign.name,
+      goals: campaign.goals,
+      qualificationCriteria: campaign.qualificationCriteria,
+      channelPreferences: campaign.channelPreferences,
+      status: campaign.active ? "active" : "inactive",
+      templates: [],
+      schedule: null,
+      stats: { sent: 0, opened: 0, clicked: 0, replied: 0 },
+      createdAt: campaign.createdAt.toISOString(),
+      updatedAt: campaign.updatedAt.toISOString()
+    };
     
     res.json({
       success: true,
-      data: campaignData,
+      data: transformedCampaign,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -209,17 +290,39 @@ router.post("/campaigns", async (req, res) => {
 router.put("/campaigns/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const campaignData = {
-      ...req.body,
-      id,
-      updatedAt: new Date().toISOString()
-    };
+    
+    // Update campaign using repository
+    const campaign = await CampaignsRepository.update(id, req.body);
+    
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "CAMPAIGN_NOT_FOUND",
+          message: "Campaign not found",
+          category: "not_found"
+        }
+      });
+    }
 
-    // TODO: Update in database when schema is ready
+    // Transform to match frontend expected format
+    const transformedCampaign = {
+      id: campaign.id,
+      name: campaign.name,
+      goals: campaign.goals,
+      qualificationCriteria: campaign.qualificationCriteria,
+      channelPreferences: campaign.channelPreferences,
+      status: campaign.active ? "active" : "inactive",
+      templates: [],
+      schedule: null,
+      stats: { sent: 0, opened: 0, clicked: 0, replied: 0 },
+      createdAt: campaign.createdAt.toISOString(),
+      updatedAt: campaign.updatedAt.toISOString()
+    };
     
     res.json({
       success: true,
-      data: campaignData,
+      data: transformedCampaign,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -239,7 +342,19 @@ router.delete("/campaigns/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // TODO: Delete from database when schema is ready
+    // Delete campaign using repository
+    const deleted = await CampaignsRepository.delete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "CAMPAIGN_NOT_FOUND",
+          message: "Campaign not found",
+          category: "not_found"
+        }
+      });
+    }
     
     res.json({
       success: true,
@@ -264,11 +379,24 @@ router.put("/campaigns/:id/status", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    // TODO: Update status in database when schema is ready
+    // Convert status to active boolean
+    const active = status === "active";
+    const campaign = await CampaignsRepository.update(id, { active });
+    
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "CAMPAIGN_NOT_FOUND",
+          message: "Campaign not found",
+          category: "not_found"
+        }
+      });
+    }
     
     res.json({
       success: true,
-      data: { id, status },
+      data: { id, status: campaign.active ? "active" : "inactive" },
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -287,63 +415,35 @@ router.put("/campaigns/:id/status", async (req, res) => {
 // Email templates endpoints
 router.get("/templates", async (req, res) => {
   try {
-    // Return mock template data
-    const templates = [
-      {
-        id: "template-1",
-        name: "Welcome & Introduction",
-        subject: "Welcome to Complete Car Loans - Let's Get You Approved!",
-        category: "welcome",
-        content: "Hi {{firstName}},\n\nWelcome to Complete Car Loans! I'm excited to help you find the perfect vehicle financing solution...",
-        variables: ["firstName", "vehicleInterest"],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "template-2", 
-        name: "24-Hour Follow-up",
-        subject: "Quick Question About Your Car Loan Application",
-        category: "followup",
-        content: "Hi {{firstName}},\n\nI wanted to follow up on your interest in car financing. Do you have any questions about our pre-approval process?",
-        variables: ["firstName", "preApprovalAmount"],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "template-3",
-        name: "Credit Challenge Support", 
-        subject: "Special Financing Options Available - Even with Credit Challenges",
-        category: "credit-support",
-        content: "Hi {{firstName}},\n\nI understand that credit challenges can make car shopping stressful. Good news - we specialize in helping people with all credit situations...",
-        variables: ["firstName", "creditScore", "monthlyPayment"],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "template-4",
-        name: "Approval Notification",
-        subject: "🎉 You're Pre-Approved! Next Steps for {{firstName}}",
-        category: "approval",
-        content: "Congratulations {{firstName}}!\n\nYou've been pre-approved for up to {{preApprovalAmount}} in vehicle financing...",
-        variables: ["firstName", "preApprovalAmount", "monthlyPayment"],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "template-5",
-        name: "Vehicle Shopping Assistance",
-        subject: "Found Some Great {{vehicleInterest}} Options For You!",
-        category: "vehicle-assistance",
-        content: "Hi {{firstName}},\n\nBased on your interest in {{vehicleInterest}}, I've found some excellent options that fit your budget...",
-        variables: ["firstName", "vehicleInterest", "monthlyPayment"],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      }
-    ];
+    // Get filters from query params
+    const { category, campaignId, agentId, active, search } = req.query;
+    
+    // Get all templates from database with filters
+    const templates = await EmailTemplatesRepository.findAll({
+      category: category as string,
+      campaignId: campaignId as string,
+      agentId: agentId as string,
+      active: active ? active === 'true' : undefined,
+      search: search as string
+    });
+
+    // Transform to match frontend expected format
+    const transformedTemplates = templates.map(template => ({
+      id: template.id,
+      name: template.name,
+      subject: template.subject,
+      category: template.category,
+      content: template.content,
+      variables: template.variables,
+      isActive: template.active,
+      performance: template.performance,
+      createdAt: template.createdAt.toISOString(),
+      updatedAt: template.updatedAt.toISOString()
+    }));
 
     res.json({
       success: true,
-      data: templates,
+      data: transformedTemplates,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -361,16 +461,33 @@ router.get("/templates", async (req, res) => {
 
 router.post("/templates", async (req, res) => {
   try {
-    const templateData = {
-      id: nanoid(),
+    // Extract variables from content automatically
+    const variables = EmailTemplatesRepository.extractVariables(req.body.content || '');
+    
+    // Create template using repository
+    const template = await EmailTemplatesRepository.create({
       ...req.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      variables,
+      performance: { sent: 0, opened: 0, clicked: 0, replied: 0 }
+    });
+
+    // Transform to match frontend expected format
+    const transformedTemplate = {
+      id: template.id,
+      name: template.name,
+      subject: template.subject,
+      category: template.category,
+      content: template.content,
+      variables: template.variables,
+      isActive: template.active,
+      performance: template.performance,
+      createdAt: template.createdAt.toISOString(),
+      updatedAt: template.updatedAt.toISOString()
     };
 
     res.json({
       success: true,
-      data: templateData,
+      data: transformedTemplate,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -488,6 +605,151 @@ router.post("/schedules", async (req, res) => {
         code: "SCHEDULE_CREATE_ERROR",
         message: error.message || "Failed to create schedule",
         category: "database"
+      }
+    });
+  }
+});
+
+// Template variable management endpoints
+router.put("/templates/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Extract variables from content if updated
+    let variables = req.body.variables;
+    if (req.body.content) {
+      variables = EmailTemplatesRepository.extractVariables(req.body.content);
+    }
+    
+    // Update template using repository
+    const template = await EmailTemplatesRepository.update(id, {
+      ...req.body,
+      variables
+    });
+    
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "TEMPLATE_NOT_FOUND",
+          message: "Template not found",
+          category: "not_found"
+        }
+      });
+    }
+
+    // Transform to match frontend expected format
+    const transformedTemplate = {
+      id: template.id,
+      name: template.name,
+      subject: template.subject,
+      category: template.category,
+      content: template.content,
+      variables: template.variables,
+      isActive: template.active,
+      performance: template.performance,
+      createdAt: template.createdAt.toISOString(),
+      updatedAt: template.updatedAt.toISOString()
+    };
+    
+    res.json({
+      success: true,
+      data: transformedTemplate,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error("Error updating template:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "TEMPLATE_UPDATE_ERROR",
+        message: error.message || "Failed to update template",
+        category: "database"
+      }
+    });
+  }
+});
+
+router.delete("/templates/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deleted = await EmailTemplatesRepository.delete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "TEMPLATE_NOT_FOUND",
+          message: "Template not found",
+          category: "not_found"
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: { deleted: true },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error("Error deleting template:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "TEMPLATE_DELETE_ERROR",
+        message: error.message || "Failed to delete template",
+        category: "database"
+      }
+    });
+  }
+});
+
+// Template variable replacement endpoint
+router.post("/templates/:id/preview", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { variables } = req.body;
+    
+    const template = await EmailTemplatesRepository.findById(id);
+    
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "TEMPLATE_NOT_FOUND",
+          message: "Template not found",
+          category: "not_found"
+        }
+      });
+    }
+
+    // Replace variables in subject and content
+    const previewSubject = EmailTemplatesRepository.replaceVariables(template.subject, variables || {});
+    const previewContent = EmailTemplatesRepository.replaceVariables(template.content, variables || {});
+    
+    res.json({
+      success: true,
+      data: {
+        id: template.id,
+        name: template.name,
+        subject: previewSubject,
+        content: previewContent,
+        originalSubject: template.subject,
+        originalContent: template.content,
+        variables: template.variables,
+        replacedVariables: variables || {}
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error("Error generating template preview:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "TEMPLATE_PREVIEW_ERROR",
+        message: error.message || "Failed to generate template preview",
+        category: "processing"
       }
     });
   }

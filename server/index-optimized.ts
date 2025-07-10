@@ -578,6 +578,170 @@ app.post('/api/email/campaigns', async (req, res) => {
   }
 });
 
+// Email templates endpoints
+app.get('/api/email/templates', async (req, res) => {
+  try {
+    // Return mock template data for now
+    const templates = [
+      {
+        id: "template-1",
+        name: "Welcome Email",
+        subject: "Welcome to {{companyName}}, {{firstName}}!",
+        content: `Hi {{firstName}},
+
+Welcome to {{companyName}}! We're excited to have you on board.
+
+Here's what you can expect:
+- Personalized service from our team
+- Regular updates on your {{vehicleInterest}} search
+- Exclusive deals and financing options
+
+If you have any questions, feel free to reach out to us at any time.
+
+Best regards,
+The {{companyName}} Team`,
+        category: "welcome",
+        variables: ["firstName", "companyName", "vehicleInterest"],
+        isActive: true,
+        createdAt: new Date('2024-01-01').toISOString()
+      },
+      {
+        id: "template-2",
+        name: "Follow-up Email",
+        subject: "Still looking for your {{vehicleInterest}}, {{firstName}}?",
+        content: `Hi {{firstName}},
+
+I wanted to follow up on your interest in {{vehicleInterest}}.
+
+We have some great new options that might be perfect for you:
+- Competitive financing rates starting at {{interestRate}}%
+- Extended warranty options
+- Trade-in evaluations
+
+Would you like to schedule a quick call to discuss your options?
+
+Best regards,
+{{agentName}}
+{{companyName}}`,
+        category: "followup",
+        variables: ["firstName", "vehicleInterest", "interestRate", "agentName", "companyName"],
+        isActive: true,
+        createdAt: new Date('2024-01-05').toISOString()
+      },
+      {
+        id: "template-3",
+        name: "Special Offer",
+        subject: "Exclusive offer for {{firstName}} - Limited time!",
+        content: `Hi {{firstName}},
+
+We have an exclusive offer just for you on {{vehicleInterest}}:
+
+🎉 Special Financing: {{specialRate}}% APR
+🎉 No payments for 90 days
+🎉 Extended warranty included
+
+This offer expires on {{expirationDate}}, so don't wait!
+
+Click here to claim your offer: {{offerLink}}
+
+Best regards,
+{{agentName}}
+{{companyName}}`,
+        category: "promotion",
+        variables: ["firstName", "vehicleInterest", "specialRate", "expirationDate", "offerLink", "agentName", "companyName"],
+        isActive: true,
+        createdAt: new Date('2024-01-10').toISOString()
+      }
+    ];
+    
+    res.json({ data: templates });
+  } catch (error) {
+    logger.error('Error fetching email templates:', error);
+    res.status(500).json({ error: 'Failed to fetch email templates' });
+  }
+});
+
+app.post('/api/email/templates', async (req, res) => {
+  try {
+    const { name, subject, content, category, variables } = req.body;
+    
+    // Validate required fields
+    if (!name || !subject || !content) {
+      return res.status(400).json({ error: 'Template name, subject, and content are required' });
+    }
+    
+    // Create template object
+    const template = {
+      id: `template-${Date.now()}`, // Simple ID generation
+      name,
+      subject,
+      content,
+      category: category || 'custom',
+      variables: variables || [],
+      isActive: true,
+      createdAt: new Date().toISOString()
+    };
+    
+    // TODO: Save to database when template storage is implemented
+    // For now, just return success with the created template
+    
+    logger.info(`Template created: ${template.name} (${template.id})`);
+    res.json({ success: true, data: template });
+  } catch (error) {
+    logger.error('Error creating email template:', error);
+    res.status(500).json({ error: 'Failed to create template' });
+  }
+});
+
+app.put('/api/email/templates/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, subject, content, category, variables } = req.body;
+    
+    // Validate required fields
+    if (!name || !subject || !content) {
+      return res.status(400).json({ error: 'Template name, subject, and content are required' });
+    }
+    
+    // Create updated template object
+    const template = {
+      id,
+      name,
+      subject,
+      content,
+      category: category || 'custom',
+      variables: variables || [],
+      isActive: true,
+      createdAt: new Date('2024-01-01').toISOString(), // Mock creation date
+      updatedAt: new Date().toISOString()
+    };
+    
+    // TODO: Update in database when template storage is implemented
+    // For now, just return success with the updated template
+    
+    logger.info(`Template updated: ${template.name} (${template.id})`);
+    res.json({ success: true, data: template });
+  } catch (error) {
+    logger.error('Error updating email template:', error);
+    res.status(500).json({ error: 'Failed to update template' });
+  }
+});
+
+app.delete('/api/email/templates/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // TODO: Delete from database when template storage is implemented
+    // For now, just return success
+    
+    logger.info(`Template deleted: ${id}`);
+    res.json({ success: true, message: 'Template deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting email template:', error);
+    res.status(500).json({ error: 'Failed to delete template' });
+  }
+});
+
 // WebSocket setup (only if enabled)
 if (config.enableWebSocket) {
   import('ws').then(({ WebSocketServer }) => {
