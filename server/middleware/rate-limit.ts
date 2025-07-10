@@ -4,9 +4,9 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { rateLimitRedis } from '../utils/redis.js';
-import { logger, CCLLogger } from '../utils/logger.js';
-import { CCLCustomError, CCLErrorCode } from '../utils/error-handler.js';
+import { rateLimitRedis } from '../utils/redis';
+import { logger, CCLLogger } from '../utils/logger';
+import { CCLCustomError, CCLErrorCode } from '../utils/error-handler';
 
 // Rate limit configurations for different CCL-3 operations
 interface CCLRateLimitConfig {

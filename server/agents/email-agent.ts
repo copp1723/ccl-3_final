@@ -1,8 +1,8 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
-import Mailgun from 'mailgun.js';
+import Mailgun from 'mailgun';
 import formData from 'form-data';
-import { CCLLogger } from '../utils/logger.js';
-import { executeWithMailgunBreaker } from '../utils/circuit-breaker.js';
+import { CCLLogger } from '../utils/logger';
+import { executeWithMailgunBreaker } from '../utils/circuit-breaker';
 
 export class EmailAgent extends BaseAgent {
   private mailgun: any;

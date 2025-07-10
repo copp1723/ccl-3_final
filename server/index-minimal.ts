@@ -5,7 +5,7 @@ import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { LeadsRepository, AgentDecisionsRepository, closeConnection } from './db';
-import { logger } from './utils/logger.js';
+import { logger } from './utils/logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,8 +54,8 @@ app.post('/api/leads', async (req, res) => {
     
     // Simple decision without loading agents
     await AgentDecisionsRepository.create(
-      lead.id,
-      'system',
+      lead.id.toString(),
+      'overlord',
       'lead_created',
       'Lead saved to database',
       { source: req.body.source }

@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { cclApiRateLimit } from '../middleware/rate-limit.js';
+import { cclApiRateLimit } from '../middleware/rate-limit';
 import { healthHandler } from '../api/unified-handlers';
 
 // Route imports

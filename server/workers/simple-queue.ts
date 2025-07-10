@@ -1,5 +1,5 @@
 // Simple in-memory queue for basic job processing
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 interface SimpleJob {
   id: string;

@@ -1,8 +1,8 @@
 import { LeadsRepository, ConversationsRepository, AgentDecisionsRepository, CommunicationsRepository, CampaignsRepository } from '../db';
 import { getOverlordAgent, getEmailAgent, getSMSAgent, getChatAgent } from '../agents';
-import { CCLLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 import { feedbackService } from './feedback-service';
-import { queueManager } from '../workers/queue-manager.js';
+import { queueManager } from '../workers/queue-manager';
 
 /**
  * Lead processing service - the heart of the system
@@ -19,12 +19,13 @@ export class LeadProcessor {
     if (useBackgroundJob && queueManager.isHealthy()) {
       // Queue lead for background processing
       try {
-        const job = await queueManager.addLeadProcessingJob(lead.id, 'normal');
-        CCLLogger.leadProcessing(lead.id, 'queued_for_background', { 
-          jobId: job?.id,
-          leadName: lead.name 
+        const jobId = await queueManager.addLeadProcessingJob(lead.id, 'normal');
+        logger.info('Lead queued for background processing', {
+          leadId: lead.id,
+          jobId: jobId,
+          leadName: lead.name
         });
-        return { status: 'queued', jobId: job?.id };
+        return { status: 'queued', jobId: jobId };
       } catch (error) {
         console.warn('Failed to queue lead for background processing, processing immediately', {
           leadId: lead.id,
@@ -35,7 +36,7 @@ export class LeadProcessor {
     }
 
     try {
-      CCLLogger.leadProcessing(lead.id, 'lead_started', { leadName: lead.name });
+      logger.info('Lead processing started', { leadId: lead.id, leadName: lead.name });
       
       // 1. Get Overlord Agent instance
       const overlord = getOverlordAgent();
@@ -48,10 +49,13 @@ export class LeadProcessor {
       
       // 3. Make routing decision
       const decision = await overlord.makeDecision({ lead, campaign });
-      CCLLogger.agentDecision('overlord', decision.action, decision.reasoning || 'No reasoning provided', { 
-        leadId: lead.id, 
-        leadName: lead.name, 
-        decision 
+      logger.info('Agent decision made', {
+        agent: 'overlord',
+        action: decision.action,
+        reasoning: decision.reasoning || 'No reasoning provided',
+        leadId: lead.id,
+        leadName: lead.name,
+        decision
       });
       
       // 4. Check if the decision is to assign a channel
@@ -146,17 +150,17 @@ export class LeadProcessor {
         );
         externalId = emailResult.id;
         sendStatus = 'sent';
-        CCLLogger.communicationSent('email', lead.id, { recipient: lead.email, externalId });
+        logger.info('Email communication sent', { leadId: lead.id, recipient: lead.email, externalId });
       } else if (channel === 'sms' && lead.phone) {
         const smsAgent = getSMSAgent();
         const smsResult = await smsAgent.sendSMS(lead.phone, messageContent);
         externalId = smsResult.sid;
         sendStatus = 'sent';
-        CCLLogger.communicationSent('sms', lead.id, { recipient: lead.phone, externalId });
+        logger.info('SMS communication sent', { leadId: lead.id, recipient: lead.phone, externalId });
       } else if (channel === 'chat') {
         // Chat sessions are handled differently - they're initiated when user engages
         sendStatus = 'waiting_for_user';
-        CCLLogger.communicationSent('chat', lead.id, { leadName: lead.name, status: 'waiting_for_user' });
+        logger.info('Chat communication initiated', { leadId: lead.id, leadName: lead.name, status: 'waiting_for_user' });
       }
       
       // Record the communication
@@ -172,7 +176,7 @@ export class LeadProcessor {
         );
       }
     } catch (sendError) {
-      CCLLogger.communicationFailed(channel as 'email' | 'sms' | 'chat', lead.id, sendError as Error, { messageContent });
+      logger.error('Communication failed', { channel, leadId: lead.id, error: sendError, messageContent });
       sendStatus = 'failed';
       
       // Still record the failed attempt
@@ -192,9 +196,12 @@ export class LeadProcessor {
 
   private async processBoberdooSubmission(lead: any, overlord: any) {
     // Lead is already qualified, send directly to Boberdoo
-    CCLLogger.externalApiCall('boberdoo', '/lead', 'POST', { 
-      leadId: lead.id, 
-      leadName: lead.name 
+    logger.info('Boberdoo API call', {
+      service: 'boberdoo',
+      endpoint: '/lead',
+      method: 'POST',
+      leadId: lead.id,
+      leadName: lead.name
     });
     
     const boberdooResult = await overlord.submitToBoberdoo(lead);
@@ -210,9 +217,11 @@ export class LeadProcessor {
   }
 
   private async handleProcessingError(lead: any, error: Error) {
-    CCLLogger.leadError(lead.id, error, { 
-      leadName: lead.name, 
-      step: 'lead_processing' 
+    logger.error('Lead processing error', {
+      leadId: lead.id,
+      leadName: lead.name,
+      step: 'lead_processing',
+      error: error.message
     });
     
     // Record the error as a decision

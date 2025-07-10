@@ -2,7 +2,7 @@
 // Handles caching, rate limiting, and session storage
 
 import Redis from 'ioredis';
-import { logger, CCLLogger } from './logger.js';
+import { logger, CCLLogger } from './logger';
 
 // Get Redis configuration from environment
 const getRedisConfig = () => {

@@ -1,6 +1,6 @@
 import { Lead, Campaign } from '../db/schema';
-import { CCLLogger } from '../utils/logger.js';
-import { executeWithOpenRouterBreaker } from '../utils/circuit-breaker.js';
+import { CCLLogger } from '../utils/logger';
+import { executeWithOpenRouterBreaker } from '../utils/circuit-breaker';
 
 export interface AgentContext {
   lead: Lead;

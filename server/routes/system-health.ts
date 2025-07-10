@@ -3,10 +3,10 @@
 
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
-import { CCLCircuitBreakerManager } from '../utils/circuit-breaker.js';
-import { checkRedisHealth } from '../utils/redis.js';
-import { logger, CCLLogger } from '../utils/logger.js';
-import { CCLResponseHelper } from '../utils/error-handler.js';
+import { CCLCircuitBreakerManager } from '../utils/circuit-breaker';
+import { checkRedisHealth } from '../utils/redis';
+import { logger, CCLLogger } from '../utils/logger';
+import { CCLResponseHelper } from '../utils/error-handler';
 
 const router = Router();
 

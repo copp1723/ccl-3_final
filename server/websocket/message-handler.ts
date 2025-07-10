@@ -4,7 +4,7 @@ import { LeadsRepository, ConversationsRepository, CommunicationsRepository } fr
 import { getChatAgent } from '../agents';
 import { feedbackService } from '../services/feedback-service';
 import { LeadProcessor } from '../services/lead-processor';
-import { logger, CCLLogger } from '../utils/logger.js';
+import { logger, CCLLogger } from '../utils/logger';
 
 interface ExtendedWebSocket {
   connectionId: string;

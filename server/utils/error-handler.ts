@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { ValidationError } from 'zod-validation-error';
 import { v4 as uuidv4 } from 'uuid';
-import { logger, CCLLogger } from './logger.js';
+import { logger, CCLLogger } from './logger';
 
 // CCL-3 specific error codes
 export enum CCLErrorCode {

@@ -128,7 +128,7 @@ if (process.env.EMAIL_TEMPLATES_ENABLED === 'true') {
 }
 
 // API routes for missing endpoints (but specific routes below take precedence)
-import apiRoutes from './routes/api-routes.js';
+import apiRoutes from './routes/api-routes';
 app.use('/api', apiRoutes);
 
 // Core API Routes

@@ -1,7 +1,7 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
 import { Lead, LeadsRepository, AgentDecisionsRepository } from '../db';
-import { CCLLogger } from '../utils/logger.js';
-import { executeWithBoberdooBreaker } from '../utils/circuit-breaker.js';
+import { CCLLogger } from '../utils/logger';
+import { executeWithBoberdooBreaker } from '../utils/circuit-breaker';
 
 interface BoberdooResponse {
   success: boolean;

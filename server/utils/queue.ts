@@ -2,9 +2,9 @@
 // Based on foundation's queue system with CCL-3 specific enhancements
 
 import { Queue, Worker, Job, QueueOptions, WorkerOptions, JobsOptions } from 'bullmq';
-import { redisClient } from './redis.js';
-import { logger, CCLLogger } from './logger.js';
-import { CCLCustomError, CCLErrorCode } from './error-handler.js';
+import { redisClient } from './redis';
+import { logger, CCLLogger } from './logger';
+import { CCLCustomError, CCLErrorCode } from './error-handler';
 
 // CCL-3 specific job types
 export enum CCLJobType {

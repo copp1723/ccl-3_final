@@ -2,7 +2,7 @@ import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
 import { EmailAgent } from './email-agent';
 import { SMSAgent } from './sms-agent';
 import { ChatAgent } from './chat-agent';
-import { CCLLogger } from '../utils/logger.js';
+import { CCLLogger } from '../utils/logger';
 import { ConversationsRepository, CampaignsRepository } from '../db';
 import { Lead } from '../db/schema';
 

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { LeadsRepository, AgentDecisionsRepository, ConversationsRepository } from '../db';
 import { LeadProcessor } from '../services/lead-processor';
-import { logger, CCLLogger } from '../utils/logger.js';
+import { logger, CCLLogger } from '../utils/logger';
 import { validate } from '../middleware/validation';
 
 // Lead creation schema
