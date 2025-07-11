@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ConversationsRepository } from '../db/conversations-repository';
+import { conversationsRepository as ConversationsRepository } from '../db/wrapped-repositories';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { clientValidation, ClientRequest } from '../middleware/client-validation';

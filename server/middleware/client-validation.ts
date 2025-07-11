@@ -1,101 +1,91 @@
-import { Request, Response, NextFunction } from 'express'
-import { clientsRepository } from '../db/clients-repository'
-import { logger } from '../utils/logger'
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger';
+import { dbConnectionManager } from '../db/connection-manager';
+import { mockClients } from '../db/mock-data';
 
 export interface ClientRequest extends Request {
-  clientId?: string
+  clientId?: string;
   clientData?: {
-    id: string
-    name: string
-    domain?: string
-    settings?: any
-    active?: boolean
-  }
+    id: string;
+    name: string;
+    domain?: string;
+    settings?: any;
+    active: boolean;
+  };
 }
 
 /**
- * Middleware to detect and validate client context from domain or headers
+ * Improved middleware to detect and validate client context
+ * Works with or without database connection
  */
 export async function clientValidation(req: ClientRequest, res: Response, next: NextFunction) {
   try {
-    let clientId: string | null = null
+    let clientId: string | undefined;
     
-    // 1. Check for explicit client ID in headers (for API calls)
-    if (req.headers['x-client-id']) {
-      clientId = req.headers['x-client-id'] as string
+    // 1. Check for client ID in headers
+    const headerClientId = req.headers['x-client-id'] || req.headers['client-id'];
+    if (headerClientId && typeof headerClientId === 'string') {
+      clientId = headerClientId;
     }
     
-    // 2. Check for subdomain-based client detection
-    if (!clientId && req.hostname) {
-      const subdomain = req.hostname.split('.')[0]
-      if (subdomain && subdomain !== 'www' && subdomain !== req.hostname) {
-        clientId = subdomain
-      }
+    // 2. Check for client ID in query params
+    if (!clientId && req.query.clientId) {
+      clientId = req.query.clientId as string;
     }
     
-    // 3. Check for domain-based client detection
-    if (!clientId && req.hostname) {
-      const client = await clientsRepository.findByDomain(req.hostname)
+    // 3. Domain-based detection or default
+    if (!clientId) {
+      // Try to find by domain if database is connected
+      const client = await dbConnectionManager.executeWithFallback(
+        async () => {
+          const { clientsRepository } = await import('../db/clients-repository');
+          return req.hostname ? await clientsRepository.findByDomain(req.hostname) : null;
+        },
+        () => {
+          // Fallback: check mock data
+          return req.hostname ? mockClients.findByDomain(req.hostname) : null;
+        }
+      );
+      
       if (client) {
-        clientId = client.id
+        clientId = client.id;
       }
     }
     
-    // 4. Validate client exists and is active
-    if (clientId) {
-      const client = await clientsRepository.findById(clientId)
-      if (client && client.active) {
-        req.clientId = clientId
-        req.clientData = client
-      } else {
-        logger.warn(`Invalid or inactive client: ${clientId}`, { hostname: req.hostname })
-      }
+    // 4. Default to 'ccl-default' if no client found
+    if (!clientId) {
+      clientId = 'ccl-default';
     }
     
-    next()
+    // 5. Validate and fetch client data
+    const clientData = await dbConnectionManager.executeWithFallback(
+      async () => {
+        const { clientsRepository } = await import('../db/clients-repository');
+        return await clientsRepository.findById(clientId!);
+      },
+      () => {
+        // Fallback: use mock data
+        return mockClients.findById(clientId!);
+      }
+    );
+    
+    if (clientData && clientData.active) {
+      req.clientId = clientId;
+      req.clientData = clientData;
+      logger.debug('Client context set', { clientId, source: dbConnectionManager.isConnected() ? 'database' : 'fallback' });
+    } else {
+      logger.warn(`Invalid or inactive client: ${clientId}`);
+      // Still set default client to allow request to proceed
+      req.clientId = 'ccl-default';
+      req.clientData = mockClients.findById('ccl-default')!;
+    }
+    
+    next();
   } catch (error) {
-    logger.error('Client validation error:', error)
-    next() // Continue without client context rather than failing
+    logger.error('Client validation error:', error);
+    // Set default client on any error
+    req.clientId = 'ccl-default';
+    req.clientData = mockClients.findById('ccl-default')!;
+    next();
   }
-}
-
-/**
- * Middleware to require valid client context
- */
-export function requireClient(req: ClientRequest, res: Response, next: NextFunction) {
-  if (!req.clientId || !req.clientData) {
-    return res.status(400).json({
-      success: false,
-      error: 'Valid client context required'
-    })
-  }
-  next()
-}
-
-/**
- * Middleware to add client_id to database queries
- */
-export function addClientFilter(req: ClientRequest, res: Response, next: NextFunction) {
-  if (req.clientId) {
-    // Add client filter to query parameters
-    req.query.client_id = req.clientId
-  }
-  next()
-}
-
-/**
- * Utility to get client ID from request
- */
-export function getClientId(req: ClientRequest): string | null {
-  return req.clientId || null
-}
-
-/**
- * Utility to ensure client isolation in database operations
- */
-export function ensureClientIsolation(data: any, clientId: string | null): any {
-  if (clientId && typeof data === 'object' && data !== null) {
-    return { ...data, client_id: clientId }
-  }
-  return data
 }

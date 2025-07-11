@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { LeadsRepository } from '../db/leads-repository';
+import { leadsRepository as LeadsRepository } from '../db/wrapped-repositories';
 import { authenticate } from '../middleware/auth';
 import { auditView } from '../middleware/audit';
 import { validateQuery } from '../middleware/validation';

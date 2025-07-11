@@ -21,7 +21,7 @@ const analyticsQuerySchema = dateRangeSchema.extend({
 });
 
 // Dashboard overview
-router.get('/api/analytics/dashboard',
+router.get('/overview',
   authenticate,
   validateQuery(dateRangeSchema),
   auditView('analytics_dashboard'),
@@ -43,7 +43,7 @@ router.get('/api/analytics/dashboard',
 );
 
 // Lead analytics
-router.get('/api/analytics/leads',
+router.get('/leads',
   authenticate,
   validateQuery(analyticsQuerySchema),
   auditView('analytics_leads'),
@@ -67,7 +67,7 @@ router.get('/api/analytics/leads',
 );
 
 // Campaign performance
-router.get('/api/analytics/campaigns',
+router.get('/campaigns',
   authenticate,
   auditView('analytics_campaigns'),
   async (req, res) => {
@@ -87,7 +87,7 @@ router.get('/api/analytics/campaigns',
 );
 
 // Agent performance
-router.get('/api/analytics/agents',
+router.get('/agents',
   authenticate,
   authorize('admin', 'manager'),
   validateQuery(dateRangeSchema),
@@ -110,7 +110,7 @@ router.get('/api/analytics/agents',
 );
 
 // Communication analytics
-router.get('/api/analytics/communications',
+router.get('/communications',
   authenticate,
   validateQuery(analyticsQuerySchema),
   auditView('analytics_communications'),
@@ -133,7 +133,7 @@ router.get('/api/analytics/communications',
 );
 
 // Funnel analysis
-router.get('/api/analytics/funnel',
+router.get('/funnel',
   authenticate,
   validateQuery(dateRangeSchema),
   auditView('analytics_funnel'),
@@ -155,7 +155,7 @@ router.get('/api/analytics/funnel',
 );
 
 // Custom event metrics
-router.get('/api/analytics/events/:eventType',
+router.get('/events/:eventType',
   authenticate,
   validateQuery(analyticsQuerySchema),
   auditView('analytics_events'),
@@ -182,7 +182,7 @@ router.get('/api/analytics/events/:eventType',
 );
 
 // Track custom event
-router.post('/api/analytics/track',
+router.post('/track',
   authenticate,
   async (req, res) => {
     try {

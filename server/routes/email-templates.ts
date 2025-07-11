@@ -28,7 +28,7 @@ const replaceVariablesSchema = z.object({
 });
 
 // Get all templates
-router.get('/api/email-templates', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category, campaignId, agentId, active, search, limit, offset } = req.query;
     
@@ -61,7 +61,7 @@ router.get('/api/email-templates', async (req, res) => {
 });
 
 // Get single template
-router.get('/api/email-templates/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const template = await EmailTemplatesRepository.findById(req.params.id);
     
@@ -77,7 +77,7 @@ router.get('/api/email-templates/:id', async (req, res) => {
 });
 
 // Create template
-router.post('/api/email-templates', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     // Validate request body
     const validationResult = createTemplateSchema.safeParse(req.body);
@@ -119,7 +119,7 @@ router.post('/api/email-templates', async (req, res) => {
 });
 
 // Update template
-router.put('/api/email-templates/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     // Validate request body
     const validationResult = updateTemplateSchema.safeParse(req.body);
@@ -164,7 +164,7 @@ router.put('/api/email-templates/:id', async (req, res) => {
 });
 
 // Toggle template active status
-router.patch('/api/email-templates/:id/toggle', async (req, res) => {
+router.patch('/:id/toggle', async (req, res) => {
   try {
     const template = await EmailTemplatesRepository.toggleActive(req.params.id);
     
@@ -184,7 +184,7 @@ router.patch('/api/email-templates/:id/toggle', async (req, res) => {
 });
 
 // Delete template
-router.delete('/api/email-templates/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const template = await EmailTemplatesRepository.findById(req.params.id);
     
@@ -213,7 +213,7 @@ router.delete('/api/email-templates/:id', async (req, res) => {
 });
 
 // Clone template
-router.post('/api/email-templates/:id/clone', async (req, res) => {
+router.post('/:id/clone', async (req, res) => {
   try {
     const { name } = req.body;
     
@@ -245,7 +245,7 @@ router.post('/api/email-templates/:id/clone', async (req, res) => {
 });
 
 // Preview template with variables
-router.post('/api/email-templates/preview', async (req, res) => {
+router.post('/preview', async (req, res) => {
   try {
     const validationResult = replaceVariablesSchema.safeParse(req.body);
     
@@ -280,7 +280,7 @@ router.post('/api/email-templates/preview', async (req, res) => {
 });
 
 // Get template performance stats
-router.get('/api/email-templates/:id/performance', async (req, res) => {
+router.get('/:id/performance', async (req, res) => {
   try {
     const template = await EmailTemplatesRepository.findById(req.params.id);
     
@@ -300,7 +300,7 @@ router.get('/api/email-templates/:id/performance', async (req, res) => {
 });
 
 // Get top performing templates
-router.get('/api/email-templates/top-performing', async (req, res) => {
+router.get('/top-performing', async (req, res) => {
   try {
     const { metric, limit } = req.query;
     const validMetrics = ['openRate', 'clickRate', 'replyRate'];
@@ -325,7 +325,7 @@ router.get('/api/email-templates/top-performing', async (req, res) => {
 });
 
 // Create default templates
-router.post('/api/email-templates/create-defaults', async (req, res) => {
+router.post('/create-defaults', async (req, res) => {
   try {
     await EmailTemplatesRepository.createDefaultTemplates();
     
@@ -340,7 +340,7 @@ router.post('/api/email-templates/create-defaults', async (req, res) => {
 });
 
 // Update template performance (webhook endpoint)
-router.post('/api/email-templates/:id/track', async (req, res) => {
+router.post('/:id/track', async (req, res) => {
   try {
     const { metric } = req.body;
     const validMetrics = ['sent', 'opened', 'clicked', 'replied'];

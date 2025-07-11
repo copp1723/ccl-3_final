@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { HandoverService } from '../services/handover-service';
 import { LeadDossierService } from '../services/lead-dossier-service';
-import { ConversationsRepository } from '../db/conversations-repository';
-import { LeadsRepository } from '../db/leads-repository';
+import { conversationsRepository as ConversationsRepository } from '../db/wrapped-repositories';
+import { leadsRepository as LeadsRepository } from '../db/wrapped-repositories';
 import { logger } from '../utils/logger';
 
 const router = Router();

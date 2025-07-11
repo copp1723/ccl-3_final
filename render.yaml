@@ -1,7 +1,7 @@
 services:
   # Web Service - Main Application
   - type: web
-    name: ccl-3-app
+    name: ccl-3-final
     runtime: node
     repo: https://github.com/copp1723/ccl-3_final
     branch: main

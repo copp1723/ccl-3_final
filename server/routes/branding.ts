@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { clientsRepository } from '../db/clients-repository';
+import { clientsRepository } from '../db/wrapped-repositories';
 import { 
   CCLBrandingConfig, 
   CLIENT_BRANDINGS, 
