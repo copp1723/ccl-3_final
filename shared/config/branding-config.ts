@@ -32,6 +32,7 @@ export const DEFAULT_BRANDING: CCLBrandingConfig = {
 const CLIENT_BRANDINGS: Record<string, CCLBrandingConfig> = {
   'default': DEFAULT_BRANDING,
   'ccl3': DEFAULT_BRANDING,
+  'ccl-3-final': DEFAULT_BRANDING,
   'demo-client': {
     companyName: 'Demo Lead Solutions',
     primaryColor: '#059669',

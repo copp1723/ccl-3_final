@@ -30,7 +30,7 @@ const updateAgentSchema = createAgentSchema.partial().extend({
 });
 
 // Get all agent configurations
-router.get('/api/agent-configurations', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { type, active, search, personality, tone, limit, offset } = req.query;
     
@@ -63,7 +63,7 @@ router.get('/api/agent-configurations', async (req, res) => {
 });
 
 // Get agents by type
-router.get('/api/agent-configurations/type/:type', async (req, res) => {
+router.get('/type/:type', async (req, res) => {
   try {
     const validTypes = ['overlord', 'email', 'sms', 'chat'];
     if (!validTypes.includes(req.params.type)) {
@@ -82,7 +82,7 @@ router.get('/api/agent-configurations/type/:type', async (req, res) => {
 });
 
 // Get single agent configuration
-router.get('/api/agent-configurations/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const agent = await AgentConfigurationsRepository.findById(req.params.id);
     
@@ -98,7 +98,7 @@ router.get('/api/agent-configurations/:id', async (req, res) => {
 });
 
 // Create agent configuration
-router.post('/api/agent-configurations', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     // Validate request body
     const validationResult = createAgentSchema.safeParse(req.body);
@@ -132,7 +132,7 @@ router.post('/api/agent-configurations', async (req, res) => {
 });
 
 // Update agent configuration
-router.put('/api/agent-configurations/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     // Validate request body
     const validationResult = updateAgentSchema.safeParse(req.body);
@@ -171,7 +171,7 @@ router.put('/api/agent-configurations/:id', async (req, res) => {
 });
 
 // Toggle agent active status
-router.patch('/api/agent-configurations/:id/toggle', async (req, res) => {
+router.patch('/:id/toggle', async (req, res) => {
   try {
     const agent = await AgentConfigurationsRepository.toggleActive(req.params.id);
     
@@ -191,7 +191,7 @@ router.patch('/api/agent-configurations/:id/toggle', async (req, res) => {
 });
 
 // Delete agent configuration
-router.delete('/api/agent-configurations/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const agent = await AgentConfigurationsRepository.findById(req.params.id);
     
@@ -221,7 +221,7 @@ router.delete('/api/agent-configurations/:id', async (req, res) => {
 });
 
 // Clone agent configuration
-router.post('/api/agent-configurations/:id/clone', async (req, res) => {
+router.post('/:id/clone', async (req, res) => {
   try {
     const { name } = req.body;
     
@@ -253,7 +253,7 @@ router.post('/api/agent-configurations/:id/clone', async (req, res) => {
 });
 
 // Get agent performance stats
-router.get('/api/agent-configurations/:id/performance', async (req, res) => {
+router.get('/:id/performance', async (req, res) => {
   try {
     const agent = await AgentConfigurationsRepository.findById(req.params.id);
     
@@ -274,7 +274,7 @@ router.get('/api/agent-configurations/:id/performance', async (req, res) => {
 });
 
 // Get top performing agents
-router.get('/api/agent-configurations/top-performing', async (req, res) => {
+router.get('/top-performing', async (req, res) => {
   try {
     const { metric, limit } = req.query;
     const validMetrics = ['satisfactionScore', 'conversations', 'successfulOutcomes'];
@@ -299,7 +299,7 @@ router.get('/api/agent-configurations/top-performing', async (req, res) => {
 });
 
 // Create default agents
-router.post('/api/agent-configurations/create-defaults', async (req, res) => {
+router.post('/create-defaults', async (req, res) => {
   try {
     const created = await AgentConfigurationsRepository.createDefaultAgents();
     
@@ -315,7 +315,7 @@ router.post('/api/agent-configurations/create-defaults', async (req, res) => {
 });
 
 // Update agent performance (webhook endpoint)
-router.post('/api/agent-configurations/:id/track', async (req, res) => {
+router.post('/:id/track', async (req, res) => {
   try {
     const { metric, value } = req.body;
     const validMetrics = ['conversations', 'successfulOutcomes', 'averageResponseTime'];
@@ -345,7 +345,7 @@ router.post('/api/agent-configurations/:id/track', async (req, res) => {
 });
 
 // Generate prompt from agent configuration
-router.post('/api/agent-configurations/:id/generate-prompt', async (req, res) => {
+router.post('/:id/generate-prompt', async (req, res) => {
   try {
     const agent = await AgentConfigurationsRepository.findById(req.params.id);
     
@@ -370,7 +370,7 @@ router.post('/api/agent-configurations/:id/generate-prompt', async (req, res) =>
 });
 
 // Get active agent by type
-router.get('/api/agent-configurations/active/:type', async (req, res) => {
+router.get('/active/:type', async (req, res) => {
   try {
     const validTypes = ['overlord', 'email', 'sms', 'chat'];
     if (!validTypes.includes(req.params.type)) {
