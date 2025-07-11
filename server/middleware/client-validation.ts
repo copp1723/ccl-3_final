@@ -38,7 +38,7 @@ export async function clientValidation(req: ClientRequest, res: Response, next: 
       // Try to find by domain if database is connected
       const client = await dbConnectionManager.executeWithFallback(
         async () => {
-          const { clientsRepository } = await import('../db/clients-repository');
+          const { clientsRepository } = await import('../db/wrapped-repositories');
           return req.hostname ? await clientsRepository.findByDomain(req.hostname) : null;
         },
         () => {

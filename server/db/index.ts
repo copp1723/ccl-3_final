@@ -15,5 +15,6 @@ export {
   agentConfigurationsRepository as AgentConfigurationsRepository,
   usersRepository as UsersRepository,
   auditLogRepository as AuditLogRepository,
-  analyticsRepository as AnalyticsRepository
+  analyticsRepository as AnalyticsRepository,
+  clientsRepository as ClientsRepository
 } from './wrapped-repositories';
