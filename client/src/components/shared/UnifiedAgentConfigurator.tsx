@@ -583,14 +583,14 @@ export function UnifiedAgentConfigurator({
               <div className="space-y-2">
                 <Label htmlFor="apiModel">API Model (Optional)</Label>
                 <Select
-                  value={formData.apiModel || ''}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, apiModel: value || undefined }))}
+                  value={formData.apiModel || 'default'}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, apiModel: value === 'default' ? undefined : value }))}
                 >
                   <SelectTrigger id="apiModel">
                     <SelectValue placeholder="Use default model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Use default model</SelectItem>
+                    <SelectItem value="default">Use default model</SelectItem>
                     <SelectItem value="gpt-4">GPT-4</SelectItem>
                     <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
                     <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
