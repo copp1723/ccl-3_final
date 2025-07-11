@@ -55,7 +55,7 @@ interface FieldMapping {
 }
 
 // Parse CSV headers to detect field mappings
-router.post('/api/import/analyze', upload.single('file'), async (req, res) => {
+router.post('/analyze', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -141,7 +141,7 @@ const importRequestSchema = z.object({
 });
 
 // Import leads with field mappings
-router.post('/api/import/leads', 
+router.post('/leads', 
   upload.single('file'), 
   async (req, res, next) => {
     // Manual validation since multer handles the request
@@ -396,7 +396,7 @@ router.post('/api/import/leads',
 });
 
 // Get import status (for progress tracking)
-router.get('/api/import/status/:importId', async (req, res) => {
+router.get('/status/:importId', async (req, res) => {
   // TODO: Implement import job tracking for large files
   // For now, return a simple response
   res.json({
