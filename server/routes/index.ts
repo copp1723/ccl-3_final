@@ -24,6 +24,7 @@ import handoverRoutes from './handover';
 import brandingRoutes from './branding';
 import supermemoryRoutes from './supermemory';
 import cacheRoutes from './cache';
+import conversationsRoutes from './conversations';
 import { clientValidation } from '../middleware/client-validation';
 
 // Route configuration
@@ -57,6 +58,7 @@ const routes: RouteConfig[] = [
   { path: '/api/handover', router: handoverRoutes, middleware: [apiRateLimit] },
   { path: '/api/multi-agent-campaigns', router: multiAgentCampaignsRoutes, middleware: [apiRateLimit] },
   { path: '/api/branding', router: brandingRoutes, middleware: [apiRateLimit] },
+  { path: '/api/conversations', router: conversationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/supermemory', router: supermemoryRoutes, middleware: [apiRateLimit] },
   { path: '/api/cache', router: cacheRoutes, middleware: [apiRateLimit] },
   

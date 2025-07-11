@@ -28,7 +28,7 @@ const createCommunicationSchema = z.object({
 });
 
 // Get all communications
-router.get('/api/communications', 
+router.get('/',
   validateQuery(communicationsQuerySchema),
   async (req, res) => {
   try {
@@ -61,7 +61,7 @@ router.get('/api/communications',
 });
 
 // Get all communications for a lead
-router.get('/api/communications/lead/:leadId', async (req, res) => {
+router.get('/lead/:leadId', async (req, res) => {
   try {
     const communications = await CommunicationsRepository.findByLeadId(req.params.leadId);
     res.json({ communications });
@@ -72,7 +72,7 @@ router.get('/api/communications/lead/:leadId', async (req, res) => {
 });
 
 // Get pending communications
-router.get('/api/communications/pending', async (req, res) => {
+router.get('/pending', async (req, res) => {
   try {
     const communications = await CommunicationsRepository.getPendingCommunications();
     res.json({ communications });
@@ -83,7 +83,7 @@ router.get('/api/communications/pending', async (req, res) => {
 });
 
 // Get communication stats
-router.get('/api/communications/stats', async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const stats = await CommunicationsRepository.getStats();
     res.json({ stats });
@@ -94,7 +94,7 @@ router.get('/api/communications/stats', async (req, res) => {
 });
 
 // Mailgun webhook endpoint for email replies
-router.post('/api/webhooks/mailgun', async (req, res) => {
+router.post('/webhooks/mailgun', async (req, res) => {
   try {
     const { from, subject, 'stripped-text': body, 'message-headers': headers } = req.body;
     
@@ -151,7 +151,7 @@ router.post('/api/webhooks/mailgun', async (req, res) => {
 });
 
 // Twilio webhook endpoint for SMS replies
-router.post('/api/webhooks/twilio', async (req, res) => {
+router.post('/webhooks/twilio', async (req, res) => {
   try {
     const { From, Body, MessageSid } = req.body;
     
@@ -218,7 +218,7 @@ router.post('/api/webhooks/twilio', async (req, res) => {
 });
 
 // Update communication status (webhook endpoint)
-router.post('/api/communications/webhook/:provider', async (req, res) => {
+router.post('/webhook/:provider', async (req, res) => {
   try {
     const { provider } = req.params;
     const webhookData = req.body;
@@ -268,7 +268,7 @@ router.post('/api/communications/webhook/:provider', async (req, res) => {
 });
 
 // Create a new communication record
-router.post('/api/communications', 
+router.post('/',
   validate(createCommunicationSchema),
   async (req, res) => {
   try {
@@ -292,7 +292,7 @@ router.post('/api/communications',
 });
 
 // Get recent communications
-router.get('/api/communications/recent', async (req, res) => {
+router.get('/recent', async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
     const communications = await CommunicationsRepository.getRecent(limit);
