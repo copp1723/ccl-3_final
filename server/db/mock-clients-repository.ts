@@ -4,16 +4,18 @@ export class MockClientsRepository {
       id: 'default',
       name: 'Default Client',
       domain: 'localhost',
-      branding: {
-        companyName: 'Customer Connection Lab',
-        primaryColor: '#3B82F6',
-        secondaryColor: '#10B981',
-        logoUrl: '',
-        emailFromName: 'CCL Team',
-        supportEmail: 'support@ccl.com',
-        websiteUrl: '',
-        favicon: '',
-        customCss: ''
+      settings: {
+        branding: {
+          companyName: 'Customer Connection Lab',
+          primaryColor: '#3B82F6',
+          secondaryColor: '#10B981',
+          logoUrl: '',
+          emailFromName: 'CCL Team',
+          supportEmail: 'support@ccl.com',
+          websiteUrl: '',
+          favicon: '',
+          customCss: ''
+        }
       },
       createdAt: new Date(),
       updatedAt: new Date()
@@ -36,6 +38,22 @@ export class MockClientsRepository {
       updatedAt: new Date()
     };
     this.clients.push(client);
+    return client;
+  }
+  
+  async findByDomain(domain: string) {
+    return this.clients.find(c => c.domain === domain);
+  }
+  
+  async updateBranding(id: string, branding: any) {
+    const client = this.clients.find(c => c.id === id);
+    if (!client) return null;
+    
+    if (!client.settings) {
+      client.settings = {};
+    }
+    client.settings.branding = branding;
+    client.updatedAt = new Date();
     return client;
   }
 }
