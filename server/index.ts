@@ -116,23 +116,61 @@ const staticPath = config.nodeEnv === 'production'
   ? join(__dirname, './client')
   : join(__dirname, '../client/dist');
 
-app.use(express.static(staticPath));
-
-// Chat widget files
-const publicPath = config.nodeEnv === 'production'
-  ? join(__dirname, './client')
-  : join(__dirname, '../client/public');
-
-app.use('/chat-widget-embed.js', express.static(join(publicPath, 'chat-widget-embed.js')));
-app.use('/chat-demo.html', express.static(join(publicPath, 'chat-demo.html')));
-
-// React app fallback
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-  res.sendFile(join(staticPath, 'index.html'));
-});
+// Only serve static files in production
+if (config.nodeEnv === 'production') {
+  app.use(express.static(staticPath));
+  
+  // Chat widget files
+  const publicPath = join(__dirname, './client');
+  app.use('/chat-widget-embed.js', express.static(join(publicPath, 'chat-widget-embed.js')));
+  app.use('/chat-demo.html', express.static(join(publicPath, 'chat-demo.html')));
+  
+  // React app fallback
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(join(staticPath, 'index.html'));
+  });
+} else {
+  // Development mode - inform user about correct URL
+  app.get('/', (req, res) => {
+    res.send(`
+      <html>
+        <head>
+          <title>CCL-3 Backend Server</title>
+          <style>
+            body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
+            .error { background: #fee; border: 1px solid #fcc; padding: 20px; border-radius: 5px; }
+            .info { background: #e6f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 5px; margin-top: 20px; }
+            code { background: #f5f5f5; padding: 2px 5px; border-radius: 3px; }
+          </style>
+        </head>
+        <body>
+          <h1>🚨 Wrong URL!</h1>
+          <div class="error">
+            <p>You're accessing the <strong>backend API server</strong> directly.</p>
+            <p>In development, you should access the frontend at:</p>
+            <p><strong>👉 <a href="http://localhost:5173">http://localhost:5173</a></strong></p>
+          </div>
+          <div class="info">
+            <h3>ℹ️ How to start the application:</h3>
+            <ol>
+              <li>Run <code>npm run dev:full</code> to start both servers</li>
+              <li>Access <a href="http://localhost:5173">http://localhost:5173</a></li>
+            </ol>
+            <p>This server (port ${config.port}) only handles API requests.</p>
+          </div>
+        </body>
+      </html>
+    `);
+  });
+  
+  // Chat widget files in development
+  const publicPath = join(__dirname, '../client/public');
+  app.use('/chat-widget-embed.js', express.static(join(publicPath, 'chat-widget-embed.js')));
+  app.use('/chat-demo.html', express.static(join(publicPath, 'chat-demo.html')));
+}
 
 // Error handling
 app.use(notFoundHandler);
