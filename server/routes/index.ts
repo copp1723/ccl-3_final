@@ -16,6 +16,7 @@ import notificationsRoutes from './notifications';
 import usersRoutes from './users';
 import analyticsRoutes from './analytics';
 import leadDetailsRoutes from './lead-details';
+import leadsRoutes from './leads';
 import exportRoutes from './export';
 import systemHealthRoutes from './system-health';
 import multiAgentCampaignsRoutes from './multi-agent-campaigns';
@@ -50,6 +51,7 @@ const routes: RouteConfig[] = [
   { path: '/api/notifications', router: notificationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/users', router: usersRoutes, middleware: [apiRateLimit] },
   { path: '/api/analytics', router: analyticsRoutes, middleware: [apiRateLimit] },
+  { path: '/api/leads', router: leadsRoutes, middleware: [apiRateLimit] },
   { path: '/api/lead-details', router: leadDetailsRoutes, middleware: [apiRateLimit] },
   { path: '/api/export', router: exportRoutes, middleware: [apiRateLimit] },
   { path: '/api/handover', router: handoverRoutes, middleware: [apiRateLimit] },

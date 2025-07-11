@@ -13,12 +13,10 @@ import {
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
 import { DashboardView } from '@/views/DashboardView';
-import { AgentsView } from '@/views/AgentsView';
-import { EmailAgentView } from '@/views/EmailAgentView';
 import { LeadsView } from '@/views/LeadsView';
-import { MultiAgentCampaignView } from '@/views/MultiAgentCampaignView';
 import { ConversationsView } from '@/views/ConversationsView';
 import { BrandingManagementView } from '@/views/BrandingManagementView';
+import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { ViewType } from '@/types';
 
@@ -99,9 +97,7 @@ function AppContent() {
             {[
               { key: 'dashboard', label: 'Dashboard', icon: Activity },
               { key: 'leads', label: 'Leads', icon: Users },
-              { key: 'agents', label: 'Agents', icon: Brain },
-              { key: 'email', label: 'Email Agent', icon: Mail },
-              { key: 'multi-agent', label: 'Agent Hub', icon: Settings },
+              { key: 'agent-management', label: 'Agent Management', icon: Brain },
               { key: 'conversations', label: 'Conversations', icon: MessageSquare },
               { key: 'branding', label: 'Branding', icon: Palette }
             ].map(({ key, label, icon: Icon }) => (
@@ -129,9 +125,7 @@ function AppContent() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView === 'dashboard' && <DashboardView />}
         {activeView === 'leads' && <LeadsView />}
-        {activeView === 'agents' && <AgentsView />}
-        {activeView === 'email' && <EmailAgentView />}
-        {activeView === 'multi-agent' && <MultiAgentCampaignView />}
+        {activeView === 'agent-management' && <CampaignIntelligenceView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>

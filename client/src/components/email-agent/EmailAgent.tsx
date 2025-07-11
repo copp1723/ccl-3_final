@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Mail, 
-  Settings, 
-  Send, 
-  FileText, 
+import {
+  Mail,
+  Settings,
+  Send,
+  FileText,
   Target,
   Brain,
   Plus,
@@ -20,23 +20,7 @@ import { CampaignManager } from './CampaignManager';
 import { TemplateEditor } from './TemplateEditor';
 import { CampaignAnalytics } from './CampaignAnalytics';
 import { LeadView } from './LeadView';
-
-interface Agent {
-  id: string;
-  name: string;
-  role: string;
-  endGoal: string;
-  instructions: {
-    dos: string[];
-    donts: string[];
-  };
-  domainExpertise: string[];
-  personality: string;
-  tone: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { UnifiedAgentConfig } from '@/types';
 
 interface Campaign {
   id: string;
@@ -55,10 +39,10 @@ interface Campaign {
 
 export function EmailAgent() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<UnifiedAgentConfig[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<UnifiedAgentConfig | null>(null);
   const [showAgentForm, setShowAgentForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -114,7 +98,7 @@ export function EmailAgent() {
     }
   };
 
-  const handleAgentSave = async (agent: Partial<Agent>) => {
+  const handleAgentSave = async (agent: Partial<UnifiedAgentConfig>) => {
     try {
       const url = agent.id 
         ? `/api/email/agents/${agent.id}`
@@ -235,7 +219,7 @@ export function EmailAgent() {
                 <Brain className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(agents || []).filter(a => a.isActive).length}</div>
+                <div className="text-2xl font-bold">{(agents || []).filter(a => a.active).length}</div>
                 <p className="text-xs text-muted-foreground">
                   {(agents || []).length} total agents
                 </p>
@@ -332,7 +316,7 @@ export function EmailAgent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(agents || []).filter(a => a.isActive).slice(0, 5).map((agent) => {
+                  {(agents || []).filter(a => a.active).slice(0, 5).map((agent) => {
                     const agentCampaigns = campaigns.filter(c => c.agentId === agent.id);
                     const totalSent = agentCampaigns.reduce((acc, c) => acc + c.stats.sent, 0);
                     const totalOpened = agentCampaigns.reduce((acc, c) => acc + c.stats.opened, 0);
@@ -394,8 +378,8 @@ export function EmailAgent() {
                           <CardDescription>{agent.role}</CardDescription>
                         </div>
                       </div>
-                      <Badge variant={agent.isActive ? 'default' : 'secondary'}>
-                        {agent.isActive ? 'Active' : 'Inactive'}
+                      <Badge variant={agent.active ? 'default' : 'secondary'}>
+                        {agent.active ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -408,7 +392,7 @@ export function EmailAgent() {
                       <div>
                         <p className="text-sm font-medium text-gray-700">Domain Expertise</p>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {(agent.domainExpertise || []).map((expertise, idx) => (
+                          {(agent.domainExpertise || []).map((expertise: string, idx: number) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               {expertise}
                             </Badge>
@@ -435,7 +419,7 @@ export function EmailAgent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleAgentDelete(agent.id)}
+                        onClick={() => agent.id && handleAgentDelete(agent.id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />

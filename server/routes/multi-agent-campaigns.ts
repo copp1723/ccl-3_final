@@ -61,7 +61,7 @@ router.get('/multi-agent-campaigns', async (req, res) => {
       allCampaigns = await db
         .select()
         .from(campaigns)
-        .where(eq(campaigns.active, true))
+        .where(eq(campaigns.status, 'active'))
         .orderBy(desc(campaigns.createdAt));
     } else {
       allCampaigns = await db
@@ -71,9 +71,10 @@ router.get('/multi-agent-campaigns', async (req, res) => {
     }
     
     // Filter to only include campaigns with assigned agents (multi-agent campaigns)
-    const multiAgentCampaigns = allCampaigns.filter(campaign => 
-      campaign.assignedAgents && Array.isArray(campaign.assignedAgents) && campaign.assignedAgents.length > 0
-    );
+    const multiAgentCampaigns = allCampaigns.filter(campaign => {
+      const settings = campaign.settings as any;
+      return settings?.assignedAgents && Array.isArray(settings.assignedAgents) && settings.assignedAgents.length > 0;
+    });
     
     // Apply pagination if requested
     let paginatedCampaigns = multiAgentCampaigns;
@@ -101,21 +102,22 @@ router.get('/multi-agent-campaigns/:id', async (req, res) => {
     const [campaign] = await db
       .select()
       .from(campaigns)
-      .where(eq(campaigns.id, parseInt(req.params.id)));
+      .where(eq(campaigns.id, req.params.id));
     
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
     
     // Get agent details for assigned agents
-    const assignedAgentIds = campaign.assignedAgents?.map((a: any) => a.agentId) || [];
+    const settings = campaign.settings as any;
+    const assignedAgentIds = settings?.assignedAgents?.map((a: any) => a.agentId) || [];
     let agentDetails: any[] = [];
     
     if (assignedAgentIds.length > 0) {
       agentDetails = await db
         .select()
         .from(agentConfigurations)
-        .where(and(...assignedAgentIds.map(id => eq(agentConfigurations.id, id))));
+        .where(and(...assignedAgentIds.map((id: string) => eq(agentConfigurations.id, id))));
     }
     
     res.json({
@@ -161,27 +163,30 @@ router.post('/multi-agent-campaigns', async (req, res) => {
     const existingAgents = await db
       .select()
       .from(agentConfigurations)
-      .where(and(...agentIds.map(id => eq(agentConfigurations.id, id))));
+      .where(and(...agentIds.map((id: string) => eq(agentConfigurations.id, id))));
     
     if (existingAgents.length !== agentIds.length) {
       return res.status(400).json({ error: 'One or more assigned agents do not exist' });
     }
     
-    // Create campaign
+    // Create campaign - store multi-agent fields in settings
     const [campaign] = await db
       .insert(campaigns)
       .values({
         name: data.name,
-        description: data.description,
-        assignedAgents: data.assignedAgents,
-        coordinationStrategy: data.coordinationStrategy,
-        messageCoordination: data.messageCoordination,
-        channelPreferences: data.channelPreferences,
-        goals: data.goals,
-        active: data.active,
-        // Legacy fields for compatibility
-        agentId: data.assignedAgents.find(a => a.role === 'primary')?.agentId || data.assignedAgents[0]?.agentId,
-        status: data.active ? 'active' : 'draft'
+        type: 'multi-agent',
+        status: data.active ? 'active' : 'draft',
+        settings: {
+          description: data.description,
+          assignedAgents: data.assignedAgents,
+          coordinationStrategy: data.coordinationStrategy,
+          messageCoordination: data.messageCoordination,
+          channelPreferences: data.channelPreferences,
+          goals: data.goals,
+          active: data.active,
+          // Legacy compatibility
+          agentId: data.assignedAgents.find(a => a.role === 'primary')?.agentId || data.assignedAgents[0]?.agentId
+        }
       })
       .returning();
     
@@ -222,7 +227,7 @@ router.put('/multi-agent-campaigns/:id', async (req, res) => {
     }
     
     const data = validationResult.data;
-    const campaignId = parseInt(req.params.id);
+    const campaignId = req.params.id;
     
     // Check if campaign exists
     const [existing] = await db
@@ -252,30 +257,36 @@ router.put('/multi-agent-campaigns/:id', async (req, res) => {
       const existingAgents = await db
         .select()
         .from(agentConfigurations)
-        .where(and(...agentIds.map(id => eq(agentConfigurations.id, id))));
+        .where(and(...agentIds.map((id: string) => eq(agentConfigurations.id, id))));
       
       if (existingAgents.length !== agentIds.length) {
         return res.status(400).json({ error: 'One or more assigned agents do not exist' });
       }
     }
     
-    // Update campaign
+    // Update campaign - merge settings
+    const existingSettings = (existing.settings as any) || {};
+    const newSettings = {
+      ...existingSettings,
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.assignedAgents && { assignedAgents: data.assignedAgents }),
+      ...(data.coordinationStrategy && { coordinationStrategy: data.coordinationStrategy }),
+      ...(data.messageCoordination && { messageCoordination: data.messageCoordination }),
+      ...(data.channelPreferences && { channelPreferences: data.channelPreferences }),
+      ...(data.goals && { goals: data.goals }),
+      ...(data.active !== undefined && { active: data.active }),
+      // Update legacy compatibility
+      ...(data.assignedAgents && {
+        agentId: data.assignedAgents.find(a => a.role === 'primary')?.agentId || data.assignedAgents[0]?.agentId
+      })
+    };
+
     const [campaign] = await db
       .update(campaigns)
       .set({
         ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.assignedAgents && { assignedAgents: data.assignedAgents }),
-        ...(data.coordinationStrategy && { coordinationStrategy: data.coordinationStrategy }),
-        ...(data.messageCoordination && { messageCoordination: data.messageCoordination }),
-        ...(data.channelPreferences && { channelPreferences: data.channelPreferences }),
-        ...(data.goals && { goals: data.goals }),
-        ...(data.active !== undefined && { active: data.active }),
-        // Update legacy fields for compatibility
-        ...(data.assignedAgents && { 
-          agentId: data.assignedAgents.find(a => a.role === 'primary')?.agentId || data.assignedAgents[0]?.agentId 
-        }),
         ...(data.active !== undefined && { status: data.active ? 'active' : 'draft' }),
+        settings: newSettings,
         updatedAt: new Date()
       })
       .where(eq(campaigns.id, campaignId))
@@ -284,12 +295,13 @@ router.put('/multi-agent-campaigns/:id', async (req, res) => {
     // Update coordination if agents or strategy changed
     if (data.assignedAgents || data.coordinationStrategy) {
       const hub = getCommunicationHub();
-      const agentIds = data.assignedAgents?.map(a => a.agentId) || 
-                     existing.assignedAgents?.map((a: any) => a.agentId) || [];
-      const strategy = data.coordinationStrategy || existing.coordinationStrategy || 'channel_specific';
+      const existingSettings = (existing.settings as any) || {};
+      const agentIds = data.assignedAgents?.map(a => a.agentId) ||
+                     existingSettings.assignedAgents?.map((a: any) => a.agentId) || [];
+      const strategy = data.coordinationStrategy || existingSettings.coordinationStrategy || 'channel_specific';
       
       await hub.coordinateAgentMessages(
-        campaignId.toString(),
+        campaignId,
         '', // Will be set when leads are assigned
         agentIds,
         strategy as 'round_robin' | 'priority_based' | 'channel_specific'
@@ -340,15 +352,16 @@ router.post('/multi-agent-campaigns/:id/coordinate-lead', async (req, res) => {
     const [campaign] = await db
       .select()
       .from(campaigns)
-      .where(eq(campaigns.id, parseInt(campaignId)));
+      .where(eq(campaigns.id, campaignId));
     
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
     
     const hub = getCommunicationHub();
-    const agentIds = campaign.assignedAgents?.map((a: any) => a.agentId) || [];
-    const coordinationStrategy = strategy || campaign.coordinationStrategy || 'channel_specific';
+    const settings = (campaign.settings as any) || {};
+    const agentIds = settings.assignedAgents?.map((a: any) => a.agentId) || [];
+    const coordinationStrategy = strategy || settings.coordinationStrategy || 'channel_specific';
     
     const coordinations = await hub.coordinateAgentMessages(
       campaignId,
@@ -391,7 +404,7 @@ router.get('/multi-agent-campaigns/:id/next-action/:leadId', async (req, res) =>
 });
 
 // Get available agents for assignment
-router.get('/multi-agent-campaigns/available-agents', async (req, res) => {
+router.get('/available-agents', async (req, res) => {
   try {
     const agents = await db
       .select()

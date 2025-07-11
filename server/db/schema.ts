@@ -27,88 +27,105 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow()
 });
 
-// Leads table (existing, adding clientId)
+// Define lead status enum to match the database
+export const leadStatusEnum = pgEnum('lead_status', ['new', 'contacted', 'qualified', 'sent_to_boberdoo', 'rejected', 'archived']);
+export const channelEnum = pgEnum('channel', ['email', 'sms', 'chat']);
+
+// Leads table (matches actual database structure)
 export const leads = pgTable('leads', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  firstName: varchar('first_name', { length: 100 }),
-  lastName: varchar('last_name', { length: 100 }),
-  email: varchar('email', { length: 255 }),
-  phone: varchar('phone', { length: 20 }),
-  status: varchar('status', { length: 50 }).default('new'),
-  source: varchar('source', { length: 100 }),
-  clientId: uuid('client_id').references(() => clients.id),
-  assignedTo: uuid('assigned_to').references(() => users.id),
-  metadata: jsonb('metadata'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
+  id: text('id').primaryKey().notNull(),
+  name: text('name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+  source: text('source').notNull(),
+  campaign: text('campaign'), // Original column
+  status: leadStatusEnum('status').default('new').notNull(),
+  assignedChannel: channelEnum('assigned_channel'),
+  qualificationScore: integer('qualification_score').default(0),
+  metadata: jsonb('metadata').default({}),
+  boberdooId: text('boberdoo_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdBy: text('created_by'),
+  campaignId: text('campaign_id'), // Added column
+  clientId: uuid('client_id').references(() => clients.id)
 });
 
-// Agent configurations (existing, adding clientId)
+// Agent configurations (matches actual database structure)
 export const agentConfigurations = pgTable('agent_configurations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 255 }).notNull(),
-  type: varchar('type', { length: 50 }).notNull(),
-  role: text('role'),
-  endGoal: text('end_goal'),
-  instructions: jsonb('instructions'),
-  domainExpertise: jsonb('domain_expertise'),
-  personality: varchar('personality', { length: 50 }),
-  tone: varchar('tone', { length: 50 }),
-  responseLength: varchar('response_length', { length: 20 }),
+  id: text('id').primaryKey().notNull(),
+  name: text('name').notNull(),
+  type: agentTypeEnum('type').notNull(),
+  role: text('role').notNull(),
+  endGoal: text('end_goal').notNull(),
+  instructions: jsonb('instructions').notNull(),
+  domainExpertise: jsonb('domain_expertise').default([]).notNull(),
+  personality: text('personality').notNull(),
+  tone: text('tone').notNull(),
+  responseLength: text('response_length').default('medium'),
+  apiModel: text('api_model'),
   temperature: integer('temperature').default(70),
   maxTokens: integer('max_tokens').default(500),
-  clientId: uuid('client_id').references(() => clients.id),
-  active: boolean('active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
+  active: boolean('active').default(true).notNull(),
+  performance: jsonb('performance').default({"conversations":0,"successfulOutcomes":0,"averageResponseTime":0}),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdBy: text('created_by'),
+  clientId: uuid('client_id').references(() => clients.id)
 });
 
-// Campaigns (existing, adding clientId)
+// Campaigns (matches actual database structure)
 export const campaigns = pgTable('campaigns', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 255 }).notNull(),
-  type: varchar('type', { length: 50 }).notNull(),
-  status: varchar('status', { length: 50 }).default('draft'),
-  settings: jsonb('settings'),
-  clientId: uuid('client_id').references(() => clients.id),
-  createdBy: uuid('created_by').references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
+  id: text('id').primaryKey().notNull(),
+  name: text('name').notNull(),
+  goals: jsonb('goals').default([]).notNull(),
+  qualificationCriteria: jsonb('qualification_criteria').notNull(),
+  channelPreferences: jsonb('channel_preferences').notNull(),
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdBy: text('created_by'),
+  handoverCriteria: jsonb('handover_criteria'),
+  selectedLeads: jsonb('selected_leads'),
+  clientId: uuid('client_id').references(() => clients.id)
 });
 
-// Communications (existing, adding clientId)
+// Communications (matches actual database structure)
 export const communications = pgTable('communications', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  leadId: uuid('lead_id').references(() => leads.id),
-  type: varchar('type', { length: 50 }).notNull(),
-  direction: varchar('direction', { length: 20 }).notNull(),
-  content: text('content'),
-  status: varchar('status', { length: 50 }).default('sent'),
-  clientId: uuid('client_id').references(() => clients.id),
-  metadata: jsonb('metadata'),
-  createdAt: timestamp('created_at').defaultNow()
+  id: text('id').primaryKey().notNull(),
+  leadId: text('lead_id').notNull().references(() => leads.id),
+  channel: channelEnum('channel').notNull(),
+  direction: text('direction').notNull(),
+  content: text('content').notNull(),
+  status: text('status').default('pending').notNull(),
+  externalId: text('external_id'),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  clientId: uuid('client_id').references(() => clients.id)
 });
 
-// Agent Decisions
+// Agent Decisions (matches actual database structure)
 export const agentDecisions = pgTable('agent_decisions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  leadId: uuid('lead_id').references(() => leads.id),
+  id: text('id').primaryKey().notNull(),
+  leadId: text('lead_id').notNull().references(() => leads.id),
   agentType: agentTypeEnum('agent_type').notNull(),
   decision: text('decision').notNull(),
   reasoning: text('reasoning'),
-  context: jsonb('context'),
-  createdAt: timestamp('created_at').defaultNow()
+  context: jsonb('context').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-// Conversations
+// Conversations (matches actual database structure)
 export const conversations = pgTable('conversations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  leadId: uuid('lead_id').references(() => leads.id),
-  type: varchar('type', { length: 50 }).notNull(),
-  status: varchar('status', { length: 50 }).default('active'),
-  metadata: jsonb('metadata'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
+  id: text('id').primaryKey().notNull(),
+  leadId: text('lead_id').notNull().references(() => leads.id),
+  channel: channelEnum('channel').notNull(),
+  agentType: agentTypeEnum('agent_type').notNull(),
+  messages: jsonb('messages').default([]).notNull(),
+  status: text('status').default('active').notNull(),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  endedAt: timestamp('ended_at')
 });
 
 // Email Templates
@@ -172,7 +189,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.clientId],
     references: [clients.id]
   }),
-  assignedLeads: many(leads),
   createdCampaigns: many(campaigns)
 }));
 
@@ -181,11 +197,9 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
     fields: [leads.clientId],
     references: [clients.id]
   }),
-  assignedUser: one(users, {
-    fields: [leads.assignedTo],
-    references: [users.id]
-  }),
-  communications: many(communications)
+  communications: many(communications),
+  agentDecisions: many(agentDecisions),
+  conversations: many(conversations)
 }));
 
 export const agentConfigurationsRelations = relations(agentConfigurations, ({ one }) => ({
@@ -199,10 +213,6 @@ export const campaignsRelations = relations(campaigns, ({ one }) => ({
   client: one(clients, {
     fields: [campaigns.clientId],
     references: [clients.id]
-  }),
-  creator: one(users, {
-    fields: [campaigns.createdBy],
-    references: [users.id]
   })
 }));
 

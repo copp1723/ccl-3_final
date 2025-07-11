@@ -21,7 +21,7 @@ export function BrandingManagementView() {
   const [brandings, setBrandings] = useState<ClientBrandingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedBranding, setSelectedBranding] = useState<ClientBranding | null>(null);
+  const [selectedBranding, setSelectedBranding] = useState<ClientBrandingData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

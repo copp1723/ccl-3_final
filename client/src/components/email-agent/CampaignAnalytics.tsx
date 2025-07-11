@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UnifiedAgentConfig } from '@/types';
 
 interface Campaign {
   id: string;
@@ -6,15 +7,9 @@ interface Campaign {
   [key: string]: any;
 }
 
-interface Agent {
-  id: string;
-  name: string;
-  [key: string]: any;
-}
-
 interface CampaignAnalyticsProps {
   campaigns: Campaign[];
-  agents: Agent[];
+  agents: UnifiedAgentConfig[];
 }
 
 export function CampaignAnalytics({ campaigns, agents }: CampaignAnalyticsProps) {

@@ -22,29 +22,11 @@ import {
   Save,
   AlertCircle
 } from 'lucide-react';
-
-interface Agent {
-  id: string;
-  name: string;
-  type: 'overlord' | 'email' | 'sms' | 'chat';
-  role: string;
-  endGoal: string;
-  instructions: string[];
-  domainExpertise: string[];
-  personality: 'professional' | 'friendly' | 'authoritative' | 'empathetic';
-  tone: 'formal' | 'casual' | 'enthusiastic' | 'persuasive';
-  responseLength: 'short' | 'medium' | 'long';
-  apiModel?: string;
-  temperature: number;
-  maxTokens: number;
-  active: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { UnifiedAgentConfig } from '@/types';
 
 interface AgentConfiguratorProps {
-  agent: Agent | null;
-  onSave: (agent: Partial<Agent>) => Promise<void>;
+  agent: UnifiedAgentConfig | null;
+  onSave: (agent: Partial<UnifiedAgentConfig>) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -76,12 +58,12 @@ const RESPONSE_LENGTHS = [
 ] as const;
 
 export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfiguratorProps) {
-  const [formData, setFormData] = useState<Partial<Agent>>({
+  const [formData, setFormData] = useState<Partial<UnifiedAgentConfig>>({
     name: '',
     type: 'email',
     role: '',
     endGoal: '',
-    instructions: [''],
+    instructions: { dos: [''], donts: [''] },
     domainExpertise: [''],
     personality: 'professional',
     tone: 'formal',
@@ -97,7 +79,11 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
 
   useEffect(() => {
     if (agent) {
-      setFormData(agent);
+      setFormData({
+        ...agent,
+        instructions: agent.instructions || { dos: [''], donts: [''] },
+        domainExpertise: agent.domainExpertise || ['']
+      });
     }
   }, [agent]);
 
@@ -116,8 +102,10 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
       newErrors.endGoal = 'End goal is required';
     }
 
-    if (!formData.instructions?.some(inst => inst.trim())) {
-      newErrors.instructions = 'At least one instruction is required';
+    const hasDos = formData.instructions?.dos?.some((dos: string) => dos.trim());
+    const hasDonts = formData.instructions?.donts?.some((dont: string) => dont.trim());
+    if (!hasDos && !hasDonts) {
+      newErrors.instructions = 'At least one instruction (do or dont) is required';
     }
 
     setErrors(newErrors);
@@ -136,8 +124,11 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
       // Clean up empty instructions and domain expertise
       const cleanedData = {
         ...formData,
-        instructions: formData.instructions?.filter(inst => inst.trim()) || [],
-        domainExpertise: formData.domainExpertise?.filter(domain => domain.trim()) || []
+        instructions: {
+          dos: formData.instructions?.dos?.filter((dos: string) => dos.trim()) || [],
+          donts: formData.instructions?.donts?.filter((dont: string) => dont.trim()) || []
+        },
+        domainExpertise: formData.domainExpertise?.filter((domain: string) => domain.trim()) || []
       };
 
       await onSave(cleanedData);
@@ -148,24 +139,63 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
     }
   };
 
-  const addInstruction = () => {
+  const addDo = () => {
     setFormData(prev => ({
       ...prev,
-      instructions: [...(prev.instructions || []), '']
+      instructions: {
+        ...prev.instructions!,
+        dos: [...(prev.instructions?.dos || []), '']
+      }
     }));
   };
 
-  const updateInstruction = (index: number, value: string) => {
+  const updateDo = (index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      instructions: prev.instructions?.map((inst, i) => i === index ? value : inst) || []
+      instructions: {
+        ...prev.instructions!,
+        dos: prev.instructions?.dos?.map((dos: string, i: number) => i === index ? value : dos) || []
+      }
     }));
   };
 
-  const removeInstruction = (index: number) => {
+  const removeDo = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      instructions: prev.instructions?.filter((_, i) => i !== index) || []
+      instructions: {
+        ...prev.instructions!,
+        dos: prev.instructions?.dos?.filter((_: string, i: number) => i !== index) || []
+      }
+    }));
+  };
+
+  const addDont = () => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: {
+        ...prev.instructions!,
+        donts: [...(prev.instructions?.donts || []), '']
+      }
+    }));
+  };
+
+  const updateDont = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: {
+        ...prev.instructions!,
+        donts: prev.instructions?.donts?.map((dont: string, i: number) => i === index ? value : dont) || []
+      }
+    }));
+  };
+
+  const removeDont = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: {
+        ...prev.instructions!,
+        donts: prev.instructions?.donts?.filter((_: string, i: number) => i !== index) || []
+      }
     }));
   };
 
@@ -179,14 +209,14 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
   const updateDomainExpertise = (index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      domainExpertise: prev.domainExpertise?.map((domain, i) => i === index ? value : domain) || []
+      domainExpertise: prev.domainExpertise?.map((domain: string, i: number) => i === index ? value : domain) || []
     }));
   };
 
   const removeDomainExpertise = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      domainExpertise: prev.domainExpertise?.filter((_, i) => i !== index) || []
+      domainExpertise: prev.domainExpertise?.filter((_: string, i: number) => i !== index) || []
     }));
   };
 
@@ -401,23 +431,37 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
             Provide specific instructions for how the agent should behave
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Do's */}
           <div className="space-y-3">
-            {formData.instructions?.map((instruction, index) => (
+            <div className="flex items-center justify-between">
+              <Label>Do's (What the agent should do)</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addDo}
+                className="flex items-center space-x-1"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Add Do</span>
+              </Button>
+            </div>
+            {formData.instructions?.dos?.map((doItem: string, index: number) => (
               <div key={index} className="flex items-start space-x-2">
-                <div className="flex-1 space-y-1">
+                <div className="flex-1">
                   <Input
-                    value={instruction}
-                    onChange={(e) => updateInstruction(index, e.target.value)}
-                    placeholder={`Instruction ${index + 1}`}
+                    value={doItem}
+                    onChange={(e) => updateDo(index, e.target.value)}
+                    placeholder={`Do instruction ${index + 1}`}
                   />
                 </div>
-                {formData.instructions!.length > 1 && (
+                {(formData.instructions?.dos?.length || 0) > 1 && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => removeInstruction(index)}
+                    onClick={() => removeDo(index)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -426,16 +470,43 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
             ))}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addInstruction}
-            className="flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Instruction</span>
-          </Button>
+          {/* Don'ts */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Don'ts (What the agent should avoid)</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addDont}
+                className="flex items-center space-x-1"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Add Don't</span>
+              </Button>
+            </div>
+            {formData.instructions?.donts?.map((dontItem: string, index: number) => (
+              <div key={index} className="flex items-start space-x-2">
+                <div className="flex-1">
+                  <Input
+                    value={dontItem}
+                    onChange={(e) => updateDont(index, e.target.value)}
+                    placeholder={`Don't instruction ${index + 1}`}
+                  />
+                </div>
+                {(formData.instructions?.donts?.length || 0) > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeDont(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
 
           {errors.instructions && (
             <p className="text-sm text-red-600 flex items-center space-x-1">
@@ -459,7 +530,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            {formData.domainExpertise?.map((domain, index) => (
+            {formData.domainExpertise?.map((domain: string, index: number) => (
               <div key={index} className="flex items-start space-x-2">
                 <div className="flex-1 space-y-1">
                   <Input
@@ -468,7 +539,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                     placeholder={`Domain expertise ${index + 1}`}
                   />
                 </div>
-                {formData.domainExpertise!.length > 1 && (
+                {(formData.domainExpertise?.length || 0) > 1 && (
                   <Button
                     type="button"
                     variant="outline"
@@ -591,9 +662,9 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
               <p className="text-sm text-blue-800">
                 <strong>Style:</strong> {selectedPersonality?.label} personality with {selectedTone?.label.toLowerCase()} tone
               </p>
-              {formData.instructions && formData.instructions.filter(i => i.trim()).length > 0 && (
+              {formData.instructions && (
                 <p className="text-sm text-blue-800">
-                  <strong>Instructions:</strong> {formData.instructions.filter(i => i.trim()).length} configured
+                  <strong>Instructions:</strong> {(formData.instructions.dos?.filter((dos: string) => dos.trim()).length || 0) + (formData.instructions.donts?.filter((dont: string) => dont.trim()).length || 0)} configured
                 </p>
               )}
             </div>

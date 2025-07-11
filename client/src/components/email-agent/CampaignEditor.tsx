@@ -65,10 +65,20 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
       setFormData(prev => ({
         ...prev,
         settings: {
-          goals: [],
-          qualificationCriteria: {},
-          handoverCriteria: {},
-          channelPreferences: {},
+          sendTimeOptimization: true,
+          enableAIMode: true,
+          aiModeThreshold: 'first_reply' as const,
+          handoverGoal: '',
+          handoverKeywords: [],
+          dailyLimit: 100,
+          timezone: 'recipient',
+          templateLibrary: 'custom' as const,
+          handoverFollowUp: {
+            enabled: false,
+            daysAfterHandover: 7,
+            maxAttempts: 2,
+            daysBetweenAttempts: 3
+          }
         }
       }));
     }
@@ -428,16 +438,11 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
 
       {/* Touch Sequence Editor - all touch steps (email/SMS) managed in settings */}
       <CampaignTouchSequenceEditor
-        sequence={formData.settings?.touchSequence || []}
-        onChange={sequence =>
-          setFormData(prev => ({
-            ...prev,
-            settings: {
-              ...prev.settings,
-              touchSequence: sequence
-            }
-          }))
-        }
+        sequence={[]}
+        onChange={sequence => {
+          // Handle touch sequence changes here if needed
+          console.log('Touch sequence updated:', sequence);
+        }}
       />
 
       {/* Campaign Settings - all advanced config under settings */}
@@ -449,23 +454,13 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
         }
       />
 
-      {/* Handover Configuration (now inside settings) */}
+      {/* Handover Configuration */}
       <HandoverConfig
-        handoverCriteria={formData.settings?.handoverCriteria || {
-          qualificationScore: 7,
-          conversationLength: 5,
-          timeThreshold: 300,
-          keywordTriggers: [],
-          goalCompletionRequired: [],
-          handoverRecipients: []
-        }}
+        handoverCriteria={formData.handoverCriteria}
         onHandoverCriteriaChange={(criteria) =>
           setFormData(prev => ({
             ...prev,
-            settings: {
-              ...prev.settings,
-              handoverCriteria: criteria
-            }
+            handoverCriteria: criteria
           }))
         }
         campaignGoals={selectedAgent?.endGoal ? [selectedAgent.endGoal] : []}
