@@ -16,6 +16,7 @@ import { DashboardView } from '@/views/DashboardView';
 import { LeadsView } from '@/views/LeadsView';
 import { ConversationsView } from '@/views/ConversationsView';
 import { BrandingManagementView } from '@/views/BrandingManagementView';
+import { AgentManagementView } from '@/views/AgentManagementView';
 import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { ViewType } from '@/types';
@@ -125,7 +126,7 @@ function AppContent() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView === 'dashboard' && <DashboardView />}
         {activeView === 'leads' && <LeadsView />}
-        {activeView === 'agent-management' && <CampaignIntelligenceView />}
+        {activeView === 'agent-management' && <AgentManagementView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>
