@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createSuccessResponse, createErrorResponse } from '../api/unified-handlers';
 import { defaultEmailTemplates } from '../../shared/templates/email-templates';
+import { getStaticBrandings } from '../../shared/config/branding-config';
 
 const router = Router();
 
@@ -54,6 +55,23 @@ router.get('/email/schedules', async (req, res) => {
 // Use unified email templates
 router.get('/email/templates', async (req, res) => {
   res.json(createSuccessResponse(defaultEmailTemplates));
+});
+
+// Branding endpoint
+router.get('/branding', async (req, res) => {
+  try {
+    const staticBrandings = getStaticBrandings();
+    res.json({
+      success: true,
+      brandings: staticBrandings
+    });
+  } catch (error) {
+    console.error('Error fetching brandings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch branding configurations'
+    });
+  }
 });
 
 export default router;
