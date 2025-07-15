@@ -26,10 +26,15 @@ mkdir -p dist
 mkdir -p dist/client
 mkdir -p logs
 
-# Build server with tree-shaking
+# Build server
 echo "⚙️  Building optimized server..."
-# Copy the optimized server file directly
-cp server/index-optimized.js dist/index-optimized.js
+if [ "$ENABLE_FULL_SERVER" = "true" ]; then
+  echo "Building full server..."
+  esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.js --external:pg-native --tree-shaking=true --minify --target=node18
+else
+  echo "Building minimal server..."
+  cp server/index-optimized.js dist/index.js
+fi
 
 # Copy client build to dist
 echo "📋 Copying client build files..."
@@ -82,7 +87,7 @@ cat > dist/package.json << EOF
   "name": "ccl3-swarm-production",
   "version": "2.0.0",
   "scripts": {
-    "start": "node index-optimized.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.21.2",

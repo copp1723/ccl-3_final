@@ -73,3 +73,12 @@ After these changes are deployed:
 ## Recommendations
 - Regarding npm audit vulnerabilities: They appear to be in development dependencies. For production, since we use --production flag, they shouldn't affect the runtime. If needed, we can upgrade vite later.
 - Trigger a new deployment after these changes. 
+
+## Enabling Full Features
+To use the complete application with all APIs (including dashboard stats):
+1. In Render dashboard, add env var: ENABLE_FULL_SERVER=true
+2. Redeploy the service
+
+This will build and run the full server/index.ts instead of the minimal version.
+
+Note: This may increase memory usage - monitor via /health endpoint. 
