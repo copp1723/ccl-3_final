@@ -18,6 +18,20 @@
 - Created separate vendor chunks for React, UI libraries, and utilities
 - Increased chunk size warning limit to 600KB
 
+### 3. Build Script Directory Creation
+**Problem**: cp command failed because dist directory didn't exist.
+
+**Solution**: Moved mkdir -p dist to before the cp command.
+
+### 4. Further Bundle Optimization
+Added more manual chunks for:
+- Icons (lucide-react)
+- Dropzone
+- Toast notifications
+- Socket.io
+
+This should further reduce the main bundle size.
+
 ## Changes Made
 
 1. **server/index-optimized.js** - New CommonJS-compatible server file
@@ -55,3 +69,7 @@ After these changes are deployed:
 1. Monitor the deployment logs for any new errors
 2. Check memory usage stays within limits
 3. Verify the application loads correctly with the new chunk splitting 
+
+## Recommendations
+- Regarding npm audit vulnerabilities: They appear to be in development dependencies. For production, since we use --production flag, they shouldn't affect the runtime. If needed, we can upgrade vite later.
+- Trigger a new deployment after these changes. 
