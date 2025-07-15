@@ -20,15 +20,16 @@ npm install --production=false
 npx vite build
 cd ..
 
+# Create necessary directories first
+echo "📁 Creating required directories..."
+mkdir -p dist
+mkdir -p dist/client
+mkdir -p logs
+
 # Build server with tree-shaking
 echo "⚙️  Building optimized server..."
 # Copy the optimized server file directly
 cp server/index-optimized.js dist/index-optimized.js
-
-# Create necessary directories
-echo "📁 Creating required directories..."
-mkdir -p dist/client
-mkdir -p logs
 
 # Copy client build to dist
 echo "📋 Copying client build files..."
