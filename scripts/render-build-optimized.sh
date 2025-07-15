@@ -22,17 +22,8 @@ cd ..
 
 # Build server with tree-shaking
 echo "⚙️  Building optimized server..."
-esbuild server/index-optimized.ts \
-  --platform=node \
-  --bundle \
-  --format=esm \
-  --outfile=dist/index-optimized.js \
-  --external:pg-native \
-  --external:@swc/core \
-  --external:esbuild \
-  --tree-shaking=true \
-  --minify \
-  --target=node18
+# Copy the optimized server file directly
+cp server/index-optimized.js dist/index-optimized.js
 
 # Create necessary directories
 echo "📁 Creating required directories..."
@@ -78,8 +69,8 @@ cat > dist/start.sh << 'EOF'
 export NODE_OPTIONS="--max-old-space-size=384 --optimize-for-size"
 export UV_THREADPOOL_SIZE=2
 
-# Enable garbage collection
-node --expose-gc dist/index-optimized.js
+# Start server
+node dist/index-optimized.js
 EOF
 
 chmod +x dist/start.sh
@@ -89,9 +80,8 @@ cat > dist/package.json << EOF
 {
   "name": "ccl3-swarm-production",
   "version": "2.0.0",
-  "type": "module",
   "scripts": {
-    "start": "./start.sh"
+    "start": "node index-optimized.js"
   },
   "dependencies": {
     "express": "^4.21.2",
