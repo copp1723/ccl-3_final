@@ -12,7 +12,8 @@ import { CCLCircuitBreakerManager } from '../utils/circuit-breaker.js';
 import { checkRedisHealth } from '../utils/redis.js';
 import { logger, CCLLogger } from '../utils/logger.js';
 import { CCLResponseHelper, CCLCustomError, CCLErrorCode } from '../utils/error-handler.js';
-import { cclApiRateLimit, rateLimitInfo } from '../middleware/rate-limit.js';
+import { apiRateLimit } from '../middleware/rate-limit.js';
+import { aiCache } from '../utils/ai-cache';
 
 const router = Router();
 
@@ -59,7 +60,7 @@ router.get('/health', async (req: Request, res: Response) => {
 });
 
 // Detailed health check (requires authentication)
-router.get('/health/detailed', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/health/detailed', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     const systemHealth = await healthChecker.runAllChecks(true);
     
@@ -78,7 +79,7 @@ router.get('/health/detailed', authenticate, cclApiRateLimit, async (req: Reques
 });
 
 // Individual health check
-router.get('/health/:checkName', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/health/:checkName', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     const { checkName } = req.params;
     const checkResult = await healthChecker.runCheck(checkName);
@@ -98,7 +99,7 @@ router.get('/health/:checkName', authenticate, cclApiRateLimit, async (req: Requ
 });
 
 // Performance monitoring dashboard
-router.get('/performance', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/performance', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     const { timeframe = '1h' } = req.query;
     
@@ -133,7 +134,7 @@ router.get('/performance', authenticate, cclApiRateLimit, async (req: Request, r
 });
 
 // Performance alerts
-router.get('/performance/alerts', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/performance/alerts', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     const { resolved = 'false' } = req.query;
     const alerts = performanceMonitor.getActiveAlerts();
@@ -154,7 +155,7 @@ router.get('/performance/alerts', authenticate, cclApiRateLimit, async (req: Req
 });
 
 // Resolve performance alert (admin only)
-router.post('/performance/alerts/:alertId/resolve', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.post('/performance/alerts/:alertId/resolve', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json(CCLResponseHelper.error(
@@ -197,7 +198,7 @@ router.post('/performance/alerts/:alertId/resolve', authenticate, cclApiRateLimi
 });
 
 // System overview dashboard
-router.get('/dashboard', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/dashboard', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     // Gather comprehensive system information
     const [
@@ -323,7 +324,7 @@ router.get('/realtime', authenticate, async (req: Request, res: Response) => {
 });
 
 // Business metrics dashboard
-router.get('/business', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/business', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     // This would integrate with actual business metrics
     const businessMetrics = {
@@ -362,7 +363,7 @@ router.get('/business', authenticate, cclApiRateLimit, async (req: Request, res:
 });
 
 // Infrastructure status
-router.get('/infrastructure', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/infrastructure', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     const [redisHealth, circuitBreakerStatus, queueHealth] = await Promise.all([
       checkRedisHealth(),
@@ -414,7 +415,7 @@ router.get('/infrastructure', authenticate, cclApiRateLimit, async (req: Request
 });
 
 // Logs endpoint (admin only)
-router.get('/logs', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/logs', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json(CCLResponseHelper.error(
@@ -450,7 +451,7 @@ router.get('/logs', authenticate, cclApiRateLimit, async (req: Request, res: Res
 });
 
 // System statistics
-router.get('/stats', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/stats', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     const stats = {
       timestamp: new Date().toISOString(),
@@ -477,7 +478,7 @@ router.get('/stats', authenticate, cclApiRateLimit, async (req: Request, res: Re
 });
 
 // Performance thresholds management (admin only)
-router.get('/performance/thresholds', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.get('/performance/thresholds', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json(CCLResponseHelper.error(
@@ -504,7 +505,7 @@ router.get('/performance/thresholds', authenticate, cclApiRateLimit, async (req:
   }
 });
 
-router.put('/performance/thresholds', authenticate, cclApiRateLimit, async (req: Request, res: Response) => {
+router.put('/performance/thresholds', authenticate, apiRateLimit, async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json(CCLResponseHelper.error(
@@ -534,6 +535,33 @@ router.put('/performance/thresholds', authenticate, cclApiRateLimit, async (req:
   } catch (error) {
     logger.error('Failed to update performance thresholds', { error: (error as Error).message });
     res.status(500).json(CCLResponseHelper.error(error as Error));
+  }
+});
+
+// AI cache statistics endpoint
+router.get('/ai-cache-stats', authenticate, apiRateLimit, async (req: Request, res: Response) => {
+  try {
+    const stats = aiCache.getStats();
+    
+    res.json({
+      success: true,
+      data: {
+        cache: stats,
+        costSavingsFormatted: `$${stats.costSavings.toFixed(2)}`,
+        hitRateFormatted: `${stats.hitRate.toFixed(1)}%`,
+        averageSavingsPerHit: stats.hits > 0 ? `$${(stats.costSavings / stats.hits).toFixed(4)}` : '$0'
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Failed to get AI cache stats', { error });
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to retrieve AI cache statistics',
+        code: 'CACHE_STATS_ERROR'
+      }
+    });
   }
 });
 

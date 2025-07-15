@@ -4,6 +4,7 @@
 
 import { logger } from './logger';
 import { ComplexityAnalyzer, ComplexityFactors, ComplexityResult } from './complexity-analyzer';
+import { aiCache } from './ai-cache';
 
 export interface ModelRequestOptions {
   prompt: string;
@@ -57,48 +58,76 @@ export class ModelRouter {
     // Analyze complexity
     const complexity = this.analyzeComplexity(options);
     
+    // Generate cache key for this request
+    const cacheKey = aiCache.generateKey({
+      agentType: options.agentType,
+      prompt: options.prompt,
+      context: {
+        decisionType: options.decisionType,
+        requiresReasoning: options.requiresReasoning,
+        businessCritical: options.businessCritical,
+        conversationStage: options.conversationHistory?.length ? 'ongoing' : 'initial',
+        previousMessageCount: options.conversationHistory?.length || 0
+      },
+      model: complexity.recommendedModel
+    });
+    
     logger.info(
       `Model selection for ${options.agentType}`,
       {
         complexity: complexity.score,
         tier: complexity.tier,
         selectedModel: complexity.recommendedModel,
-        reasoning: complexity.reasoning
+        reasoning: complexity.reasoning,
+        cacheKey
       }
     );
 
     let response: ModelResponse;
     
     try {
-      // Try primary model
-      response = await this.executeRequest(options, complexity.recommendedModel, complexity);
-    } catch (error) {
-      logger.error(
-        `Primary model failed for ${options.agentType}`,
-        {
-          error: error as Error,
-          model: complexity.recommendedModel
+      // Try to get from cache first
+      response = await aiCache.withCache(
+        cacheKey,
+        complexity.recommendedModel,
+        async () => {
+          // Try primary model
+          try {
+            return await this.executeRequest(options, complexity.recommendedModel, complexity);
+          } catch (error) {
+            logger.error(
+              `Primary model failed for ${options.agentType}`,
+              {
+                error: error as Error,
+                model: complexity.recommendedModel
+              }
+            );
+            
+            // Fallback to secondary model
+            try {
+              const fallbackResponse = await this.executeRequest(options, complexity.fallbackModel, complexity);
+              logger.info(
+                `Fallback model used for ${options.agentType}`,
+                { fallbackModel: complexity.fallbackModel }
+              );
+              return fallbackResponse;
+            } catch (fallbackError) {
+              logger.error(
+                `All models failed for ${options.agentType}`,
+                {
+                  error: fallbackError as Error,
+                  primaryModel: complexity.recommendedModel,
+                  fallbackModel: complexity.fallbackModel
+                }
+              );
+              throw fallbackError;
+            }
+          }
         }
       );
-      
-      // Fallback to secondary model
-      try {
-        response = await this.executeRequest(options, complexity.fallbackModel, complexity);
-        logger.info(
-          `Fallback model used for ${options.agentType}`,
-          { fallbackModel: complexity.fallbackModel }
-        );
-      } catch (fallbackError) {
-        logger.error(
-          `All models failed for ${options.agentType}`,
-          {
-            error: fallbackError as Error,
-            primaryModel: complexity.recommendedModel,
-            fallbackModel: complexity.fallbackModel
-          }
-        );
-        throw fallbackError;
-      }
+    } catch (error) {
+      // If all else fails, throw the error
+      throw error;
     }
 
     const executionTime = Date.now() - startTime;

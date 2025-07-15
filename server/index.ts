@@ -20,18 +20,57 @@ import { emailMonitor } from './services/email-monitor';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Environment-based configuration
+// Environment-based configuration with all feature flags
 const config = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   memoryLimit: parseInt(process.env.MEMORY_LIMIT || String(Math.min(1638, Math.floor(os.totalmem() / 1024 / 1024 * 0.25)))),
+  serverMode: process.env.SERVER_MODE || 'standard', // minimal, lightweight, debug, standard
   features: {
     enableAgents: process.env.ENABLE_AGENTS !== 'false',
     enableWebSocket: process.env.ENABLE_WEBSOCKET !== 'false',
     enableRedis: process.env.ENABLE_REDIS === 'true',
-    enableMonitoring: process.env.ENABLE_MONITORING === 'true'
+    enableMonitoring: process.env.ENABLE_MONITORING === 'true',
+    enableHealthChecks: process.env.ENABLE_HEALTH_CHECKS !== 'false',
+    enableQueueSystem: process.env.ENABLE_QUEUE_SYSTEM === 'true',
+    enableMemoryMonitoring: process.env.ENABLE_MEMORY_MONITORING !== 'false',
+    enableDebugRoutes: process.env.ENABLE_DEBUG_ROUTES === 'true',
+    enableLazyAgents: process.env.ENABLE_LAZY_AGENTS === 'true'
   }
 };
+
+// Adjust features based on server mode
+if (config.serverMode === 'minimal') {
+  config.features = {
+    ...config.features,
+    enableAgents: false,
+    enableRedis: false,
+    enableMonitoring: false,
+    enableHealthChecks: false,
+    enableQueueSystem: false,
+    enableMemoryMonitoring: false
+  };
+} else if (config.serverMode === 'lightweight') {
+  config.features = {
+    ...config.features,
+    enableRedis: false,
+    enableQueueSystem: false,
+    enableMonitoring: false
+  };
+} else if (config.serverMode === 'debug') {
+  config.features = {
+    ...config.features,
+    enableDebugRoutes: true,
+    enableMonitoring: true,
+    enableMemoryMonitoring: true
+  };
+}
+
+logger.info('Starting CCL-3 Server', {
+  mode: config.serverMode,
+  features: config.features,
+  memoryLimit: config.memoryLimit
+});
 
 // Create Express app
 const app = express();
@@ -51,18 +90,20 @@ app.use(requestTimeout(30000));
 app.use(addRateLimitInfo);
 app.use(apiRateLimit);
 
-// Memory monitoring
-const memoryMonitor = setInterval(() => {
-  const usage = process.memoryUsage();
-  const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
-  const rssUsedMB = Math.round(usage.rss / 1024 / 1024);
-  const memoryUsagePercent = Math.round((rssUsedMB / config.memoryLimit) * 100);
-  
-  if (memoryUsagePercent > 90) {
-    logger.warn(`High memory usage: ${rssUsedMB}MB (${memoryUsagePercent}% of ${config.memoryLimit}MB limit)`);
-    if (global.gc) global.gc();
-  }
-}, 30000);
+// Memory monitoring (conditional)
+let memoryMonitor: NodeJS.Timeout | null = null;
+if (config.features.enableMemoryMonitoring) {
+  memoryMonitor = setInterval(() => {
+    const mem = process.memoryUsage();
+    const rssUsedMB = Math.round(mem.rss / 1024 / 1024);
+    const memoryUsagePercent = Math.round((rssUsedMB / config.memoryLimit) * 100);
+    
+    if (memoryUsagePercent > 90) {
+      logger.warn(`High memory usage: ${rssUsedMB}MB (${memoryUsagePercent}% of ${config.memoryLimit}MB limit)`);
+      if (global.gc) global.gc();
+    }
+  }, 30000);
+}
 
 // Health endpoint
 app.get('/health', (req, res) => {
