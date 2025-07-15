@@ -19,7 +19,6 @@ console.log('======================\n');
 // Step 1: Update server index to use fallback repositories
 console.log('1. Updating server to use fallback repositories when DB unavailable...');
 
-const serverIndexOptimizedPath = path.join(__dirname, 'server/index-optimized.ts');
 const serverIndexOptimizedContent = fs.readFileSync(serverIndexOptimizedPath, 'utf8');
 
 // Replace db import with fallback version
@@ -30,7 +29,6 @@ const updatedServerContent = serverIndexOptimizedContent.replace(
 
 if (updatedServerContent !== serverIndexOptimizedContent) {
   fs.writeFileSync(serverIndexOptimizedPath, updatedServerContent);
-  console.log('✅ Updated server/index-optimized.ts to use fallback repositories');
 } else {
   console.log('⚠️  Server already configured for fallback repositories');
 }
