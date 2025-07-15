@@ -15,6 +15,7 @@ import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
 import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
+import { emailMonitor } from './services/email-monitor';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -101,7 +102,7 @@ if (wss) {
             break;
         }
       } catch (error) {
-        logger.error('WebSocket message error:', error);
+        logger.error('WebSocket message error:', error as Error);
       }
     });
     
@@ -146,12 +147,13 @@ server.listen(config.port, () => {
     memory: `${Math.round(mem.rss / 1024 / 1024)}MB`,
     features: config.features
   });
+  emailMonitor.start().catch(error => logger.error('Email monitor failed to start', error as Error));
 });
 
 // Graceful shutdown
 const shutdown = async () => {
   logger.info('Shutting down gracefully...');
-  
+  await emailMonitor.stop();
   if (memoryMonitor) clearInterval(memoryMonitor);
   
   server.close(async () => {
@@ -159,7 +161,7 @@ const shutdown = async () => {
       await closeConnection();
       process.exit(0);
     } catch (error) {
-      logger.error('Error during shutdown:', error);
+      logger.error('Error during shutdown:', error as Error);
       process.exit(1);
     }
   });
