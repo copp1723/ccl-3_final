@@ -152,7 +152,7 @@ if (wss) {
 
 // Static file serving
 const staticPath = config.nodeEnv === 'production'
-  ? join(__dirname, './client')
+  ? join(__dirname, '../dist/client')
   : join(__dirname, '../client/dist');
 
 // Only serve static files in production
@@ -160,7 +160,7 @@ if (config.nodeEnv === 'production') {
   app.use(express.static(staticPath));
   
   // Chat widget files
-  const publicPath = join(__dirname, './client');
+  const publicPath = join(__dirname, '../dist/client');
   app.use('/chat-widget-embed.js', express.static(join(publicPath, 'chat-widget-embed.js')));
   app.use('/chat-demo.html', express.static(join(publicPath, 'chat-demo.html')));
   

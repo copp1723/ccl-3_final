@@ -26,15 +26,9 @@ mkdir -p dist
 mkdir -p dist/client
 mkdir -p logs
 
-# Build server
-echo "⚙️  Building optimized server..."
-if [ "$ENABLE_FULL_SERVER" = "true" ]; then
-  echo "Building full server..."
-  esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.js --external:pg-native --tree-shaking=true --minify --target=node18
-else
-  echo "Building minimal server..."
-  npx esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index-optimized.js --external:pg-native --external:bcrypt --external:bufferutil --external:utf-8-validate
-fi
+# Don't build server - we'll run TypeScript directly
+echo "⚙️  Preparing server files..."
+echo "Server will run TypeScript directly via tsx"
 
 # Copy client build to dist
 echo "📋 Copying client build files..."
@@ -46,59 +40,8 @@ if [ -d "client/public" ]; then
   cp -r client/public/* dist/client/
 fi
 
-# Copy only essential server files
-echo "📋 Copying essential server files..."
-cp -r server/db dist/
-cp -r server/agents dist/
-cp -r server/routes dist/
-cp -r server/utils dist/
-
-# Create optimized agents
-cat > dist/agents-lazy.js << 'EOF'
-// Auto-generated lazy loader
-export async function processLead(lead) {
-  console.log('Processing lead:', lead.id);
-  // Minimal processing in production
-  return { action: 'processed', leadId: lead.id };
-}
-
-export async function loadAgent(type) {
-  console.log('Loading agent:', type);
-  return { type, process: async (data) => ({ success: true }) };
-}
-EOF
-
-# Memory optimization script
-cat > dist/start.sh << 'EOF'
-#!/bin/bash
-# Optimized startup with memory limits
-export NODE_OPTIONS="--max-old-space-size=384 --optimize-for-size"
-export UV_THREADPOOL_SIZE=2
-
-# Start server
-node dist/index-optimized.js
-EOF
-
-chmod +x dist/start.sh
-
-# Generate package.json for production
-cat > dist/package.json << EOF
-{
-  "name": "ccl3-swarm-production",
-  "version": "2.0.0",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "express": "^4.21.2",
-    "dotenv": "^17.0.1",
-    "drizzle-orm": "^0.39.3",
-    "postgres": "^3.4.7",
-    "zod": "^3.25.67",
-    "nanoid": "^5.1.5"
-  }
-}
-EOF
+# Production uses the same server code as development
+# The only difference is NODE_ENV=production
 
 echo "✅ Optimized build complete!"
 
