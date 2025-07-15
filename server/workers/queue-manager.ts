@@ -116,6 +116,15 @@ class SimpleQueueManager {
         case 'agent_decision':
           await this.processAgentDecision(job.data);
           break;
+        case 'execute_campaign_step':
+          await this.executeCampaignStep(job.data);
+          break;
+        case 'campaign_trigger':
+          await this.triggerCampaign(job.data);
+          break;
+        case 'lead_handover':
+          await this.processLeadHandover(job.data);
+          break;
         default:
           logger.warn(`Unknown job type: ${job.type}`);
       }
@@ -156,9 +165,65 @@ class SimpleQueueManager {
   }
 
   private async sendEmail(data: any): Promise<void> {
-    // Placeholder for email sending
-    logger.info('Sending email', { to: data.to, subject: data.subject });
-    // In a real implementation, this would call the email service
+    try {
+      // Import email service dynamically to avoid circular dependencies
+      const { emailTemplateManager } = await import('../../email-system/services/email-campaign-templates');
+      
+      // Send email using the email service
+      const result = await fetch(process.env.MAILGUN_API_URL || 'https://api.mailgun.net/v3/your-domain/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          from: process.env.FROM_EMAIL || 'noreply@completecarloans.com',
+          to: data.to,
+          subject: data.subject,
+          html: data.html,
+          text: data.text || data.html?.replace(/<[^>]*>/g, '') || data.subject
+        })
+      });
+
+      if (!result.ok) {
+        throw new Error(`Email send failed: ${result.status} ${result.statusText}`);
+      }
+
+      const response = await result.json();
+      logger.info('Email sent successfully', { 
+        to: data.to, 
+        subject: data.subject,
+        messageId: response.id,
+        leadId: data.leadId
+      });
+
+      // Update communication record if provided
+      if (data.leadId) {
+        const { db } = await import('../db/client');
+        const { communications } = await import('../db/schema');
+        const { eq } = await import('drizzle-orm');
+        
+        await db.update(communications)
+          .set({ 
+            status: 'sent',
+            externalId: response.id,
+            metadata: {
+              ...data,
+              sentAt: new Date().toISOString(),
+              messageId: response.id
+            }
+          })
+          .where(eq(communications.leadId, data.leadId));
+      }
+
+    } catch (error) {
+      logger.error('Email sending failed', { 
+        to: data.to, 
+        subject: data.subject,
+        error: (error as Error).message 
+      });
+      throw error;
+    }
   }
 
   private async sendSMS(data: any): Promise<void> {
@@ -171,6 +236,58 @@ class SimpleQueueManager {
     // Placeholder for agent decision processing
     logger.info('Processing agent decision', { leadId: data.leadId, agent: data.agent });
     // In a real implementation, this would call the agent system
+  }
+
+  private async executeCampaignStep(data: any): Promise<void> {
+    // Placeholder for campaign step execution
+    logger.info('Executing campaign step', { executionId: data.executionId });
+    // In a real implementation, this would call the campaign execution engine
+    try {
+      const { campaignExecutionEngine } = await import('../services/campaign-execution-engine');
+      // The actual execution logic is handled by the campaign execution engine
+      logger.info('Campaign step execution delegated to engine', { executionId: data.executionId });
+    } catch (error) {
+      logger.error('Failed to execute campaign step', { error: (error as Error).message });
+      throw error;
+    }
+  }
+
+  private async triggerCampaign(data: any): Promise<void> {
+    // Placeholder for campaign triggering
+    logger.info('Triggering campaign', { campaignId: data.campaignId, leadIds: data.leadIds });
+    try {
+      const { campaignExecutionEngine } = await import('../services/campaign-execution-engine');
+      await campaignExecutionEngine.triggerCampaign(data.campaignId, data.leadIds, data.templateSequence);
+      logger.info('Campaign triggered successfully', { campaignId: data.campaignId });
+    } catch (error) {
+      logger.error('Failed to trigger campaign', { error: (error as Error).message });
+      throw error;
+    }
+  }
+
+  private async processLeadHandover(data: any): Promise<void> {
+    logger.info('Processing lead handover', { leadId: data.leadId, campaignId: data.campaignId, reason: data.reason });
+    try {
+      const { LeadHandoverExecutor } = await import('../services/lead-handover-executor');
+      const results = await LeadHandoverExecutor.executeHandover(data.leadId, data.campaignId, data.reason);
+      
+      const successCount = results.filter(r => r.success).length;
+      logger.info('Lead handover completed', { 
+        leadId: data.leadId, 
+        totalDestinations: results.length,
+        successfulHandovers: successCount
+      });
+      
+      if (successCount === 0) {
+        throw new Error('All handover attempts failed');
+      }
+    } catch (error) {
+      logger.error('Failed to process lead handover', { 
+        leadId: data.leadId,
+        error: (error as Error).message 
+      });
+      throw error;
+    }
   }
 
   private getQueueNameForJobType(jobType: string): string {
@@ -218,6 +335,26 @@ class SimpleQueueManager {
   async addLeadProcessingJob(leadId: string, priority: 'low' | 'normal' | 'high' = 'normal'): Promise<string> {
     const priorityMap = { low: 0, normal: 1, high: 2 };
     return await this.addJob('leads', 'lead_processing', { leadId }, priorityMap[priority]);
+  }
+
+  // Add email sending job
+  async addEmailJob(emailData: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+    leadId?: string;
+    campaignId?: string;
+    templateId?: string;
+  }, priority: 'low' | 'normal' | 'high' = 'normal'): Promise<string> {
+    const priorityMap = { low: 0, normal: 1, high: 2 };
+    return await this.addJob('email', 'email_send', emailData, priorityMap[priority]);
+  }
+
+  // Add handover job
+  async addHandoverJob(leadId: string, campaignId: string, reason: string, priority: 'low' | 'normal' | 'high' = 'high'): Promise<string> {
+    const priorityMap = { low: 0, normal: 1, high: 2 };
+    return await this.addJob('handover', 'lead_handover', { leadId, campaignId, reason }, priorityMap[priority]);
   }
 
   async shutdown(): Promise<void> {

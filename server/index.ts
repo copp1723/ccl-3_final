@@ -15,7 +15,12 @@ import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
 import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
-import { emailMonitor } from './services/email-monitor';
+import { enhancedEmailMonitor } from './services/enhanced-email-monitor';
+import { campaignExecutionEngine } from './services/campaign-execution-engine';
+import { communicationHubService } from './services/communication-hub-service';
+import { StartupService } from './services/startup-service';
+import { WebSocketMessageHandler } from './websocket/message-handler';
+import { LeadProcessor } from './services/lead-processor';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -127,29 +132,21 @@ registerRoutes(app);
 
 // WebSocket handling
 if (wss) {
-  wss.on('connection', (ws) => {
-    logger.info('WebSocket connection established');
-    
-    ws.on('message', async (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        
-        switch (data.type) {
-          case 'ping':
-            ws.send(JSON.stringify({ type: 'pong' }));
-            break;
-          case 'subscribe':
-            (ws as any).subscribed = true;
-            break;
-        }
-      } catch (error) {
-        logger.error('WebSocket message error:', error as Error);
+  const leadProcessor = new LeadProcessor();
+  const wsHandler = new WebSocketMessageHandler(wss, leadProcessor, (data: any) => {
+    // Broadcast to all connected clients
+    wss!.clients.forEach((client) => {
+      if (client.readyState === client.OPEN) {
+        client.send(JSON.stringify(data));
       }
     });
-    
-    ws.on('close', () => {
-      logger.info('WebSocket connection closed');
-    });
+  });
+
+  // Initialize communication hub with WebSocket handler
+  communicationHubService.initialize(wsHandler);
+
+  wss.on('connection', (ws, req) => {
+    wsHandler.setupConnection(ws, req);
   });
 }
 
@@ -219,20 +216,46 @@ app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
 // Start server
-server.listen(config.port, () => {
+server.listen(config.port, async () => {
   const mem = process.memoryUsage();
   logger.info(`CCL-3 Server started on port ${config.port}`, {
     environment: config.nodeEnv,
     memory: `${Math.round(mem.rss / 1024 / 1024)}MB`,
     features: config.features
   });
-  emailMonitor.start().catch(error => logger.error('Email monitor failed to start', error as Error));
+  
+  // Initialize all deployment services
+  try {
+    await StartupService.initialize();
+    logger.info('All deployment services initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize deployment services', error as Error);
+  }
+  
+  enhancedEmailMonitor.start().catch(error => logger.error('Enhanced email monitor failed to start', error as Error));
+  
+  // Start email monitor if configured
+  if (process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
+    const { emailMonitor } = await import('./services/email-monitor');
+    emailMonitor.start().catch((error: Error) => logger.error('Email monitor failed to start', error));
+  } else {
+    logger.info('Email monitor not started - IMAP configuration missing');
+  }
 });
 
 // Graceful shutdown
 const shutdown = async () => {
   logger.info('Shutting down gracefully...');
-  await emailMonitor.stop();
+  
+  // Shutdown all deployment services
+  try {
+    await StartupService.shutdown();
+    logger.info('All deployment services shut down successfully');
+  } catch (error) {
+    logger.error('Error shutting down deployment services:', error as Error);
+  }
+  
+  await enhancedEmailMonitor.stop();
   if (memoryMonitor) clearInterval(memoryMonitor);
   
   server.close(async () => {

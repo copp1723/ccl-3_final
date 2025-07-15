@@ -26,6 +26,10 @@ import brandingRoutes from './branding';
 import supermemoryRoutes from './supermemory';
 import cacheRoutes from './cache';
 import conversationsRoutes from './conversations';
+import campaignExecutionRoutes from './campaign-execution';
+import emailMonitorRoutes from './email-monitor';
+import handoverApiRoutes from './handover-api';
+import emailSchedulingRoutes from './email-scheduling';
 
 // Route configuration
 interface RouteConfig {
@@ -61,6 +65,10 @@ const routes: RouteConfig[] = [
   { path: '/api/supermemory', router: supermemoryRoutes, middleware: [apiRateLimit] },
   { path: '/api/cache', router: cacheRoutes, middleware: [apiRateLimit] },
   { path: '/api/conversations', router: conversationsRoutes, middleware: [apiRateLimit] },
+  { path: '/api/campaign-execution', router: campaignExecutionRoutes, middleware: [apiRateLimit] },
+  { path: '/api/email-monitor', router: emailMonitorRoutes, middleware: [apiRateLimit] },
+  { path: '/api/handover-api', router: handoverApiRoutes, middleware: [apiRateLimit] },
+  { path: '/api/email-scheduling', router: emailSchedulingRoutes, middleware: [apiRateLimit] },
   
   // System routes
   { path: '/api/system', router: systemHealthRoutes },

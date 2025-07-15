@@ -78,27 +78,23 @@ class CampaignExecutionEngine {
     this.isRunning = true;
     logger.info('Starting Campaign Execution Engine');
 
-    // Start email monitoring for campaign triggers
-    await this.startEmailMonitoring();
+    // Start monitoring for email replies
+    await emailMonitor.start();
 
-    // Start periodic execution check
+    // Start processing scheduled executions every minute
     this.executionInterval = setInterval(async () => {
       await this.processScheduledExecutions();
     }, 60000); // Check every minute
 
     // Process any pending executions immediately
     await this.processScheduledExecutions();
-
-    logger.info('Campaign Execution Engine started successfully');
   }
 
   /**
    * Stop the campaign execution engine
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) {
-      return;
-    }
+    if (!this.isRunning) return;
 
     this.isRunning = false;
     logger.info('Stopping Campaign Execution Engine');
@@ -109,46 +105,175 @@ class CampaignExecutionEngine {
     }
 
     await emailMonitor.stop();
-    logger.info('Campaign Execution Engine stopped');
   }
 
   /**
-   * Start email monitoring for campaign triggers
+   * Schedule email campaign execution
    */
-  private async startEmailMonitoring(): Promise<void> {
-    try {
-      // Override the email monitor's handleNewMail to check for campaign triggers
-      const originalHandleNewMail = (emailMonitor as any).handleNewMail.bind(emailMonitor);
-      
-      (emailMonitor as any).handleNewMail = async (numNewMails: number) => {
-        // Call original handler first
-        await originalHandleNewMail(numNewMails);
-        
-        // Then check for campaign triggers
-        await this.checkEmailTriggers();
-      };
+  async scheduleEmailCampaign(
+    campaignId: string,
+    leadId: string,
+    templateId: string,
+    scheduledFor: Date
+  ): Promise<string> {
+    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const execution: CampaignExecution = {
+      id: executionId,
+      campaignId,
+      leadId,
+      templateId,
+      scheduledFor,
+      status: 'scheduled',
+      attempts: 0
+    };
 
-      await emailMonitor.start();
-    } catch (error) {
-      logger.error('Failed to start email monitoring for campaigns:', error as Error);
+    this.executions.set(executionId, execution);
+    
+    logger.info('Email campaign scheduled', {
+      executionId,
+      campaignId,
+      leadId,
+      templateId,
+      scheduledFor
+    });
+
+    return executionId;
+  }
+
+  /**
+   * Process scheduled campaign executions
+   */
+  private async processScheduledExecutions(): Promise<void> {
+    if (!this.isRunning) return;
+
+    const now = new Date();
+    const dueExecutions = Array.from(this.executions.values())
+      .filter(exec => exec.status === 'scheduled' && exec.scheduledFor <= now)
+      .slice(0, 10); // Process max 10 at a time
+
+    for (const execution of dueExecutions) {
+      await this.executeEmailCampaign(execution);
     }
   }
 
   /**
-   * Check for email-based campaign triggers
+   * Execute individual email campaign
    */
-  private async checkEmailTriggers(): Promise<void> {
-    const emailTriggers = this.triggers.filter(t => t.type === 'email');
-    
-    for (const trigger of emailTriggers) {
-      try {
-        // This would check recent emails for trigger conditions
-        // For now, we'll simulate this with a manual trigger endpoint
-        logger.debug('Checking email triggers', { trigger: trigger.conditions });
-      } catch (error) {
-        logger.error('Error checking email triggers:', error as Error);
+  private async executeEmailCampaign(execution: CampaignExecution): Promise<void> {
+    try {
+      execution.status = 'executing';
+      execution.attempts++;
+      execution.lastAttempt = new Date();
+
+      // Get lead data
+      const lead = await db.select().from(leads).where(eq(leads.id, execution.leadId)).limit(1);
+      if (!lead[0]) {
+        throw new Error(`Lead ${execution.leadId} not found`);
+      }
+
+      // Get email template
+      const template = await db.select().from(emailTemplates)
+        .where(eq(emailTemplates.id, execution.templateId)).limit(1);
+      
+      if (!template[0]) {
+        throw new Error(`Template ${execution.templateId} not found`);
+      }
+
+      // Render template with lead data
+      const leadMetadata = lead[0].metadata as Record<string, any> || {};
+      const renderedContent = await emailTemplateManager.renderTemplate(
+        template[0].id,
+        {
+          firstName: lead[0].name?.split(' ')[0] || 'there',
+          lastName: lead[0].name?.split(' ').slice(1).join(' ') || '',
+          email: lead[0].email || '',
+          phone: lead[0].phone || '',
+          ...leadMetadata
+        }
+      );
+
+      if (!renderedContent) {
+        throw new Error(`Failed to render template ${execution.templateId}`);
+      }
+
+      // Send email via queue
+      await queueManager.addJob('email', 'email_send', {
+        to: lead[0].email,
+        subject: renderedContent.subject,
+        html: renderedContent.html,
+        text: renderedContent.text,
+        leadId: execution.leadId,
+        campaignId: execution.campaignId,
+        templateId: execution.templateId
+      }, 1);
+
+      // Record communication
+      await db.insert(communications).values({
+        id: `comm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        leadId: execution.leadId,
+        channel: 'email',
+        direction: 'outbound',
+        content: renderedContent.subject,
+        status: 'sent',
+        metadata: {
+          campaignId: execution.campaignId,
+          templateId: execution.templateId,
+          executionId: execution.id
+        }
+      });
+
+      execution.status = 'completed';
+      logger.info('Email campaign executed successfully', {
+        executionId: execution.id,
+        leadId: execution.leadId,
+        templateId: execution.templateId
+      });
+
+    } catch (error) {
+      execution.status = 'failed';
+      execution.errorMessage = (error as Error).message;
+      
+      logger.error('Email campaign execution failed', {
+        executionId: execution.id,
+        error: (error as Error).message,
+        attempts: execution.attempts
+      });
+
+      // Retry if under max attempts
+      if (execution.attempts < 3) {
+        execution.status = 'scheduled';
+        execution.scheduledFor = new Date(Date.now() + 300000); // Retry in 5 minutes
       }
     }
+  }
+
+  /**
+   * Get execution status
+   */
+  getExecutionStatus(executionId: string): CampaignExecution | undefined {
+    return this.executions.get(executionId);
+  }
+
+  /**
+   * Get all executions for a campaign
+   */
+  getCampaignExecutions(campaignId: string): CampaignExecution[] {
+    return Array.from(this.executions.values())
+      .filter(exec => exec.campaignId === campaignId);
+  }
+
+  /**
+   * Cancel scheduled execution
+   */
+  cancelExecution(executionId: string): boolean {
+    const execution = this.executions.get(executionId);
+    if (execution && execution.status === 'scheduled') {
+      this.executions.delete(executionId);
+      logger.info('Execution cancelled', { executionId });
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -266,130 +391,6 @@ class CampaignExecutionEngine {
     ];
 
     return defaultSequence;
-  }
-
-  /**
-   * Process scheduled campaign executions
-   */
-  private async processScheduledExecutions(): Promise<void> {
-    if (!this.isRunning) return;
-
-    const now = new Date();
-    const pendingExecutions = Array.from(this.executions.values())
-      .filter(exec => 
-        exec.status === 'scheduled' && 
-        exec.scheduledFor <= now
-      );
-
-    if (pendingExecutions.length === 0) {
-      return;
-    }
-
-    logger.info('Processing scheduled campaign executions', { count: pendingExecutions.length });
-
-    for (const execution of pendingExecutions) {
-      try {
-        await this.executeStep(execution);
-      } catch (error) {
-        logger.error('Failed to execute campaign step:', { error: (error as Error).message, executionId: execution.id });
-      }
-    }
-  }
-
-  /**
-   * Execute a single campaign step
-   */
-  private async executeStep(execution: CampaignExecution): Promise<void> {
-    try {
-      execution.status = 'executing';
-      execution.attempts++;
-      execution.lastAttempt = new Date();
-
-      logger.info('Executing campaign step', { 
-        executionId: execution.id,
-        leadId: execution.leadId,
-        templateId: execution.templateId,
-        attempt: execution.attempts
-      });
-
-      // Get lead details
-      const [lead] = await db
-        .select()
-        .from(leads)
-        .where(eq(leads.id, execution.leadId));
-
-      if (!lead) {
-        throw new Error(`Lead ${execution.leadId} not found`);
-      }
-
-      // Get template and render with lead data
-      const renderedTemplate = emailTemplateManager.renderTemplate(execution.templateId, {
-        firstName: lead.name?.split(' ')[0] || 'Friend',
-        vehicleInterest: 'vehicle',
-        preApprovalAmount: '$25,000',
-        approvalAmount: '$25,000',
-        monthlyPayment: '$450'
-      });
-
-      if (!renderedTemplate) {
-        throw new Error(`Template ${execution.templateId} not found`);
-      }
-
-      // Send email via queue
-      await queueManager.addJob(
-        'email',
-        'email_send',
-        {
-          leadId: execution.leadId,
-          to: lead.email,
-          subject: renderedTemplate.subject,
-          text: renderedTemplate.text,
-          html: renderedTemplate.html,
-          campaignId: execution.campaignId,
-          templateId: execution.templateId
-        },
-        2 // High priority for campaign emails
-      );
-
-      // Record communication
-      await db.insert(communications).values({
-        id: `comm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        leadId: execution.leadId,
-        channel: 'email',
-        direction: 'outbound',
-        content: renderedTemplate.text,
-        status: 'sent',
-        metadata: {
-          campaignId: execution.campaignId,
-          templateId: execution.templateId,
-          executionId: execution.id
-        },
-        createdAt: new Date()
-      });
-
-      execution.status = 'completed';
-      logger.info('Campaign step executed successfully', { executionId: execution.id });
-
-    } catch (error) {
-      execution.status = 'failed';
-      execution.errorMessage = (error as Error).message;
-      
-      logger.error('Campaign step execution failed:', {
-        error: (error as Error).message,
-        executionId: execution.id,
-        attempt: execution.attempts
-      });
-
-      // Retry logic
-      if (execution.attempts < 3) {
-        execution.status = 'scheduled';
-        execution.scheduledFor = new Date(Date.now() + 30 * 60 * 1000); // Retry in 30 minutes
-        logger.info('Scheduling retry for campaign step', { 
-          executionId: execution.id,
-          nextAttempt: execution.scheduledFor 
-        });
-      }
-    }
   }
 
   /**

@@ -4,8 +4,6 @@ import express from 'express';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { LeadsRepository, AgentDecisionsRepository, closeConnection } from './db';
-import { logger } from './utils/logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,40 +27,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Core API endpoints
-app.get('/api/leads', async (req, res) => {
-  try {
-    const leads = await LeadsRepository.findAll({ limit: 20 });
-    res.json({ leads });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch leads' });
-  }
+// Minimal API endpoints for deployment testing
+app.get('/api/leads', (req, res) => {
+  res.json({ leads: [], message: 'Minimal deployment mode' });
 });
 
-app.post('/api/leads', async (req, res) => {
-  try {
-    const lead = await LeadsRepository.create({
-      name: req.body.name || 'Unknown',
-      email: req.body.email,
-      phone: req.body.phone,
-      source: req.body.source || 'api',
-      status: 'new',
-      qualificationScore: 0,
-      metadata: {}
-    });
-    
-    await AgentDecisionsRepository.create(
-      lead.id.toString(),
-      'overlord',
-      'lead_created',
-      'Lead saved to database',
-      { source: req.body.source }
-    );
-    
-    res.json({ success: true, leadId: lead.id });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create lead' });
-  }
+app.post('/api/leads', (req, res) => {
+  res.json({ success: true, message: 'Minimal deployment mode' });
 });
 
 // Serve static files
@@ -79,21 +50,21 @@ app.get('*', (req, res) => {
 // Start server
 server.listen(PORT, () => {
   const mem = process.memoryUsage();
-  logger.info(`Optimized server started on port ${PORT}`);
-  logger.info(`Memory: ${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+  console.log(`Optimized server started on port ${PORT}`);
+  console.log(`Memory: ${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  server.close(async () => {
-    await closeConnection();
+process.on('SIGTERM', () => {
+  server.close(() => {
+    console.log('Server shutting down');
     process.exit(0);
   });
 });
 
-process.on('SIGINT', async () => {
-  server.close(async () => {
-    await closeConnection();
+process.on('SIGINT', () => {
+  server.close(() => {
+    console.log('Server shutting down');
     process.exit(0);
   });
 });
