@@ -33,7 +33,7 @@ const changePasswordSchema = z.object({
 });
 
 // Login endpoint
-router.post('/api/auth/login', 
+router.post('/login', 
   validate(loginSchema),
   async (req, res) => {
     try {
@@ -97,7 +97,7 @@ router.post('/api/auth/login',
 );
 
 // Register endpoint (admin only in production)
-router.post('/api/auth/register',
+router.post('/register',
   validate(registerSchema),
   async (req, res) => {
     try {
@@ -165,7 +165,7 @@ router.post('/api/auth/register',
 );
 
 // Refresh token endpoint
-router.post('/api/auth/refresh',
+router.post('/refresh',
   validate(refreshTokenSchema),
   async (req, res) => {
     try {
@@ -195,7 +195,7 @@ router.post('/api/auth/refresh',
 );
 
 // Logout endpoint
-router.post('/api/auth/logout',
+router.post('/logout',
   authenticate,
   async (req, res) => {
     try {
@@ -223,7 +223,7 @@ router.post('/api/auth/logout',
 );
 
 // Get current user
-router.get('/api/auth/me',
+router.get('/me',
   authenticate,
   async (req, res) => {
     try {
@@ -242,7 +242,7 @@ router.get('/api/auth/me',
 );
 
 // Change password
-router.post('/api/auth/change-password',
+router.post('/change-password',
   authenticate,
   validate(changePasswordSchema),
   async (req, res) => {
@@ -298,7 +298,7 @@ router.post('/api/auth/change-password',
 );
 
 // Create default admin (development only)
-router.post('/api/auth/create-default-admin',
+router.post('/create-default-admin',
   async (req, res) => {
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({ error: 'Not allowed in production' });
