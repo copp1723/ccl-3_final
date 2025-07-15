@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Circle, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
-import { useBrandingContext } from '@/components/BrandingProvider';
-import { useApiCall } from '@/hooks/useErrorHandler';
+import { useClient } from '@/contexts/ClientContext';
+import { useApiCall } from '@/hooks/useApiCall';
 import { Stats } from '@/types';
 
 export function DashboardView() {
-  const { branding } = useBrandingContext();
-  const { apiCall, isError, error } = useApiCall();
+  const { branding } = useClient();
+  const { apiCall } = useApiCall();
   const [stats, setStats] = useState<Stats>({
     totalLeads: 0,
     newLeads: 0,
@@ -16,30 +16,42 @@ export function DashboardView() {
     conversionRate: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadStats = async () => {
       setIsLoading(true);
-      const result = await apiCall(
-        async () => {
-          const response = await fetch('/api/leads/stats/summary');
-          if (!response.ok) throw new Error(`Failed to load stats: ${response.statusText}`);
-          return response.json();
-        },
-        { errorMessage: 'Failed to load dashboard statistics' }
-      );
+      setError(null);
       
-      if (result) {
-        setStats(result);
+      try {
+        const data = await apiCall(async () => {
+          const response = await fetch('/api/leads');
+          if (!response.ok) throw new Error('Failed to load leads');
+          const result = await response.json();
+          // Calculate stats from leads data
+          const leads = result.leads || [];
+          return {
+            totalLeads: leads.length,
+            newLeads: leads.filter((l: any) => l.status === 'new').length,
+            contactedLeads: leads.filter((l: any) => l.status === 'contacted').length,
+            qualifiedLeads: leads.filter((l: any) => l.status === 'qualified').length,
+            conversionRate: leads.length > 0 ? Math.round((leads.filter((l: any) => l.status === 'qualified').length / leads.length) * 100) : 0
+          };
+        });
+        if (data) setStats(data);
+      } catch (err) {
+        setError('Failed to load dashboard statistics');
+        console.error('Dashboard stats error:', err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadStats();
   }, [apiCall]);
 
   // Error state
-  if (isError && error) {
+  if (error) {
     return (
       <div className="space-y-8">
         <div>
@@ -53,7 +65,7 @@ export function DashboardView() {
               <AlertCircle className="h-5 w-5" />
               <span className="font-medium">Unable to load dashboard data</span>
             </div>
-            <p className="text-sm text-red-600 mb-4">{error.message}</p>
+            <p className="text-sm text-red-600 mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"

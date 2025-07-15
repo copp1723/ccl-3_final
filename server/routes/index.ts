@@ -11,6 +11,7 @@ import communicationsRoutes from './communications';
 import agentDecisionsRoutes from './agent-decisions';
 import importRoutes from './import';
 import emailAgentsRoutes from './email-agents';
+import emailRoutes from './email';
 import emailTemplatesRoutes from './email-templates';
 import agentConfigurationsRoutes from './agent-configurations';
 import notificationsRoutes from './notifications';
@@ -50,6 +51,7 @@ const routes: RouteConfig[] = [
   { path: '/api/communications', router: communicationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-decisions', router: agentDecisionsRoutes, middleware: [apiRateLimit] },
   { path: '/api/import', router: importRoutes, middleware: [apiRateLimit] },
+  { path: '/api/email', router: emailRoutes, middleware: [apiRateLimit] },
   { path: '/api/email-agents', router: emailAgentsRoutes, middleware: [apiRateLimit] },
   { path: '/api/email-templates', router: emailTemplatesRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-configurations', router: agentConfigurationsRoutes, middleware: [apiRateLimit] },

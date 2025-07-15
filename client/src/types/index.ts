@@ -70,4 +70,4 @@ export interface Stats {
   conversionRate: number;
 }
 
-export type ViewType = 'dashboard' | 'leads' | 'agent-management' | 'conversations' | 'branding';
+export type ViewType = 'dashboard' | 'leads' | 'agent-management' | 'conversations' | 'branding' | 'campaigns' | 'campaign-intelligence';

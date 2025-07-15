@@ -9,7 +9,9 @@ import {
   Activity,
   Settings,
   MessageSquare,
-  Palette
+  Palette,
+  Target,
+  LogOut
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
 import { DashboardView } from '@/views/DashboardView';
@@ -17,8 +19,11 @@ import { LeadsView } from '@/views/LeadsView';
 import { ConversationsView } from '@/views/ConversationsView';
 import { BrandingManagementView } from '@/views/BrandingManagementView';
 import { AgentManagementView } from '@/views/AgentManagementView';
+import { CampaignsView } from '@/views/CampaignsView';
 import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { LoginForm } from '@/components/ui/LoginForm';
 import { ViewType } from '@/types';
 
 function AppContent() {
@@ -26,6 +31,22 @@ function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [wsConnected] = useState(true);
   const { branding } = useClient();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
 
   if (showImport) {
     return (
@@ -82,9 +103,16 @@ function AppContent() {
               </Badge>
             </div>
             <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">
+                Welcome, {user?.firstName || user?.username}
+              </span>
               <Button onClick={() => setShowImport(true)} className="flex items-center space-x-2">
                 <Upload className="h-4 w-4" />
                 <span>Import Leads</span>
+              </Button>
+              <Button variant="outline" onClick={logout} className="flex items-center space-x-2">
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
               </Button>
             </div>
           </div>
@@ -99,6 +127,8 @@ function AppContent() {
               { key: 'dashboard', label: 'Dashboard', icon: Activity },
               { key: 'leads', label: 'Leads', icon: Users },
               { key: 'agent-management', label: 'Agent Management', icon: Brain },
+              { key: 'campaigns', label: 'Campaigns', icon: Target },
+              { key: 'campaign-intelligence', label: 'Campaign Intelligence', icon: Brain },
               { key: 'conversations', label: 'Conversations', icon: MessageSquare },
               { key: 'branding', label: 'Branding', icon: Palette }
             ].map(({ key, label, icon: Icon }) => (
@@ -127,6 +157,8 @@ function AppContent() {
         {activeView === 'dashboard' && <DashboardView />}
         {activeView === 'leads' && <LeadsView />}
         {activeView === 'agent-management' && <AgentManagementView />}
+        {activeView === 'campaigns' && <CampaignsView />}
+        {activeView === 'campaign-intelligence' && <CampaignIntelligenceView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>
@@ -134,12 +166,12 @@ function AppContent() {
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <ClientProvider>
-      <AppContent />
-    </ClientProvider>
+    <AuthProvider>
+      <ClientProvider>
+        <AppContent />
+      </ClientProvider>
+    </AuthProvider>
   );
 }
-
-export default App;
