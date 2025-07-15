@@ -10,6 +10,7 @@ This report documents the comprehensive consolidation and standardization of the
 **Before:** 4 duplicate server files
 - `server/index.ts` (main)
 - `server/index-minimal.ts` 
+- `server/index-optimized.ts`
 - `server/index-lightweight.ts`
 - `server/minimal-server.ts`
 - `server/debug-server.ts`
@@ -20,6 +21,7 @@ This report documents the comprehensive consolidation and standardization of the
 ### 2. **Logger System** - STANDARDIZED
 **Before:** 2 duplicate logger implementations
 - `server/utils/logger.ts`
+- `server/utils/logger-simple.ts`
 
 **After:** Unified logger with level-based filtering
 - `server/utils/logger.ts` - Single logger with environment-aware levels

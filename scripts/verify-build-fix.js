@@ -75,7 +75,7 @@ if (fs.existsSync(renderPath)) {
 
 console.log('🎉 Build configuration verification complete!');
 console.log('\n📋 Summary of fixes applied:');
-console.log('  1. ✅ Fixed build:server script to output index.js');
-console.log('  2. ✅ Aligned start script to use index.js');
+console.log('  1. ✅ Fixed build:server script to output index-optimized.js');
+console.log('  2. ✅ Aligned start script to use index-optimized.js');
 console.log('  3. ✅ Removed .js extensions from TypeScript imports');
 console.log('  4. ✅ Maintained render.yaml compatibility with npm start');
