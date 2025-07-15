@@ -124,4 +124,36 @@ router.get('/stats',
   }
 );
 
+// Get lead statistics summary (alias for compatibility)
+router.get('/stats/summary',
+  authenticate,
+  auditView('leads_stats_summary'),
+  async (req, res) => {
+    try {
+      const statusCounts = await LeadsRepository.countByStatus();
+      const recentLeads = await LeadsRepository.getRecentLeads(10);
+      
+      const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+      
+      // Return format expected by the client
+      res.json({
+        success: true,
+        total,
+        new: statusCounts.new || 0,
+        qualified: statusCounts.qualified || 0,
+        converted: statusCounts.converted || 0,
+        byStatus: statusCounts,
+        recent: recentLeads.length,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error fetching lead stats summary:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch lead statistics summary'
+      });
+    }
+  }
+);
+
 export default router;
