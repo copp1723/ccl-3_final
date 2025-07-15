@@ -42,6 +42,37 @@ export abstract class BaseAgent {
   abstract processMessage(message: string, context: AgentContext): Promise<string>;
   abstract makeDecision(context: AgentContext): Promise<AgentDecision>;
 
+  /**
+   * Common method for generating AI responses
+   * This encapsulates the logic for building prompts, calling OpenRouter, and storing in supermemory
+   */
+  protected async generateResponse(
+    prompt: string,
+    systemPrompt: string,
+    context: {
+      leadId: string;
+      leadName?: string;
+      type: string;
+      metadata?: Record<string, any>;
+    },
+    options: Partial<ModelRequestOptions> = {}
+  ): Promise<string> {
+    // Call OpenRouter with the provided prompts
+    const response = await this.callOpenRouter(prompt, systemPrompt, options);
+    
+    // Store the response in supermemory
+    await this.storeMemory(
+      `${this.agentType} response to ${context.leadName || 'user'}: ${response}`,
+      {
+        leadId: context.leadId,
+        type: context.type,
+        ...context.metadata
+      }
+    );
+
+    return response;
+  }
+
   protected async callOpenRouter(
     prompt: string,
     systemPrompt: string,
