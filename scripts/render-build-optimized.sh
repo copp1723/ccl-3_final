@@ -33,7 +33,7 @@ if [ "$ENABLE_FULL_SERVER" = "true" ]; then
   esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.js --external:pg-native --tree-shaking=true --minify --target=node18
 else
   echo "Building minimal server..."
-  cp server/index-optimized.js dist/index.js
+  cp server/index-optimized.js dist/index-optimized.js
 fi
 
 # Copy client build to dist
