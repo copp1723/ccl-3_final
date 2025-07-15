@@ -8,6 +8,8 @@ import { dirname, join } from 'path';
 import { z } from 'zod';
 import os from 'os';
 
+import { logger } from './utils/logger';
+
 // Lazy imports - only load when needed
 const lazyImports = {
   db: () => import('./db'),
@@ -15,7 +17,6 @@ const lazyImports = {
   agents: () => import('./agents-lazy'),
   session: () => import('express-session'),
   redis: () => import('./utils/redis-simple'),
-  logger: () => import('./utils/logger-simple'),
   emailWebhooks: () => import('./routes/email-webhooks'),
   emailConversationManager: () => import('./services/email-conversation-manager')
 };
@@ -35,13 +36,6 @@ const config = {
   port: process.env.PORT || 5000
 };
 
-// Simple in-memory logger until real logger is needed
-let logger: any = {
-  info: console.log,
-  error: console.error,
-  warn: console.warn,
-  debug: () => {} // No-op in production
-};
 
 // Create Express app
 const app = express();
