@@ -7,6 +7,7 @@ import { dirname, join } from 'path';
 import { z } from 'zod';
 import os from 'os';
 
+ refactor/remove-optimized-server
 // Core imports
 import { closeConnection } from './db';
 import { logger } from './utils/logger';
@@ -15,12 +16,27 @@ import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
 import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
+=======
+import { logger } from './utils/logger';
+
+// Lazy imports - only load when needed
+const lazyImports = {
+  db: () => import('./db'),
+  ws: () => import('ws'),
+  agents: () => import('./agents-lazy'),
+  session: () => import('express-session'),
+  redis: () => import('./utils/redis-simple'),
+  emailWebhooks: () => import('./routes/email-webhooks'),
+  emailConversationManager: () => import('./services/email-conversation-manager')
+};
+ main
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Environment-based configuration
 const config = {
+ refactor/remove-optimized-server
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   memoryLimit: parseInt(process.env.MEMORY_LIMIT || String(Math.min(1638, Math.floor(os.totalmem() / 1024 / 1024 * 0.25)))),
@@ -31,6 +47,16 @@ const config = {
     enableMonitoring: process.env.ENABLE_MONITORING === 'true'
   }
 };
+=======
+  enableAgents: process.env.ENABLE_AGENTS !== 'false',
+  enableWebSocket: process.env.ENABLE_WEBSOCKET !== 'false',
+  enableRedis: process.env.ENABLE_REDIS === 'true',
+  enableMonitoring: process.env.ENABLE_MONITORING === 'true',
+  memoryLimit: parseInt(process.env.MEMORY_LIMIT || String(defaultMemoryLimit)),
+  port: process.env.PORT || 5000
+};
+
+main
 
 // Create Express app
 const app = express();
