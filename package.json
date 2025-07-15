@@ -5,11 +5,13 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "dev:quick": "NODE_ENV=development tsx server/index.ts",
+    "dev:full": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "NODE_ENV=development tsx server/index.ts",
+    "dev:client": "cd client && npm run dev",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && npm install && npm run build && mkdir -p ../dist/client && cp -r dist/* ../dist/client/",
-    "build:server": "esbuild server/index-optimized.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index-optimized.js",
-    "start": "NODE_ENV=production node dist/index-optimized.js",
+    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
+    "start": "NODE_ENV=production node dist/index.js",
     "setup:quick": "cp .env.example .env 2>/dev/null || true",
     "check": "tsc",
     "db:push": "drizzle-kit push",
@@ -19,7 +21,8 @@
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "validate": "npm run lint && npm run check && npm run test:unit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -106,6 +109,7 @@
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.0",
     "drizzle-kit": "^0.30.4",
     "esbuild": "^0.25.0",
     "eslint": "^9.30.1",

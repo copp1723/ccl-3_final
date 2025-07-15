@@ -73,7 +73,12 @@ export class SuperMemoryService {
 }
 
 // Singleton instance
+const apiKey = process.env.SUPERMEMORY_API_KEY;
+if (!apiKey) {
+  throw new Error('SUPERMEMORY_API_KEY is required');
+}
+
 export const superMemory = new SuperMemoryService({
-  apiKey: process.env.SUPERMEMORY_API_KEY || 'sm_dy7m3s5FbqC2DaFMkKoTw1_XfqApjLQuQzczynngPuvsplZhFJhUkGfffJraCSEzbpwXEjNWmONIvLhwFxVrhiH',
-  baseUrl: 'https://api.supermemory.ai/v3'
+  apiKey,
+  baseUrl: process.env.SUPERMEMORY_BASE_URL || 'https://api.supermemory.ai/v3'
 });

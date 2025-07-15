@@ -89,6 +89,16 @@ Test files are located in the `tests/` directory. To run tests, you can typicall
 
 Please refer to `package.json` and any `README.md` files within the `tests/` directory for specific commands and testing procedures.
 
+##✅ Code Validation
+
+Run linting, type checks, and the unit test suite in a single step:
+
+```bash
+npm run validate
+```
+
+This script helps ensure code quality before committing changes.
+
 ##☁️ Deployment
 
 This project is configured for deployment on [Render](https://render.com/). The deployment configuration can be found in `render.yaml`.
