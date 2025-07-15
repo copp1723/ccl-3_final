@@ -23,12 +23,12 @@
   window.CCLChatInitialized = true;
   
   // Get configuration
-  var config = window.CCLChatConfig || {};
+  const config = window.CCLChatConfig || {};
   
   // Auto-detect client from domain
-  var detectClient = function() {
-    var hostname = window.location.hostname;
-    var subdomain = hostname.split('.')[0];
+  const detectClient = function() {
+    const hostname = window.location.hostname;
+    const subdomain = hostname.split('.')[0];
     
     if (subdomain && subdomain !== 'www' && subdomain !== hostname) {
       return subdomain;
@@ -37,10 +37,10 @@
     return hostname === 'localhost' ? 'localhost' : null;
   };
   
-  var clientId = config.clientId || detectClient();
+  const clientId = config.clientId || detectClient();
   
   // Default configuration
-  var defaults = {
+  const defaults = {
     apiEndpoint: window.location.origin,
     position: 'bottom-right',
     primaryColor: '#2563eb',
@@ -56,14 +56,14 @@
   };
   
   // Merge configurations
-  for (var key in defaults) {
+  for (const key in defaults) {
     if (!config.hasOwnProperty(key)) {
       config[key] = defaults[key];
     }
   }
   
   // Create styles
-  var style = document.createElement('style');
+  const style = document.createElement('style');
   style.textContent = `
     #ccl-chat-root {
       position: fixed;
@@ -79,14 +79,14 @@
   document.head.appendChild(style);
   
   // Create root element
-  var root = document.createElement('div');
+  const root = document.createElement('div');
   root.id = 'ccl-chat-root';
   document.body.appendChild(root);
   
   // Load branding first, then widget
   loadBranding(function() {
     // Load the widget bundle
-    var script = document.createElement('script');
+    const script = document.createElement('script');
     script.src = config.apiEndpoint + '/chat-widget.bundle.js';
     script.async = true;
     script.onload = function() {
@@ -109,7 +109,7 @@
       .then(function(response) { return response.json(); })
       .then(function(data) {
         if (data.success && data.branding) {
-          var branding = data.branding.branding;
+          const branding = data.branding.branding;
           // Apply branding to config
           config.primaryColor = branding.primaryColor || config.primaryColor;
           config.headerText = branding.companyName || config.headerText;

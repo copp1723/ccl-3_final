@@ -1,7 +1,7 @@
 import { Lead, Campaign } from '../db/schema';
 import { logger } from '../utils/logger';
 import { executeWithOpenRouterBreaker } from '../utils/circuit-breaker';
-import { superMemory } from '../services/supermemory';
+import { superMemory, mockSuperMemory } from '../services/supermemory';
 import { ModelRouter, ModelRequestOptions } from '../utils/model-router';
 
 export interface AgentContext {
@@ -24,7 +24,8 @@ export abstract class BaseAgent {
   }
 
   protected async storeMemory(content: string, metadata?: Record<string, any>): Promise<void> {
-    await superMemory.addMemory({
+    const memory = superMemory || mockSuperMemory;
+    await memory.addMemory({
       content,
       metadata: {
         agentType: this.agentType,
@@ -36,7 +37,8 @@ export abstract class BaseAgent {
   }
 
   protected async searchMemory(query: string, limit: number = 5): Promise<any[]> {
-    return await superMemory.searchMemories(query, limit);
+    const memory = superMemory || mockSuperMemory;
+    return await memory.searchMemories(query, limit);
   }
 
   abstract processMessage(message: string, context: AgentContext): Promise<string>;

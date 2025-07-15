@@ -1,5 +1,4 @@
-import pkg from 'lru-cache';
-const { LRUCache } = pkg;
+import { LRUCache } from 'lru-cache';
 import crypto from 'crypto';
 import { logger } from './logger';
 

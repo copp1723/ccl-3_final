@@ -1,7 +1,10 @@
 import { Router } from 'express';
-import { superMemory } from '../services/supermemory';
+import { superMemory, mockSuperMemory } from '../services/supermemory';
 
 const router = Router();
+
+// Check if supermemory is available
+const memory = superMemory || mockSuperMemory;
 
 // Add memory endpoint
 router.post('/api/supermemory/memories', async (req, res) => {
@@ -12,7 +15,7 @@ router.post('/api/supermemory/memories', async (req, res) => {
       return res.status(400).json({ error: 'Content is required' });
     }
     
-    const memoryId = await superMemory.addMemory({
+    const memoryId = await memory.addMemory({
       content,
       metadata,
       spaces
@@ -38,7 +41,7 @@ router.post('/api/supermemory/search', async (req, res) => {
       return res.status(400).json({ error: 'Query is required' });
     }
     
-    const results = await superMemory.searchMemories(query, limit);
+    const results = await memory.searchMemories(query, limit);
     res.json({ results });
   } catch (error) {
     console.error('Error searching memories:', error);
@@ -49,7 +52,7 @@ router.post('/api/supermemory/search', async (req, res) => {
 // Delete memory endpoint
 router.delete('/api/supermemory/memories/:id', async (req, res) => {
   try {
-    const success = await superMemory.deleteMemory(req.params.id);
+    const success = await memory.deleteMemory(req.params.id);
     
     if (success) {
       res.json({ success: true });

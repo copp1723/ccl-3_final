@@ -82,7 +82,7 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
         }
       }));
     }
-  // eslint-disable-next-line
+   
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {

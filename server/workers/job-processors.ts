@@ -338,7 +338,7 @@ export async function processCleanupJob(job: Job<CCLJobData>): Promise<any> {
   try {
     logger.info('Starting data cleanup job', { jobId: job.id, payload });
 
-    let cleanupResults = {
+    const cleanupResults = {
       oldCommunications: 0,
       oldSessions: 0,
       expiredCache: 0

@@ -72,13 +72,25 @@ export class SuperMemoryService {
   }
 }
 
-// Singleton instance
+// Singleton instance - make it optional
 const apiKey = process.env.SUPERMEMORY_API_KEY;
-if (!apiKey) {
-  throw new Error('SUPERMEMORY_API_KEY is required');
-}
-
-export const superMemory = new SuperMemoryService({
+export const superMemory = apiKey ? new SuperMemoryService({
   apiKey,
   baseUrl: process.env.SUPERMEMORY_BASE_URL || 'https://api.supermemory.ai/v3'
-});
+}) : null;
+
+// Export a mock service for development when API key is not available
+export const mockSuperMemory = {
+  addMemory: async (memory: Memory): Promise<string | null> => {
+    console.log('Mock SuperMemory: addMemory called', memory);
+    return 'mock-memory-id';
+  },
+  searchMemories: async (query: string, limit: number = 10): Promise<SearchResult[]> => {
+    console.log('Mock SuperMemory: searchMemories called', query, limit);
+    return [];
+  },
+  deleteMemory: async (memoryId: string): Promise<boolean> => {
+    console.log('Mock SuperMemory: deleteMemory called', memoryId);
+    return true;
+  }
+};
