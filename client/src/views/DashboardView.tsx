@@ -7,7 +7,7 @@ import { Stats } from '@/types';
 
 export function DashboardView() {
   const { branding } = useClient();
-  const { apiCall } = useApiCall();
+  const { get } = useApiCall();
   const [stats, setStats] = useState<Stats>({
     totalLeads: 0,
     newLeads: 0,
@@ -24,21 +24,18 @@ export function DashboardView() {
       setError(null);
       
       try {
-        const data = await apiCall(async () => {
-          const response = await fetch('/api/leads');
-          if (!response.ok) throw new Error('Failed to load leads');
-          const result = await response.json();
-          // Calculate stats from leads data
-          const leads = result.leads || [];
-          return {
-            totalLeads: leads.length,
-            newLeads: leads.filter((l: any) => l.status === 'new').length,
-            contactedLeads: leads.filter((l: any) => l.status === 'contacted').length,
-            qualifiedLeads: leads.filter((l: any) => l.status === 'qualified').length,
-            conversionRate: leads.length > 0 ? Math.round((leads.filter((l: any) => l.status === 'qualified').length / leads.length) * 100) : 0
-          };
-        });
-        if (data) setStats(data);
+        const response = await get('/api/leads/stats/summary');
+        const result = await response.json();
+        
+        // Map the backend response to expected frontend format
+        const data = {
+          totalLeads: result.total || 0,
+          newLeads: result.new || 0,
+          contactedLeads: result.byStatus?.contacted || 0,
+          qualifiedLeads: result.qualified || 0,
+          conversionRate: result.total > 0 ? Math.round((result.qualified / result.total) * 100) : 0
+        };
+        setStats(data);
       } catch (err) {
         setError('Failed to load dashboard statistics');
         console.error('Dashboard stats error:', err);
@@ -48,7 +45,7 @@ export function DashboardView() {
     };
 
     loadStats();
-  }, [apiCall]);
+  }, [get]);
 
   // Error state
   if (error) {

@@ -10,7 +10,7 @@ export function AgentsView() {
 
   useEffect(() => {
     // Try API first, fallback to defaults
-    fetch('/api/agents')
+    fetch('/api/agent-configurations')
       .then(res => res.json())
       .then(data => setAgents(data?.agents || []))
       .catch(() => setAgents([

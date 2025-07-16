@@ -19,7 +19,7 @@ import { LeadsView } from '@/views/LeadsView';
 import { ConversationsView } from '@/views/ConversationsView';
 import { BrandingManagementView } from '@/views/BrandingManagementView';
 import { AgentManagementView } from '@/views/AgentManagementView';
-import { CampaignsView } from '@/views/CampaignsView';
+import { CampaignsView } from './views/CampaignsView';
 import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';

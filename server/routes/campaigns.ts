@@ -123,6 +123,7 @@ router.get('/', async (req, res) => {
     }
     
     res.json({ 
+      success: true,
       campaigns: paginatedCampaigns,
       total: campaigns.length,
       offset: parseInt(offset as string) || 0,

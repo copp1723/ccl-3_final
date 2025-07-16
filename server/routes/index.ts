@@ -13,6 +13,8 @@ import importRoutes from './import';
 import emailAgentsRoutes from './email-agents';
 import emailRoutes from './email';
 import emailTemplatesRoutes from './email-templates';
+import campaignIntelligenceRoutes from './campaign-intelligence';
+import chatRoutes from './chat';
 import agentConfigurationsRoutes from './agent-configurations';
 import notificationsRoutes from './notifications';
 import usersRoutes from './users';
@@ -54,6 +56,8 @@ const routes: RouteConfig[] = [
   { path: '/api/email', router: emailRoutes, middleware: [apiRateLimit] },
   { path: '/api/email-agents', router: emailAgentsRoutes, middleware: [apiRateLimit] },
   { path: '/api/email-templates', router: emailTemplatesRoutes, middleware: [apiRateLimit] },
+  { path: '/api/campaign-intelligence', router: campaignIntelligenceRoutes, middleware: [apiRateLimit] },
+  { path: '/api/chat', router: chatRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-configurations', router: agentConfigurationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/notifications', router: notificationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/users', router: usersRoutes, middleware: [apiRateLimit] },
