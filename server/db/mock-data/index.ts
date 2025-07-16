@@ -572,6 +572,16 @@ export const mockAnalytics = {
     console.log('Mock analytics event:', event);
     return { success: true };
   },
+  trackEvent: async (event: any) => {
+    console.log('Mock analytics event:', event);
+    return { id: `event-${Date.now()}`, success: true };
+  },
+  getLeadStats: async () => ({
+    total: mockLeads.leads.length,
+    new: mockLeads.leads.filter(l => l.status === 'new').length,
+    qualified: mockLeads.leads.filter(l => l.status === 'qualified').length,
+    converted: mockLeads.leads.filter(l => l.status === 'converted').length
+  }),
   getDashboardMetrics: async () => ({
     leads: {
       total: mockLeads.leads.length,
