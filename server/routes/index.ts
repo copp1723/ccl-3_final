@@ -33,6 +33,7 @@ import campaignExecutionRoutes from './campaign-execution';
 import emailMonitorRoutes from './email-monitor';
 import handoverApiRoutes from './handover-api';
 import emailSchedulingRoutes from './email-scheduling';
+import testRoutes from './test';
 
 // Route configuration
 interface RouteConfig {
@@ -78,6 +79,7 @@ const routes: RouteConfig[] = [
   
   // System routes
   { path: '/api/system', router: systemHealthRoutes },
+  { path: '/api/test', router: testRoutes, public: true },
 ];
 
 /**

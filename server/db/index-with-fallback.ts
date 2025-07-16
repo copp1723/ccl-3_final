@@ -44,6 +44,7 @@ export const EmailTemplatesRepository = useRealDb ? realRepositories.EmailTempla
 };
 
 export const UsersRepository = useRealDb ? realRepositories.UsersRepository : {
+  findAll: async () => mockUsers.findAll(),
   findByEmail: async (email: string) => mockUsers.findByEmail(email),
   findByUsername: async (username: string) => mockUsers.findByEmail(username), // Using email as username
   findById: async (id: string) => mockUsers.findById(id),

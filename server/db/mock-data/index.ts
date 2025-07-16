@@ -19,7 +19,7 @@ export const mockUsers = {
     }
   ],
 
-  findAll: () => mockUsers.users,
+  findAll: async () => mockUsers.users,
   findById: (id: string) => mockUsers.users.find(u => u.id === id),
   findByEmail: (email: string) => mockUsers.users.find(u => u.email === email),
   create: (data: any) => {
