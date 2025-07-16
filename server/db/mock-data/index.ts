@@ -43,7 +43,12 @@ export const mockUsers = {
   login: async (email: string, password: string) => {
     const user = mockUsers.users.find(u => u.email === email);
     if (user && password === 'password123') { // Mock password check
-      return { user, token: 'mock-jwt-token' };
+      return { 
+        user, 
+        accessToken: 'mock-jwt-access-token',
+        refreshToken: 'mock-jwt-refresh-token',
+        expiresIn: 3600
+      };
     }
     return null;
   }
