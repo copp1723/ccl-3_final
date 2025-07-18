@@ -744,15 +744,6 @@ export const mockEmailTemplates = {
     ];
     mockEmailTemplates.templates.push(...defaults);
     return defaults;
-  },
-  toggleActive: async (id: string) => {
-    const template = mockEmailTemplates.templates.find(t => t.id === id);
-    if (template) {
-      template.active = !template.active;
-      template.updatedAt = new Date();
-      return template;
-    }
-    return undefined;
   }
 };
 
