@@ -13,6 +13,7 @@ import { EmailTemplatesRepository } from './email-templates-repository';
 import { AgentDecisionsRepository } from './agent-decisions-repository';
 import { AnalyticsRepository } from './analytics-repository';
 import { AuditLogRepository } from './audit-log-repository';
+import { ClientsRepository } from './clients-repository';
 
 // Export repositories as named exports for ESM compatibility
 export const usersRepository = UsersRepository;
@@ -25,3 +26,4 @@ export const emailTemplatesRepository = EmailTemplatesRepository;
 export const agentDecisionsRepository = AgentDecisionsRepository;
 export const analyticsRepository = AnalyticsRepository;
 export const auditLogRepository = AuditLogRepository;
+export const clientsRepository = ClientsRepository;

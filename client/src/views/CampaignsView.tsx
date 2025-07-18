@@ -6,9 +6,10 @@ import { CampaignIntelligenceHub } from '@/components/campaign-intelligence';
 import { CampaignManager } from '@/components/email-agent/CampaignManager';
 import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
 import { useAgents } from '@/hooks/useAgents';
+import { Campaign } from '@/types';
 
 export function CampaignsView() {
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const { agents } = useAgents();
   

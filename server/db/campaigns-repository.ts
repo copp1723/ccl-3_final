@@ -58,13 +58,13 @@ export class CampaignsRepository {
    * Find campaign by ID
    */
   static async findById(id: string | number): Promise<Campaign | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
+    const campaignId = typeof id === 'number' ? id.toString() : id;
+    if (!campaignId) return null;
     
     const [campaign] = await db
       .select()
       .from(campaigns)
-      .where(eq(campaigns.id, numericId))
+      .where(eq(campaigns.id, campaignId))
       .limit(1);
 
     return campaign || null;
@@ -117,8 +117,8 @@ export class CampaignsRepository {
       active: boolean;
     }>
   ): Promise<Campaign | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
+    const campaignId = typeof id === 'number' ? id.toString() : id;
+    if (!campaignId) return null;
     
     const [updated] = await db
       .update(campaigns)
@@ -126,7 +126,7 @@ export class CampaignsRepository {
         ...updates,
         updatedAt: new Date()
       })
-      .where(eq(campaigns.id, numericId))
+      .where(eq(campaigns.id, campaignId))
       .returning();
 
     return updated || null;
@@ -136,10 +136,10 @@ export class CampaignsRepository {
    * Toggle campaign active status
    */
   static async toggleActive(id: string | number): Promise<Campaign | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
+    const campaignId = typeof id === 'number' ? id.toString() : id;
+    if (!campaignId) return null;
     
-    const campaign = await this.findById(numericId);
+    const campaign = await this.findById(campaignId);
     if (!campaign) return null;
 
     const [updated] = await db
@@ -148,7 +148,7 @@ export class CampaignsRepository {
         active: !campaign.active,
         updatedAt: new Date()
       })
-      .where(eq(campaigns.id, numericId))
+      .where(eq(campaigns.id, campaignId))
       .returning();
 
     return updated || null;
@@ -158,12 +158,12 @@ export class CampaignsRepository {
    * Delete campaign
    */
   static async delete(id: string | number): Promise<boolean> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return false;
+    const campaignId = typeof id === 'number' ? id.toString() : id;
+    if (!campaignId) return false;
     
     const result = await db
       .delete(campaigns)
-      .where(eq(campaigns.id, numericId))
+      .where(eq(campaigns.id, campaignId))
       .returning();
 
     return result.length > 0;

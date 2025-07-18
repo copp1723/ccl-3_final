@@ -67,17 +67,16 @@ export interface Campaign {
   };
 }
 
-// Client/Branding Types
-export interface CCLBrandingConfig {
-  primaryColor: string;
-  secondaryColor: string;
+// Import shared branding config
+import type { CCLBrandingConfig } from '../../../shared/config/branding-config';
+export type { CCLBrandingConfig };
+
+// Additional branding properties for frontend use
+export interface ExtendedBrandingConfig extends CCLBrandingConfig {
   logo?: string;
-  favicon?: string;
-  companyName: string;
   emailTemplate?: string;
   smsTemplate?: string;
   chatGreeting?: string;
-  supportEmail?: string;
   supportPhone?: string;
   website?: string;
   defaultEmailSignature?: string;
@@ -87,8 +86,40 @@ export interface Client {
   id: string;
   name: string;
   industry?: string;
+  domain?: string;
+  settings?: {
+    branding?: CCLBrandingConfig;
+  };
   brand_config?: CCLBrandingConfig;
+  branding?: CCLBrandingConfig;
   createdAt: string;
+}
+
+// Template Types
+export interface Template {
+  id: string;
+  name: string;
+  content: string;
+  subject?: string;
+  type: string;
+  category?: string;
+  variables?: Record<string, any>;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CampaignTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  content: string;
+  type: 'email' | 'sms' | 'chat';
+  variables?: string[];
+  industry?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Unified Agent Configuration Types

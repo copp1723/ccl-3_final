@@ -8,6 +8,7 @@ interface ClientContextType {
   clients: Client[];
   isLoading: boolean;
   error: string | null;
+  branding: CCLBrandingConfig;
   switchClient: (clientId: string | null) => void;
   refreshClients: () => Promise<void>;
   addClient: (clientData: Omit<Client, 'id' | 'createdAt'>) => Promise<Client | undefined>;
@@ -45,7 +46,7 @@ export function ClientProvider({ children }: ClientProviderProps) {
         setClients(data.data);
         if (data.data.length > 0) {
           const lastActiveId = localStorage.getItem('lastActiveClientId');
-          const clientToActivate = data.data.find(c => c.id === lastActiveId) || data.data[0];
+          const clientToActivate = data.data.find((c: Client) => c.id === lastActiveId) || data.data[0];
           setActiveClient(clientToActivate);
         }
       } else {
@@ -109,7 +110,7 @@ export function ClientProvider({ children }: ClientProviderProps) {
       return clients.find(c => c.id === clientId);
   };
 
-  const branding = activeClient?.brand_config || DEFAULT_BRANDING;
+  const branding = activeClient?.brand_config || activeClient?.branding || activeClient?.settings?.branding || DEFAULT_BRANDING;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -154,6 +155,7 @@ export function ClientProvider({ children }: ClientProviderProps) {
     clients,
     isLoading,
     error,
+    branding,
     switchClient,
     refreshClients: fetchClients,
     addClient,

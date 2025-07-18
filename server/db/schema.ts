@@ -23,6 +23,11 @@ export const users = pgTable('users', {
   role: varchar('role', { length: 50 }).default('user'),
   clientId: uuid('client_id').references(() => clients.id),
   active: boolean('active').default(true),
+  passwordHash: varchar('password_hash', { length: 255 }),
+  username: varchar('username', { length: 255 }).unique(),
+  firstName: varchar('first_name', { length: 255 }),
+  lastName: varchar('last_name', { length: 255 }),
+  lastLogin: timestamp('last_login'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });
@@ -124,6 +129,9 @@ export const conversations = pgTable('conversations', {
   agentType: agentTypeEnum('agent_type').notNull(),
   messages: jsonb('messages').default([]).notNull(),
   status: text('status').default('active').notNull(),
+  crossChannelContext: jsonb('cross_channel_context').default({}),
+  currentQualificationScore: integer('current_qualification_score').default(0),
+  goalProgress: jsonb('goal_progress').default({}),
   startedAt: timestamp('started_at').defaultNow().notNull(),
   endedAt: timestamp('ended_at')
 });
@@ -136,6 +144,12 @@ export const emailTemplates = pgTable('email_templates', {
   content: text('content').notNull(),
   type: varchar('type', { length: 50 }).default('marketing'),
   active: boolean('active').default(true),
+  category: varchar('category', { length: 100 }),
+  campaignId: text('campaign_id'),
+  agentId: text('agent_id'),
+  plainText: text('plain_text'),
+  variables: jsonb('variables').default({}),
+  performance: jsonb('performance').default({}),
   clientId: uuid('client_id').references(() => clients.id),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
@@ -146,6 +160,7 @@ export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id),
   token: varchar('token', { length: 255 }).notNull(),
+  refreshToken: varchar('refresh_token', { length: 255 }).unique(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow()
 });
@@ -169,6 +184,8 @@ export const analyticsEvents = pgTable('analytics_events', {
   eventType: varchar('event_type', { length: 100 }).notNull(),
   entityType: varchar('entity_type', { length: 50 }).notNull(),
   entityId: uuid('entity_id').notNull(),
+  value: integer('value').default(1),
+  leadId: text('lead_id').references(() => leads.id),
   properties: jsonb('properties'),
   userId: uuid('user_id').references(() => users.id),
   sessionId: varchar('session_id', { length: 255 }),

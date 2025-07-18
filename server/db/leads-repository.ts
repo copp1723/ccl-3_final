@@ -22,9 +22,9 @@ export class LeadsRepository {
    * Find a lead by ID
    */
   static async findById(id: string | number): Promise<Lead | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
-    const [lead] = await db.select().from(leads).where(eq(leads.id, numericId)).limit(1);
+    const leadId = typeof id === 'number' ? id.toString() : id;
+    if (!leadId) return null;
+    const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
     return lead || null;
   }
 
@@ -39,8 +39,8 @@ export class LeadsRepository {
    * Update lead status
    */
   static async updateStatus(id: string | number, status: Lead['status'], boberdooId?: string): Promise<Lead | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
+    const leadId = typeof id === 'number' ? id.toString() : id;
+    if (!leadId) return null;
     
     const updateData: Partial<Lead> = {
       status,
@@ -54,7 +54,7 @@ export class LeadsRepository {
     const [updated] = await db
       .update(leads)
       .set(updateData)
-      .where(eq(leads.id, numericId))
+      .where(eq(leads.id, leadId))
       .returning();
 
     return updated || null;
@@ -64,8 +64,8 @@ export class LeadsRepository {
    * Update lead qualification score
    */
   static async updateQualificationScore(id: string | number, score: number): Promise<Lead | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
+    const leadId = typeof id === 'number' ? id.toString() : id;
+    if (!leadId) return null;
     
     const [updated] = await db
       .update(leads)
@@ -73,7 +73,7 @@ export class LeadsRepository {
         qualificationScore: score,
         updatedAt: new Date()
       })
-      .where(eq(leads.id, numericId))
+      .where(eq(leads.id, leadId))
       .returning();
 
     return updated || null;
@@ -120,9 +120,9 @@ export class LeadsRepository {
       conditions.push(eq(leads.source, filters.source));
     }
     if (filters?.campaignId) {
-      const numericCampaignId = typeof filters.campaignId === 'string' ? parseInt(filters.campaignId, 10) : filters.campaignId;
-      if (!isNaN(numericCampaignId)) {
-        conditions.push(eq(leads.campaignId, numericCampaignId));
+      const campaignId = typeof filters.campaignId === 'number' ? filters.campaignId.toString() : filters.campaignId;
+      if (campaignId) {
+        conditions.push(eq(leads.campaignId, campaignId));
       }
     }
     if (filters?.assignedChannel) {
@@ -170,10 +170,10 @@ export class LeadsRepository {
    * Update lead metadata
    */
   static async updateMetadata(id: string | number, metadata: Record<string, any>): Promise<Lead | null> {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-    if (isNaN(numericId)) return null;
+    const leadId = typeof id === 'number' ? id.toString() : id;
+    if (!leadId) return null;
     
-    const lead = await this.findById(numericId);
+    const lead = await this.findById(leadId);
     if (!lead) return null;
 
     const [updated] = await db
@@ -182,7 +182,7 @@ export class LeadsRepository {
         metadata: { ...lead.metadata, ...metadata },
         updatedAt: new Date()
       })
-      .where(eq(leads.id, numericId))
+      .where(eq(leads.id, leadId))
       .returning();
 
     return updated || null;
