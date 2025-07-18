@@ -10,7 +10,6 @@ import { AgentConfigurationsRepository } from './agent-configurations-repository
 import { ConversationsRepository } from './conversations-repository';
 import { CommunicationsRepository } from './communications-repository';
 import { EmailTemplatesRepository } from './email-templates-repository';
-import { ClientsRepository } from './clients-repository';
 import { AgentDecisionsRepository } from './agent-decisions-repository';
 import { AnalyticsRepository } from './analytics-repository';
 import { AuditLogRepository } from './audit-log-repository';
@@ -23,7 +22,6 @@ export const agentConfigurationsRepository = AgentConfigurationsRepository;
 export const conversationsRepository = ConversationsRepository;
 export const communicationsRepository = CommunicationsRepository;
 export const emailTemplatesRepository = EmailTemplatesRepository;
-export const clientsRepository = ClientsRepository;
 export const agentDecisionsRepository = AgentDecisionsRepository;
 export const analyticsRepository = AnalyticsRepository;
 export const auditLogRepository = AuditLogRepository;
