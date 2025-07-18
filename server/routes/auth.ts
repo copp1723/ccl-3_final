@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UsersRepository, AuditLogRepository, AnalyticsRepository } from '../db';
+import { usersRepository as UsersRepository, auditLogRepository as AuditLogRepository, analyticsRepository as AnalyticsRepository } from '../db';
 import { z } from 'zod';
 import { validate } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';

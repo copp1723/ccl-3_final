@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { nanoid } from 'nanoid';
 import { validateApiKey, formatXmlResponse } from '../middleware/api-auth';
 import { getOverlordAgent } from '../agents';
-import { Lead, LeadsRepository, AgentDecisionsRepository } from '../db';
+import { Lead, leadsRepository as LeadsRepository, agentDecisionsRepository as AgentDecisionsRepository } from '../db';
 import { z } from 'zod';
 import { validate } from '../middleware/validation';
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UsersRepository } from '../db';
+import { usersRepository as UsersRepository } from '../db';
 
 const router = Router();
 

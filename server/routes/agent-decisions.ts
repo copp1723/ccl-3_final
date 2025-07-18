@@ -1,5 +1,4 @@
-import { Router } from 'express';
-import { AgentDecisionsRepository } from '../db';
+import { agentDecisionsRepository as AgentDecisionsRepository } from '../db';
 
 const router = Router();
 

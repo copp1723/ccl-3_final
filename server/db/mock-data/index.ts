@@ -43,14 +43,45 @@ export const mockUsers = {
   login: async (email: string, password: string) => {
     const user = mockUsers.users.find(u => u.email === email);
     if (user && password === 'password123') { // Mock password check
-      return { 
-        user, 
+      return {
+        user,
         accessToken: 'mock-jwt-access-token',
         refreshToken: 'mock-jwt-refresh-token',
         expiresIn: 3600
       };
     }
     return null;
+  },
+  refreshToken: async (refreshToken: string) => {
+    if (refreshToken === 'mock-jwt-refresh-token') {
+      return {
+        accessToken: 'mock-jwt-access-token-refreshed',
+        refreshToken: 'mock-jwt-refresh-token-new',
+        expiresIn: 3600
+      };
+    }
+    throw new Error('Invalid refresh token');
+  },
+  logout: async (refreshToken: string) => {
+    // Mock logout - just return success
+    return true;
+  },
+  logoutAllSessions: async (userId: string) => {
+    // Mock logout all sessions - just return success
+    return true;
+  },
+  toggleActive: async (id: string) => {
+    const user = mockUsers.users.find(u => u.id === id);
+    if (user) {
+      user.active = !user.active;
+      user.updatedAt = new Date();
+      return user;
+    }
+    return null;
+  },
+  cleanupExpiredSessions: async () => {
+    // Mock cleanup - return a random number
+    return Math.floor(Math.random() * 10);
   }
 };
 
@@ -66,6 +97,8 @@ export const mockLeads = {
       phone: '+1234567890',
       status: 'new',
       source: 'website',
+      campaignId: 'campaign-1',
+      qualificationScore: 0,
       createdAt: new Date('2024-01-15'),
       updatedAt: new Date()
     },
@@ -78,6 +111,8 @@ export const mockLeads = {
       phone: '+0987654321',
       status: 'qualified',
       source: 'campaign',
+      campaignId: 'campaign-1',
+      qualificationScore: 75,
       createdAt: new Date('2024-01-20'),
       updatedAt: new Date()
     }
@@ -90,6 +125,9 @@ export const mockLeads = {
     }
     if (filters?.status) {
       results = results.filter(l => l.status === filters.status);
+    }
+    if (filters?.campaignId) {
+      results = results.filter(l => l.campaignId === filters.campaignId);
     }
     return results;
   },
@@ -111,6 +149,26 @@ export const mockLeads = {
       return mockLeads.leads[index];
     }
     return undefined;
+  },
+  updateQualificationScore: async (id: string, score: number) => {
+    const lead = mockLeads.leads.find(l => l.id === id);
+    if (lead) {
+      lead.qualificationScore = score;
+      lead.updatedAt = new Date();
+      return lead;
+    }
+    return undefined;
+  },
+  findWithRelatedData: async (leadId: string) => {
+    const lead = mockLeads.leads.find(l => l.id === leadId);
+    if (!lead) return null;
+    
+    return {
+      ...lead,
+      conversations: mockConversations.findByLeadId(leadId),
+      communications: mockCommunications.findByLeadId(leadId),
+      decisions: mockAgentDecisions.findByLeadId(leadId)
+    };
   },
   getStats: () => ({
     total: mockLeads.leads.length,
@@ -164,6 +222,7 @@ export const mockCampaigns = {
   },
   findById: (id: string) => mockCampaigns.campaigns.find(c => c.id === id),
   findByName: (name: string) => mockCampaigns.campaigns.find(c => c.name === name),
+  findActive: () => mockCampaigns.campaigns.filter(c => c.active),
   create: (data: any) => {
     const campaign = {
       id: uuidv4(),
@@ -189,6 +248,37 @@ export const mockCampaigns = {
       return true;
     }
     return false;
+  },
+  toggleActive: async (id: string) => {
+    const campaign = mockCampaigns.campaigns.find(c => c.id === id);
+    if (campaign) {
+      campaign.active = !campaign.active;
+      campaign.updatedAt = new Date();
+      return campaign;
+    }
+    return null;
+  },
+  getCampaignStats: async (campaignId: string) => ({
+    totalLeads: mockLeads.leads.filter(l => l.campaignId === campaignId).length,
+    qualifiedLeads: mockLeads.leads.filter(l => l.campaignId === campaignId && l.status === 'qualified').length,
+    convertedLeads: mockLeads.leads.filter(l => l.campaignId === campaignId && l.status === 'converted').length,
+    totalCommunications: mockCommunications.communications.filter(c => c.campaignId === campaignId).length
+  }),
+  getDefaultCampaign: async () => mockCampaigns.campaigns[0],
+  clone: async (id: string, name: string) => {
+    const original = mockCampaigns.campaigns.find(c => c.id === id);
+    if (original) {
+      const cloned = {
+        ...original,
+        id: uuidv4(),
+        name,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockCampaigns.campaigns.push(cloned);
+      return cloned;
+    }
+    return undefined;
   }
 };
 
@@ -240,6 +330,8 @@ export const mockAgentConfigurations = {
   },
   findById: (id: string) => mockAgentConfigurations.agents.find(a => a.id === id),
   findByType: (type: string) => mockAgentConfigurations.agents.filter(a => a.type === type),
+  findByName: (name: string) => mockAgentConfigurations.agents.find(a => a.name === name),
+  getActiveByType: (type: string) => mockAgentConfigurations.agents.find(a => a.type === type && a.active),
   create: (data: any) => {
     const agent = {
       id: uuidv4(),
@@ -265,6 +357,62 @@ export const mockAgentConfigurations = {
       return true;
     }
     return false;
+  },
+  toggleActive: async (id: string) => {
+    const agent = mockAgentConfigurations.agents.find(a => a.id === id);
+    if (agent) {
+      agent.active = !agent.active;
+      agent.updatedAt = new Date();
+      return agent;
+    }
+    return null;
+  },
+  clone: async (id: string, name: string) => {
+    const original = mockAgentConfigurations.agents.find(a => a.id === id);
+    if (original) {
+      const cloned = {
+        ...original,
+        id: uuidv4(),
+        name,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockAgentConfigurations.agents.push(cloned);
+      return cloned;
+    }
+    return undefined;
+  },
+  getTopPerforming: async (metric: string, limit: number) =>
+    mockAgentConfigurations.agents.slice(0, limit).map(a => ({
+      ...a,
+      performance: { decisions: Math.floor(Math.random() * 100), accuracy: Math.random() }
+    })),
+  createDefaultAgents: async () => {
+    const defaults = [
+      {
+        id: uuidv4(),
+        clientId: 'ccl-default',
+        name: 'Default Overlord',
+        type: 'overlord',
+        role: 'Lead Qualification',
+        endGoal: 'Qualify leads',
+        instructions: { steps: ['Analyze', 'Qualify', 'Route'] },
+        personality: 'Professional',
+        tone: 'Helpful',
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+    mockAgentConfigurations.agents.push(...defaults);
+    return defaults;
+  },
+  updatePerformance: async (id: string, performance: any) => {
+    const agent = mockAgentConfigurations.agents.find(a => a.id === id);
+    return agent ? { ...agent, performance } : undefined;
+  },
+  generatePromptFromConfig: (agent: any, context: any) => {
+    return `You are ${agent.name}, a ${agent.type} agent. Your role is ${agent.role}. Context: ${JSON.stringify(context)}`;
   }
 };
 
@@ -294,6 +442,8 @@ export const mockConversations = {
   },
   findById: (id: string) => mockConversations.conversations.find(c => c.id === id),
   findByLeadId: (leadId: string) => mockConversations.conversations.filter(c => c.leadId === leadId),
+  findActiveByLeadAndChannel: (leadId: string, channel: string) =>
+    mockConversations.conversations.find(c => c.leadId === leadId && c.channel === channel && c.status === 'active'),
   create: (data: any) => {
     const conversation = {
       id: uuidv4(),
@@ -312,8 +462,61 @@ export const mockConversations = {
     }
     return undefined;
   },
-  getActiveConversationsByChannel: (channel: string) => 
-    mockConversations.conversations.filter(c => c.channel === channel && c.status === 'active')
+  updateStatus: async (id: string, status: string) => {
+    const conversation = mockConversations.conversations.find(c => c.id === id);
+    if (conversation) {
+      conversation.status = status;
+      conversation.updatedAt = new Date();
+      return conversation;
+    }
+    return undefined;
+  },
+  addMessage: async (id: string, message: any) => {
+    const conversation = mockConversations.conversations.find(c => c.id === id);
+    if (conversation) {
+      if (!conversation.messages) conversation.messages = [];
+      conversation.messages.push({ ...message, timestamp: new Date() });
+      conversation.updatedAt = new Date();
+      return conversation;
+    }
+    return undefined;
+  },
+  getActiveConversationsByChannel: () => {
+    const counts: Record<string, number> = {};
+    mockConversations.conversations.forEach(c => {
+      if (c.status === 'active') {
+        counts[c.channel] = (counts[c.channel] || 0) + 1;
+      }
+    });
+    return counts;
+  },
+  updateWithHandoverAnalysis: async (id: string, analysis: any) => {
+    const conversation = mockConversations.conversations.find(c => c.id === id);
+    if (conversation) {
+      conversation.handoverAnalysis = analysis;
+      conversation.updatedAt = new Date();
+      return conversation;
+    }
+    return undefined;
+  },
+  updateCrossChannelContext: async (id: string, context: any) => {
+    const conversation = mockConversations.conversations.find(c => c.id === id);
+    if (conversation) {
+      conversation.crossChannelContext = context;
+      conversation.updatedAt = new Date();
+      return conversation;
+    }
+    return undefined;
+  },
+  updateQualificationScore: async (id: string, score: number) => {
+    const conversation = mockConversations.conversations.find(c => c.id === id);
+    if (conversation) {
+      conversation.qualificationScore = score;
+      conversation.updatedAt = new Date();
+      return conversation;
+    }
+    return undefined;
+  }
 };
 
 // Mock Communications
@@ -344,6 +547,9 @@ export const mockCommunications = {
     return results;
   },
   findById: (id: string) => mockCommunications.communications.find(c => c.id === id),
+  findByLeadId: (leadId: string) => mockCommunications.communications.filter(c => c.leadId === leadId),
+  findByConversationId: (conversationId: string) => mockCommunications.communications.filter(c => c.conversationId === conversationId),
+  findByExternalId: (externalId: string) => mockCommunications.communications.find(c => c.externalId === externalId),
   create: (data: any) => {
     const communication = {
       id: uuidv4(),
@@ -354,11 +560,41 @@ export const mockCommunications = {
     mockCommunications.communications.push(communication);
     return communication;
   },
+  update: (id: string, data: any) => {
+    const index = mockCommunications.communications.findIndex(c => c.id === id);
+    if (index >= 0) {
+      mockCommunications.communications[index] = { ...mockCommunications.communications[index], ...data, updatedAt: new Date() };
+      return mockCommunications.communications[index];
+    }
+    return undefined;
+  },
+  updateStatus: async (id: string, status: string) => {
+    const communication = mockCommunications.communications.find(c => c.id === id);
+    if (communication) {
+      communication.status = status;
+      communication.updatedAt = new Date();
+      return communication;
+    }
+    return undefined;
+  },
   getRecent: async (limit: number = 10) => {
     return mockCommunications.communications
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
       .slice(0, limit);
-  }
+  },
+  getPendingCommunications: async () =>
+    mockCommunications.communications.filter(c => c.status === 'pending'),
+  getStats: async () => ({
+    total: mockCommunications.communications.length,
+    byChannel: mockCommunications.communications.reduce((acc: any, comm) => {
+      acc[comm.channel] = (acc[comm.channel] || 0) + 1;
+      return acc;
+    }, {}),
+    byStatus: mockCommunications.communications.reduce((acc: any, comm) => {
+      acc[comm.status] = (acc[comm.status] || 0) + 1;
+      return acc;
+    }, {})
+  })
 };
 
 // Mock Email Templates
@@ -508,6 +744,15 @@ export const mockEmailTemplates = {
     ];
     mockEmailTemplates.templates.push(...defaults);
     return defaults;
+  },
+  toggleActive: async (id: string) => {
+    const template = mockEmailTemplates.templates.find(t => t.id === id);
+    if (template) {
+      template.active = !template.active;
+      template.updatedAt = new Date();
+      return template;
+    }
+    return undefined;
   }
 };
 
@@ -538,11 +783,31 @@ export const mockClients = {
   list: async () => mockClients.clients,
   findById: (id: string) => mockClients.clients.find(c => c.id === id),
   findByDomain: (domain: string) => mockClients.clients.find(c => c.domain === domain),
+  create: (data: any) => {
+    const client = {
+      id: uuidv4(),
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    mockClients.clients.push(client);
+    return client;
+  },
   update: (id: string, data: any) => {
     const index = mockClients.clients.findIndex(c => c.id === id);
     if (index >= 0) {
       mockClients.clients[index] = { ...mockClients.clients[index], ...data, updatedAt: new Date() };
       return mockClients.clients[index];
+    }
+    return undefined;
+  },
+  updateBranding: async (id: string, branding: any) => {
+    const client = mockClients.clients.find(c => c.id === id);
+    if (client) {
+      if (!client.settings) client.settings = {};
+      client.settings.branding = { ...client.settings.branding, ...branding };
+      client.updatedAt = new Date();
+      return client;
     }
     return undefined;
   }
@@ -554,6 +819,23 @@ export const mockAgentDecisions = {
 
   findAll: (filters?: any) => mockAgentDecisions.decisions,
   findById: (id: string) => mockAgentDecisions.decisions.find((d: any) => d.id === id),
+  findByLeadId: (leadId: string) => mockAgentDecisions.decisions.filter((d: any) => d.leadId === leadId),
+  findByAgentType: (agentType: string) => mockAgentDecisions.decisions.filter((d: any) => d.agentType === agentType),
+  getDecisionTimeline: async (leadId: string) =>
+    mockAgentDecisions.decisions
+      .filter((d: any) => d.leadId === leadId)
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  getDecisionStats: async () => ({
+    total: mockAgentDecisions.decisions.length,
+    byType: mockAgentDecisions.decisions.reduce((acc: any, d: any) => {
+      acc[d.agentType] = (acc[d.agentType] || 0) + 1;
+      return acc;
+    }, {})
+  }),
+  getRecentDecisions: async (limit: number = 20) =>
+    mockAgentDecisions.decisions
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit),
   create: (data: any) => {
     const decision = {
       id: uuidv4(),
@@ -596,6 +878,47 @@ export const mockAnalytics = {
       total: mockAgentConfigurations.agents.length,
       active: mockAgentConfigurations.agents.filter(a => a.active).length
     }
+  }),
+  getDashboardStats: async (startDate?: Date, endDate?: Date) => ({
+    totalLeads: mockLeads.leads.length,
+    newLeads: mockLeads.leads.filter(l => l.status === 'new').length,
+    qualifiedLeads: mockLeads.leads.filter(l => l.status === 'qualified').length,
+    convertedLeads: mockLeads.leads.filter(l => l.status === 'converted').length,
+    totalConversations: mockConversations.conversations.length,
+    activeConversations: mockConversations.conversations.filter(c => c.status === 'active').length,
+    totalCommunications: mockCommunications.communications.length,
+    totalCampaigns: mockCampaigns.campaigns.length,
+    activeCampaigns: mockCampaigns.campaigns.filter(c => c.active).length
+  }),
+  getLeadAnalytics: async (filters: any) => ({
+    total: mockLeads.leads.length,
+    byStatus: mockLeads.countByStatus(),
+    recent: mockLeads.getRecentLeads(10)
+  }),
+  getCampaignPerformance: async (campaignId?: string) => {
+    if (campaignId) {
+      const campaign = mockCampaigns.findById(campaignId);
+      return campaign ? { ...campaign, performance: { leads: 10, conversions: 2 } } : null;
+    }
+    return mockCampaigns.campaigns.map(c => ({ ...c, performance: { leads: 10, conversions: 2 } }));
+  },
+  getAgentPerformance: async (startDate?: Date, endDate?: Date) =>
+    mockAgentConfigurations.agents.map(a => ({ ...a, performance: { decisions: 5, accuracy: 0.8 } })),
+  getCommunicationAnalytics: async (filters: any) => ({
+    total: mockCommunications.communications.length,
+    byChannel: mockCommunications.communications.reduce((acc: any, comm) => {
+      acc[comm.channel] = (acc[comm.channel] || 0) + 1;
+      return acc;
+    }, {})
+  }),
+  getFunnelAnalysis: async (startDate?: Date, endDate?: Date) => ({
+    stages: ['lead', 'qualified', 'converted'],
+    counts: [mockLeads.leads.length, 5, 2]
+  }),
+  getEventMetrics: async (eventType: string, filters: any) => ({
+    eventType,
+    count: Math.floor(Math.random() * 100),
+    data: []
   })
 };
 
@@ -612,5 +935,22 @@ export const mockAuditLog = {
     mockAuditLog.logs.push(log);
     return log;
   },
-  findAll: (filters?: any) => mockAuditLog.logs
+  findAll: (filters?: any) => mockAuditLog.logs,
+  findByUser: (userId: string, options?: { limit?: number }) => {
+    const limit = options?.limit || 100;
+    return mockAuditLog.logs
+      .filter(log => log.userId === userId)
+      .slice(0, limit);
+  },
+  getUserActivity: (userId: string, days: number = 30) => {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return mockAuditLog.logs
+      .filter(log =>
+        log.userId === userId &&
+        new Date(log.createdAt) >= cutoffDate
+      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
 };

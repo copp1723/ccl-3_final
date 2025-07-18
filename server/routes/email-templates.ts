@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { EmailTemplatesRepository } from '../db';
+import { emailTemplatesRepository as EmailTemplatesRepository } from '../db';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 

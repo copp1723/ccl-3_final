@@ -31,6 +31,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/ui/LoginForm';
 import { ViewType } from '@/types';
 import { ClientSwitcher } from '@/components/client-management/ClientSwitcher';
+import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
 
 function AppContent() {
   const [showImport, setShowImport] = useState(false);

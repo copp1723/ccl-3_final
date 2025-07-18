@@ -7,6 +7,7 @@ import { Stats } from '@/types';
 
 export function DashboardView() {
   const { branding } = useClient();
+  const safeBranding = branding || { primaryColor: '#3b82f6', secondaryColor: '#64748b' };
   const { get } = useApiCall();
   const [stats, setStats] = useState<Stats>({
     totalLeads: 0,
@@ -86,7 +87,7 @@ export function DashboardView() {
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Leads</CardTitle>
-            <Users className="h-5 w-5" style={{ color: branding.primaryColor }} />
+            <Users className="h-5 w-5" style={{ color: safeBranding.primaryColor }} />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -105,7 +106,7 @@ export function DashboardView() {
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">New Leads</CardTitle>
-            <Circle className="h-5 w-5" style={{ color: branding.primaryColor }} />
+            <Circle className="h-5 w-5" style={{ color: safeBranding.primaryColor }} />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold" style={{ color: branding.primaryColor }}>{stats.newLeads}</div>

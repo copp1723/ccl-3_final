@@ -4,7 +4,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { emailConversationManager } from '../services/email-conversation-manager';
-import { LeadsRepository } from '../db';
+import { leadsRepository as LeadsRepository } from '../db';
 
 const router = Router();
 

@@ -3,7 +3,7 @@ import multer from 'multer';
 import { parse } from 'csv-parse';
 import { Readable } from 'stream';
 import { nanoid } from 'nanoid';
-import { LeadsRepository, CampaignsRepository, AgentDecisionsRepository, ConversationsRepository, CommunicationsRepository } from '../db';
+import { leadsRepository as LeadsRepository, campaignsRepository as CampaignsRepository, agentDecisionsRepository as AgentDecisionsRepository, conversationsRepository as ConversationsRepository, communicationsRepository as CommunicationsRepository } from '../db';
 import { z } from 'zod';
 import { getOverlordAgent, getAgentByType, getEmailAgent, getSMSAgent, getChatAgent } from '../agents';
 import { validate } from '../middleware/validation';
