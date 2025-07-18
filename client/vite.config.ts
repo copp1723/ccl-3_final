@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 export default defineConfig({
   plugins: [react()],
@@ -11,6 +12,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    fs: {
+      allow: [
+        path.resolve(__dirname, '../shared'),
+        path.resolve(__dirname, './'),
+      ],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
