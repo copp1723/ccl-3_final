@@ -11,26 +11,33 @@ import {
   MessageSquare,
   Palette,
   Target,
-  LogOut
+  LogOut,
+  Building,
+  Copy,
+  BarChart3
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
 import { DashboardView } from '@/views/DashboardView';
 import { LeadsView } from '@/views/LeadsView';
 import { ConversationsView } from '@/views/ConversationsView';
 import { BrandingManagementView } from '@/views/BrandingManagementView';
-import { AgentManagementView } from '@/views/AgentManagementView';
-import { CampaignsView } from './views/CampaignsView';
-import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
+import { AgentsView } from '@/views/AgentsView';
+import { CampaignsView } from '@/views/CampaignsView';
+import { ClientManagementView } from '@/views/ClientManagementView';
+import { TemplateLibraryView } from '@/views/TemplateLibraryView';
+import { ReportingDashboardView } from '@/views/ReportingDashboardView';
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/ui/LoginForm';
 import { ViewType } from '@/types';
+import { ClientSwitcher } from '@/components/client-management/ClientSwitcher';
 
 function AppContent() {
   const [showImport, setShowImport] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [wsConnected] = useState(true);
-  const { branding } = useClient();
+  const { activeClient } = useClient();
+  const branding = activeClient?.brand_config || DEFAULT_BRANDING;
   const { isAuthenticated, isLoading, user, logout } = useAuth();
 
   if (isLoading) {
@@ -101,6 +108,7 @@ function AppContent() {
               <Badge variant={wsConnected ? 'default' : 'destructive'} className="ml-4">
                 {wsConnected ? '🟢 Connected' : '🔴 Disconnected'}
               </Badge>
+              <ClientSwitcher />
             </div>
             <div className="flex items-center space-x-3">
               <span className="text-sm text-gray-600">
@@ -125,10 +133,12 @@ function AppContent() {
           <nav className="flex space-x-8">
             {[
               { key: 'dashboard', label: 'Dashboard', icon: Activity },
+              { key: 'clients', label: 'Clients', icon: Building },
               { key: 'leads', label: 'Leads', icon: Users },
-              { key: 'agent-management', label: 'Agent Management', icon: Brain },
+              { key: 'agents', label: 'Agents', icon: Brain },
               { key: 'campaigns', label: 'Campaigns', icon: Target },
-              { key: 'campaign-intelligence', label: 'Campaign Intelligence', icon: Brain },
+              { key: 'templates', label: 'Templates', icon: Copy },
+              { key: 'reports', label: 'Reports', icon: BarChart3 },
               { key: 'conversations', label: 'Conversations', icon: MessageSquare },
               { key: 'branding', label: 'Branding', icon: Palette }
             ].map(({ key, label, icon: Icon }) => (
@@ -155,10 +165,12 @@ function AppContent() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView === 'dashboard' && <DashboardView />}
+        {activeView === 'clients' && <ClientManagementView />}
         {activeView === 'leads' && <LeadsView />}
-        {activeView === 'agent-management' && <AgentManagementView />}
+        {activeView === 'agents' && <AgentsView />}
         {activeView === 'campaigns' && <CampaignsView />}
-        {activeView === 'campaign-intelligence' && <CampaignIntelligenceView />}
+        {activeView === 'templates' && <TemplateLibraryView />}
+        {activeView === 'reports' && <ReportingDashboardView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>

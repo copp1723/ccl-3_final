@@ -1,11 +1,93 @@
+// Lead Types
 export interface Lead {
   id: string;
   name: string;
   email: string;
   phone?: string;
   source?: string;
-  status: string;
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'dead';
   score: number;
+  campaignId?: string;
+  boberdooLeadId?: string;
+  vehicleType?: string;
+  createdAt: string;
+  updatedAt?: string;
+  lastContactedAt?: string;
+  conversationCount?: number;
+}
+
+// Campaign Types
+export interface CampaignSettings {
+  goals: string[];
+  qualificationCriteria: {
+    minScore: number;
+    requiredFields: string[];
+    requiredGoals: string[];
+  };
+  handoverCriteria: {
+    qualificationScore: number;
+    conversationLength: number;
+    timeThreshold: number;
+    keywordTriggers: string[];
+    goalCompletionRequired: string[];
+    handoverRecipients: {
+      name: string;
+      email: string;
+      role: string;
+      priority: 'high' | 'medium' | 'low';
+    }[];
+  };
+  channelPreferences: {
+    primary: 'email' | 'sms' | 'chat';
+    fallback: Array<'email' | 'sms' | 'chat'>;
+  };
+  touchSequence: Array<{
+    templateId: string;
+    delayDays: number;
+    delayHours: number;
+    conditions?: any;
+  }>;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description?: string;
+  status?: 'active' | 'paused' | 'completed';
+  settings?: CampaignSettings;
+  agentId?: string;
+  assignedAgents?: string[];
+  createdAt: string;
+  updatedAt?: string;
+  active?: boolean;
+  stats?: {
+    totalLeads: number;
+    activeLeads: number;
+    convertedLeads: number;
+  };
+}
+
+// Client/Branding Types
+export interface CCLBrandingConfig {
+  primaryColor: string;
+  secondaryColor: string;
+  logo?: string;
+  favicon?: string;
+  companyName: string;
+  emailTemplate?: string;
+  smsTemplate?: string;
+  chatGreeting?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+  website?: string;
+  defaultEmailSignature?: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  industry?: string;
+  brand_config?: CCLBrandingConfig;
   createdAt: string;
 }
 
@@ -70,4 +152,13 @@ export interface Stats {
   conversionRate: number;
 }
 
-export type ViewType = 'dashboard' | 'leads' | 'agent-management' | 'conversations' | 'branding' | 'campaigns' | 'campaign-intelligence';
+export type ViewType =
+  | 'dashboard'
+  | 'clients'
+  | 'leads'
+  | 'agents'
+  | 'campaigns'
+  | 'templates'
+  | 'reports'
+  | 'conversations'
+  | 'branding';

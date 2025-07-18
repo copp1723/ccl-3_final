@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, Settings, BarChart3, Zap, Users, Target, Bot, Cog, FileText, Mail } from 'lucide-react';
-import { AgentManagementDashboard } from '@/components/shared';
+
 import { MultiAgentCampaignEditor } from '@/components/email-agent/MultiAgentCampaignEditor';
 import { TemplateEditor } from '@/components/email-agent/TemplateEditor';
 import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
@@ -18,6 +18,10 @@ interface CampaignIntelligenceHubProps {
 export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelligenceHubProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const { agents } = useAgents();
+  
+  // Ensure arrays are valid
+  const safeCampaigns = Array.isArray(campaigns) ? campaigns : [];
+  const safeAgents = Array.isArray(agents) ? agents : [];
 
   return (
     <div className="space-y-6">
@@ -25,9 +29,9 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Brain className="h-6 w-6" />
-            Agent Management Hub
+            Campaign Intelligence Hub
           </h2>
-          <p className="text-gray-600">AI-powered agent management and campaign orchestration</p>
+          <p className="text-gray-600">AI-powered campaign insights and optimization</p>
         </div>
         <Button onClick={() => window.location.href = '/campaigns/new'}>
           <Zap className="h-4 w-4 mr-2" />
@@ -36,9 +40,8 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -52,7 +55,7 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{agents.length}</div>
+                <div className="text-2xl font-bold">{safeAgents.length}</div>
                 <p className="text-xs text-gray-500">AI agents configured</p>
               </CardContent>
             </Card>
@@ -64,7 +67,7 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{campaigns.filter(c => c.status === 'active').length}</div>
+                <div className="text-2xl font-bold">{safeCampaigns.filter(c => c.status === 'active').length}</div>
                 <p className="text-xs text-gray-500">Running intelligently</p>
               </CardContent>
             </Card>
@@ -76,7 +79,7 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{campaigns.filter(c => c.assignedAgents?.length > 1).length}</div>
+                <div className="text-2xl font-bold">{safeCampaigns.filter(c => c.assignedAgents && Array.isArray(c.assignedAgents) && c.assignedAgents.length > 1).length}</div>
                 <p className="text-xs text-gray-500">Cross-channel coordination</p>
               </CardContent>
             </Card>
@@ -88,24 +91,12 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{agents.filter(a => a.active).length}</div>
+                <div className="text-2xl font-bold">{safeAgents.filter(a => a.active).length}</div>
                 <p className="text-xs text-gray-500">Currently running</p>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
-
-        {/* Agents Tab - Individual Agent Management */}
-        <TabsContent value="agents">
-          <AgentManagementDashboard
-            showCreateButton={true}
-            allowEdit={true}
-            allowDelete={true}
-            compact={false}
-            showAgentDetails={true}
-          />
-        </TabsContent>
-
 
 
         {/* Analytics Tab - Campaign Performance */}
@@ -117,7 +108,7 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
                 <p className="text-gray-600">Monitor performance across all campaigns and agents</p>
               </div>
             </div>
-            <CampaignAnalytics campaigns={campaigns} agents={agents} />
+            <CampaignAnalytics campaigns={safeCampaigns} agents={safeAgents} />
           </div>
         </TabsContent>
 

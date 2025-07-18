@@ -131,6 +131,29 @@ router.delete('/execution/:executionId', async (req, res) => {
 });
 
 /**
+ * Get all schedules
+ */
+router.get('/schedules', async (req, res) => {
+  try {
+    const executions = campaignExecutionEngine.getAllExecutions();
+    
+    res.json({
+      success: true,
+      data: executions
+    });
+    
+  } catch (error) {
+    logger.error('Get schedules API error', {
+      error: (error as Error).message
+    });
+    res.status(500).json({
+      error: 'Failed to get schedules',
+      details: (error as Error).message
+    });
+  }
+});
+
+/**
  * Check if a lead has replied
  */
 router.get('/lead/:leadId/replied', async (req, res) => {

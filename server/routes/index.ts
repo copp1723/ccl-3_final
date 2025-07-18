@@ -6,6 +6,7 @@ import { clientValidation } from '../middleware/client-validation';
 // Route imports - all original routes, no fallbacks needed
 import authRoutes from './auth';
 import boberdooRoutes from './boberdoo';
+import clientsRoutes from './clients';
 import campaignsRoutes from './campaigns';
 import communicationsRoutes from './communications';
 import agentDecisionsRoutes from './agent-decisions';
@@ -50,6 +51,7 @@ const routes: RouteConfig[] = [
   
   // Protected API routes with rate limiting
   { path: '/api/boberdoo', router: boberdooRoutes, middleware: [apiRateLimit] },
+  { path: '/api/clients', router: clientsRoutes, middleware: [apiRateLimit] },
   { path: '/api/campaigns', router: campaignsRoutes, middleware: [apiRateLimit] },
   { path: '/api/communications', router: communicationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-decisions', router: agentDecisionsRoutes, middleware: [apiRateLimit] },

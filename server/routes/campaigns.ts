@@ -105,6 +105,28 @@ const updateCampaignSchema = z.object({
   selectedLeads: z.array(z.string()).optional()
 });
 
+// Get available leads (not associated with any campaign) - must be before /:id routes
+router.get('/available-leads', async (req, res) => {
+  try {
+    const { LeadsRepository } = await import('../db');
+    
+    // Get leads without campaign association
+    const availableLeads = await db
+      .select()
+      .from(leads)
+      .where(isNull(leads.campaignId))
+      .orderBy(desc(leads.createdAt));
+    
+    res.json({
+      leads: availableLeads,
+      total: availableLeads.length
+    });
+  } catch (error) {
+    console.error('Error fetching available leads:', error);
+    res.status(500).json({ error: 'Failed to fetch available leads' });
+  }
+});
+
 // Get all campaigns
 router.get('/', async (req, res) => {
   try {
@@ -555,27 +577,6 @@ router.get('/:id/leads', async (req, res) => {
   }
 });
 
-// Get available leads (not associated with any campaign)
-router.get('/available-leads', async (req, res) => {
-  try {
-    const { LeadsRepository } = await import('../db');
-    
-    // Get leads without campaign association
-    const availableLeads = await db
-      .select()
-      .from(leads)
-      .where(isNull(leads.campaignId))
-      .orderBy(desc(leads.createdAt));
-    
-    res.json({
-      leads: availableLeads,
-      total: availableLeads.length
-    });
-  } catch (error) {
-    console.error('Error fetching available leads:', error);
-    res.status(500).json({ error: 'Failed to fetch available leads' });
-  }
-});
 
 // Update campaign handover criteria
 router.put('/:id/handover-criteria', async (req, res) => {

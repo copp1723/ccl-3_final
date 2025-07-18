@@ -45,13 +45,20 @@ export class EmailTemplatesRepository {
   }
 
   /**
-   * Find template by name
+   * Find template by name, scoped to a client
    */
-  static async findByName(name: string): Promise<EmailTemplate | null> {
+  static async findByName(name: string, clientId: string | null): Promise<EmailTemplate | null> {
+    const conditions = [eq(emailTemplates.name, name)];
+    if (clientId) {
+      conditions.push(eq(emailTemplates.clientId, clientId));
+    } else {
+      conditions.push(sql`${emailTemplates.clientId} IS NULL`);
+    }
+
     const [template] = await db
       .select()
       .from(emailTemplates)
-      .where(eq(emailTemplates.name, name))
+      .where(and(...conditions))
       .limit(1);
 
     return template || null;
@@ -105,6 +112,7 @@ export class EmailTemplatesRepository {
    * Get all templates
    */
   static async findAll(filters?: {
+    clientId?: string | null;
     category?: string;
     campaignId?: string;
     agentId?: string;
@@ -112,6 +120,12 @@ export class EmailTemplatesRepository {
     search?: string;
   }): Promise<EmailTemplate[]> {
     const conditions = [];
+
+    if (filters?.clientId) {
+      conditions.push(eq(emailTemplates.clientId, filters.clientId));
+    } else if (filters?.clientId === null) {
+      conditions.push(sql`${emailTemplates.clientId} IS NULL`);
+    }
 
     if (filters?.category) {
       conditions.push(eq(emailTemplates.category, filters.category));
@@ -256,6 +270,7 @@ export class EmailTemplatesRepository {
       variables: original.variables,
       campaignId: original.campaignId,
       agentId: original.agentId,
+      clientId: original.clientId,
       active: true,
       performance: { sent: 0, opened: 0, clicked: 0, replied: 0 },
       metadata: {
