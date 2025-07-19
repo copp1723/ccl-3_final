@@ -190,13 +190,13 @@ interface UnifiedAgentConfig {
 
 ## 🧪 Testing
 
-Use the demo component to test the complete system:
+Use the main dashboard component to test the complete system:
 
 ```tsx
-import { AgentManagementDemo } from '@/components/shared/AgentManagementDemo';
+import { AgentManagementDashboard } from '@/components/shared/AgentManagementDashboard';
 
 // Renders a complete agent management interface for testing
-<AgentManagementDemo />
+<AgentManagementDashboard />
 ```
 
 ## 🚀 Next Steps (Half 2)

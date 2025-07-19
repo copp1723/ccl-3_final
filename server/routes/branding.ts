@@ -112,7 +112,26 @@ router.get('/:clientId', async (req: ClientRequest, res) => {
     }
 
     // Try to get from database
-    const client = await clientsRepository.findById(clientId);
+    let client = null;
+    try {
+      client = await clientsRepository.findById(clientId);
+    } catch (dbError) {
+      console.warn('Database error getting client, using default branding:', dbError);
+      // Fallback to default branding when database fails
+      const fallbackBranding = {
+        id: clientId,
+        name: 'Default Client',
+        domain: '',
+        branding: DEFAULT_BRANDING,
+        isStatic: false
+      };
+      
+      return res.json({
+        success: true,
+        branding: fallbackBranding
+      });
+    }
+    
     if (!client) {
       return res.status(404).json({
         success: false,

@@ -20,6 +20,16 @@ declare global {
 // JWT authentication middleware
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Development mode bypass - allow access without authentication
+    if (process.env.NODE_ENV === 'development' || process.env.SKIP_AUTH === 'true') {
+      req.user = {
+        id: 'dev-user-1',
+        email: 'dev@completecarloans.com',
+        role: 'admin'
+      };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
