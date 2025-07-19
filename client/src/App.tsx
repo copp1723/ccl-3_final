@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +14,9 @@ import {
   LogOut,
   Building,
   Copy,
-  BarChart3
+  BarChart3,
+  ChevronDown,
+  MessageCircle
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
 import { DashboardView } from '@/views/DashboardView';
@@ -37,9 +39,22 @@ function AppContent() {
   const [showImport, setShowImport] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [wsConnected] = useState(true);
+  const [showCommunicationDropdown, setShowCommunicationDropdown] = useState(false);
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const { activeClient } = useClient();
   const branding = activeClient?.brand_config || DEFAULT_BRANDING;
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowCommunicationDropdown(false);
+      setShowSettingsDropdown(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   if (isLoading) {
     return (
@@ -132,33 +147,168 @@ function AppContent() {
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-6">
           <nav className="flex space-x-8">
-            {[
-              { key: 'dashboard', label: 'Dashboard', icon: Activity },
-              { key: 'leads', label: 'Leads', icon: Users },
-              { key: 'agents', label: 'Agents', icon: Brain },
-              { key: 'campaigns', label: 'Campaigns', icon: Target },
-              { key: 'conversations', label: 'Conversations', icon: MessageSquare },
-              { key: 'templates', label: 'Templates', icon: Copy },
-              { key: 'clients', label: 'Clients', icon: Building },
-              { key: 'branding', label: 'Branding', icon: Palette }
-            ].map(({ key, label, icon: Icon }) => (
+            {/* Dashboard */}
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
+                activeView === 'dashboard'
+                  ? 'border-current'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              style={activeView === 'dashboard' ? {
+                color: branding.primaryColor,
+                borderColor: branding.primaryColor
+              } : {}}
+            >
+              <Activity className="h-4 w-4" />
+              <span className="font-medium">Dashboard</span>
+            </button>
+
+            {/* Communication Hub */}
+            <div className="relative">
               <button
-                key={key}
-                onClick={() => setActiveView(key as ViewType)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCommunicationDropdown(!showCommunicationDropdown);
+                }}
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
-                  activeView === key
+                  ['leads', 'conversations', 'templates'].includes(activeView)
                     ? 'border-current'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
-                style={activeView === key ? {
+                style={['leads', 'conversations', 'templates'].includes(activeView) ? {
                   color: branding.primaryColor,
                   borderColor: branding.primaryColor
                 } : {}}
               >
-                <Icon className="h-4 w-4" />
-                <span className="font-medium">{label}</span>
+                <MessageCircle className="h-4 w-4" />
+                <span className="font-medium">Communication Hub</span>
+                <ChevronDown className="h-4 w-4" />
               </button>
-            ))}
+              
+              {showCommunicationDropdown && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
+                >
+                  <button
+                    onClick={() => {
+                      setActiveView('leads');
+                      setShowCommunicationDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Leads</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveView('conversations');
+                      setShowCommunicationDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Conversations</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveView('templates');
+                      setShowCommunicationDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span>Templates</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Agents */}
+            <button
+              onClick={() => setActiveView('agents')}
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
+                activeView === 'agents'
+                  ? 'border-current'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              style={activeView === 'agents' ? {
+                color: branding.primaryColor,
+                borderColor: branding.primaryColor
+              } : {}}
+            >
+              <Brain className="h-4 w-4" />
+              <span className="font-medium">Agents</span>
+            </button>
+
+            {/* Campaigns */}
+            <button
+              onClick={() => setActiveView('campaigns')}
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
+                activeView === 'campaigns'
+                  ? 'border-current'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              style={activeView === 'campaigns' ? {
+                color: branding.primaryColor,
+                borderColor: branding.primaryColor
+              } : {}}
+            >
+              <Target className="h-4 w-4" />
+              <span className="font-medium">Campaigns</span>
+            </button>
+
+            {/* Settings */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSettingsDropdown(!showSettingsDropdown);
+                }}
+                className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
+                  ['clients', 'branding'].includes(activeView)
+                    ? 'border-current'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+                style={['clients', 'branding'].includes(activeView) ? {
+                  color: branding.primaryColor,
+                  borderColor: branding.primaryColor
+                } : {}}
+              >
+                <Settings className="h-4 w-4" />
+                <span className="font-medium">Settings</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              
+              {showSettingsDropdown && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
+                >
+                  <button
+                    onClick={() => {
+                      setActiveView('clients');
+                      setShowSettingsDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <Building className="h-4 w-4" />
+                    <span>Clients</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveView('branding');
+                      setShowSettingsDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <Palette className="h-4 w-4" />
+                    <span>Branding</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
       </div>
