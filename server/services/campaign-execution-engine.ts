@@ -78,8 +78,15 @@ class CampaignExecutionEngine {
     this.isRunning = true;
     logger.info('Starting Campaign Execution Engine');
 
-    // Start monitoring for email replies
-    await emailMonitor.start();
+    // Start monitoring for email replies (optional - gracefully handle failures)
+    try {
+      await emailMonitor.start();
+      logger.info('✅ Email monitoring started for campaign execution');
+    } catch (error) {
+      logger.warn('Email monitoring not available for campaign execution - continuing without email monitoring', {
+        error: (error as Error).message
+      });
+    }
 
     // Start processing scheduled executions every minute
     this.executionInterval = setInterval(async () => {

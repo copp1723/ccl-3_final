@@ -10,26 +10,41 @@ export class StartupService {
   static async initialize(): Promise<void> {
     logger.info('Starting CCL-3 SWARM services initialization...');
 
+    const serviceResults = {
+      campaignEngine: false,
+      emailReplyDetector: false,
+      queueManager: true // Always available as singleton
+    };
+
+    // Start campaign execution engine
     try {
-      // Start campaign execution engine
       await campaignExecutionEngine.start();
+      serviceResults.campaignEngine = true;
       logger.info('✅ Campaign execution engine started');
-
-      // Start email reply detector
-      await emailReplyDetector.start();
-      logger.info('✅ Email reply detector started');
-
-      // Queue manager is already initialized as singleton
-      logger.info('✅ Queue manager initialized');
-
-      logger.info('🚀 All CCL-3 SWARM services initialized successfully');
-
     } catch (error) {
-      logger.error('❌ Failed to initialize CCL-3 SWARM services', {
+      logger.warn('⚠️ Campaign execution engine failed to start - continuing without it', {
         error: (error as Error).message
       });
-      throw error;
     }
+
+    // Start email reply detector
+    try {
+      await emailReplyDetector.start();
+      serviceResults.emailReplyDetector = true;
+      logger.info('✅ Email reply detector started');
+    } catch (error) {
+      logger.warn('⚠️ Email reply detector failed to start - continuing without it', {
+        error: (error as Error).message
+      });
+    }
+
+    // Queue manager is already initialized as singleton
+    logger.info('✅ Queue manager initialized');
+
+    const successfulServices = Object.values(serviceResults).filter(Boolean).length;
+    const totalServices = Object.keys(serviceResults).length;
+    
+    logger.info(`🚀 CCL-3 SWARM services initialization completed: ${successfulServices}/${totalServices} services started`, serviceResults);
   }
 
   /**

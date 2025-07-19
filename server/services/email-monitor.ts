@@ -49,12 +49,18 @@ class EmailMonitor {
   }
 
   async start() {
+    // Check if IMAP configuration is available
+    if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASSWORD) {
+      logger.info('Email monitor not started - IMAP configuration missing (IMAP_HOST, IMAP_USER, IMAP_PASSWORD)');
+      return;
+    }
+
     const config = {
       imap: {
-        user: process.env.IMAP_USER!,
-        password: process.env.IMAP_PASSWORD!,
-        host: process.env.IMAP_HOST!,
-        port: Number(process.env.IMAP_PORT!),
+        user: process.env.IMAP_USER,
+        password: process.env.IMAP_PASSWORD,
+        host: process.env.IMAP_HOST,
+        port: Number(process.env.IMAP_PORT) || 993,
         tls: true,
         authTimeout: 3000,
         connTimeout: 10000,

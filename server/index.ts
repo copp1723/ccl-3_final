@@ -232,7 +232,8 @@ server.listen(config.port, async () => {
     logger.error('Failed to initialize deployment services', error as Error);
   }
   
-  enhancedEmailMonitor.start().catch(error => logger.error('Enhanced email monitor failed to start', error as Error));
+  // Start enhanced email monitor (optional service)
+  enhancedEmailMonitor.start().catch(error => logger.warn('Enhanced email monitor not available - continuing without it', { error: (error as Error).message }));
   
   // Start email monitor if configured
   if (process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
