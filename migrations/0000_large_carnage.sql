@@ -1,6 +1,33 @@
-CREATE TYPE "public"."agent_type" AS ENUM('overlord', 'email', 'sms', 'chat');--> statement-breakpoint
-CREATE TYPE "public"."channel" AS ENUM('email', 'sms', 'chat');--> statement-breakpoint
-CREATE TYPE "public"."lead_status" AS ENUM('new', 'contacted', 'qualified', 'sent_to_boberdoo', 'rejected', 'archived');--> statement-breakpoint
+-- Create agent_type enum if it doesn't exist
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'agent_type') THEN
+    CREATE TYPE "public"."agent_type" AS ENUM('overlord', 'email', 'sms', 'chat');
+    RAISE NOTICE 'Created agent_type enum';
+  ELSE
+    RAISE NOTICE 'agent_type enum already exists';
+  END IF;
+END $;--> statement-breakpoint
+-- Create channel enum if it doesn't exist
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channel') THEN
+    CREATE TYPE "public"."channel" AS ENUM('email', 'sms', 'chat');
+    RAISE NOTICE 'Created channel enum';
+  ELSE
+    RAISE NOTICE 'channel enum already exists';
+  END IF;
+END $;--> statement-breakpoint
+-- Create lead_status enum if it doesn't exist
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'lead_status') THEN
+    CREATE TYPE "public"."lead_status" AS ENUM('new', 'contacted', 'qualified', 'sent_to_boberdoo', 'rejected', 'archived');
+    RAISE NOTICE 'Created lead_status enum';
+  ELSE
+    RAISE NOTICE 'lead_status enum already exists';
+  END IF;
+END $;--> statement-breakpoint
 CREATE TABLE "agent_decisions" (
 	"id" text PRIMARY KEY NOT NULL,
 	"lead_id" text NOT NULL,

@@ -58,6 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log('[LOGIN DEBUG] Sending login request:', { username, password });
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -66,7 +67,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      console.log('[LOGIN DEBUG] Response status:', response.status);
+      let data;
+      try {
+        data = await response.json();
+        console.log('[LOGIN DEBUG] Response body:', data);
+      } catch (jsonErr) {
+        console.error('[LOGIN DEBUG] Failed to parse JSON:', jsonErr);
+        data = {};
+      }
 
       if (response.ok && data.success) {
         setToken(data.accessToken);
