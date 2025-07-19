@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { agentDecisionsRepository as AgentDecisionsRepository } from '../db';
 
 const router = Router();

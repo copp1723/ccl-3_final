@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { analyticsRepository as AnalyticsRepository } from '../db';
 import { authenticate, authorize } from '../middleware/auth';
 import { z } from 'zod';
