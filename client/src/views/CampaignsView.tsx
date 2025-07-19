@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Target, Plus, BarChart3, Brain, Play } from 'lucide-react';
 import { CampaignIntelligenceHub } from '@/components/campaign-intelligence';
 import { CampaignManager } from '@/components/email-agent/CampaignManager';
-import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
+import { CampaignAnalytics } from '@/components/shared/UnifiedAnalytics';
 import { useAgents } from '@/hooks/useAgents';
 import { Campaign } from '@/types';
 

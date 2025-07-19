@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, Settings, BarChart3, Zap, Users, Target, Bot, Cog, FileText, Mail } from 'lucide-react';
 
-import { MultiAgentCampaignEditor } from '@/components/email-agent/MultiAgentCampaignEditor';
+
 import { TemplateEditor } from '@/components/email-agent/TemplateEditor';
-import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
+import { CampaignAnalytics } from '@/components/shared/UnifiedAnalytics';
 import { useAgents } from '@/hooks/useAgents';
 
 interface CampaignIntelligenceHubProps {

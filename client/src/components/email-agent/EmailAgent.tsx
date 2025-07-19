@@ -15,10 +15,10 @@ import {
   Trash2,
   Users
 } from 'lucide-react';
-import { AgentConfigurator } from './AgentConfigurator';
+import { UnifiedAgentConfigurator } from '@/components/shared/UnifiedAgentConfigurator';
 import { CampaignManager } from './CampaignManager';
 import { TemplateEditor } from './TemplateEditor';
-import { CampaignAnalytics } from './CampaignAnalytics';
+import { CampaignAnalytics } from '@/components/shared/UnifiedAnalytics';
 import { LeadView } from './LeadView';
 import { UnifiedAgentConfig } from '@/types';
 
@@ -355,7 +355,7 @@ export function EmailAgent() {
         {/* Agents Tab */}
         <TabsContent value="agents" className="space-y-6">
           {showAgentForm ? (
-            <AgentConfigurator
+            <UnifiedAgentConfigurator
               agent={selectedAgent}
               onSave={handleAgentSave}
               onCancel={() => {

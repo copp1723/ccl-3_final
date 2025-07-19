@@ -25,7 +25,7 @@ import { AgentsView } from '@/views/AgentsView';
 import { CampaignsView } from '@/views/CampaignsView';
 import { ClientManagementView } from '@/views/ClientManagementView';
 import { TemplateLibraryView } from '@/views/TemplateLibraryView';
-import { ReportingDashboardView } from '@/views/ReportingDashboardView';
+
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/ui/LoginForm';
@@ -171,7 +171,7 @@ function AppContent() {
         {activeView === 'agents' && <AgentsView />}
         {activeView === 'campaigns' && <CampaignsView />}
         {activeView === 'templates' && <TemplateLibraryView />}
-        {activeView === 'reports' && <ReportingDashboardView />}
+        {activeView === 'reports' && <DashboardView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>

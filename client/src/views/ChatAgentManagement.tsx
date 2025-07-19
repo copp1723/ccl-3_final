@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChatAgentConfigurator } from '@/components/chat-agent/ChatAgentConfigurator';
+import { UnifiedAgentConfigurator } from '@/components/shared/UnifiedAgentConfigurator';
 import { Plus, Settings, BarChart3, Power, PowerOff } from 'lucide-react';
 
 interface ChatAgent {
@@ -89,8 +89,8 @@ export function ChatAgentManagement() {
   if (showConfigurator) {
     return (
       <div className="container mx-auto p-6">
-        <ChatAgentConfigurator
-          agentId={editingAgent || undefined}
+        <UnifiedAgentConfigurator
+          agent={editingAgent ? agents.find(a => a.id === editingAgent) as any : null}
           onSave={handleSaveAgent}
           onCancel={() => {
             setShowConfigurator(false);

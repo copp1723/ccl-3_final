@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnifiedAgentConfig } from '@/types';
 import { CampaignManager } from '@/components/email-agent/CampaignManager';
 import { TemplateEditor } from '@/components/email-agent/TemplateEditor';
-import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
+import { CampaignAnalytics } from '@/components/shared/UnifiedAnalytics';
 import { Mail, FileText, BarChart3, Target, Settings } from 'lucide-react';
 
 interface EmailAgentModuleProps {
