@@ -134,13 +134,12 @@ function AppContent() {
           <nav className="flex space-x-8">
             {[
               { key: 'dashboard', label: 'Dashboard', icon: Activity },
-              { key: 'clients', label: 'Clients', icon: Building },
               { key: 'leads', label: 'Leads', icon: Users },
               { key: 'agents', label: 'Agents', icon: Brain },
               { key: 'campaigns', label: 'Campaigns', icon: Target },
-              { key: 'templates', label: 'Templates', icon: Copy },
-              { key: 'reports', label: 'Reports', icon: BarChart3 },
               { key: 'conversations', label: 'Conversations', icon: MessageSquare },
+              { key: 'templates', label: 'Templates', icon: Copy },
+              { key: 'clients', label: 'Clients', icon: Building },
               { key: 'branding', label: 'Branding', icon: Palette }
             ].map(({ key, label, icon: Icon }) => (
               <button
@@ -171,7 +170,7 @@ function AppContent() {
         {activeView === 'agents' && <AgentsView />}
         {activeView === 'campaigns' && <CampaignsView />}
         {activeView === 'templates' && <TemplateLibraryView />}
-        {activeView === 'reports' && <DashboardView />}
+
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>

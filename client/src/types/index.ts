@@ -190,6 +190,5 @@ export type ViewType =
   | 'agents'
   | 'campaigns'
   | 'templates'
-  | 'reports'
   | 'conversations'
   | 'branding';
