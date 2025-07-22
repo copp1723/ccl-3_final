@@ -27,14 +27,14 @@ export class ChatAgent extends BaseAgent {
     const { lead, campaign } = context;
     
     // Store incoming chat message in supermemory
-    await this.storeMemory(`Chat from ${lead.name || 'Visitor'}: ${message}`, {
+    await this.storeMemory(`Chat from ${lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'Visitor'}: ${message}`, {
       leadId: lead.id,
       type: 'chat_received',
       source: lead.source
     });
 
     // Search for previous chat interactions and patterns
-    const memories = await this.searchMemory(`chat ${lead.name || 'visitor'} ${message.substring(0, 20)}`);
+    const memories = await this.searchMemory(`chat ${lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'visitor'} ${message.substring(0, 20)}`);
     const chatHistory = memories.filter(m => m.metadata?.type?.includes('chat')).slice(0, 3);
     
     // Get active chat agent configuration
@@ -52,7 +52,7 @@ export class ChatAgent extends BaseAgent {
       });
       
       prompt = `Generate a chat response:
-Visitor Name: ${lead.name || 'Visitor'}
+Visitor Name: ${lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'Visitor'}
 Their Message: "${message}"
 
 Context:
@@ -74,7 +74,7 @@ Respond quickly with clear, conversational messages.
 Previous chat context: ${chatHistory.map(h => h.content).join('\n')}`;
 
       prompt = `Generate a chat response:
-Visitor Name: ${lead.name || 'Visitor'}
+Visitor Name: ${lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'Visitor'}
 Their Message: "${message}"
 
 Context:
@@ -95,7 +95,7 @@ Create a helpful chat response that:
       systemPrompt,
       {
         leadId: lead.id,
-        leadName: lead.name || 'Visitor',
+        leadName: lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'Visitor',
         type: 'chat_sent',
         metadata: { campaign: campaign?.name }
       },
@@ -129,7 +129,7 @@ Be welcoming and immediately helpful.
 Successful greeting patterns: ${successfulGreetings}`;
 
     const prompt = `Create an initial chat greeting for:
-Visitor Name: ${lead.name || 'Visitor'}
+Visitor Name: ${lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'Visitor'}
 Focus: ${focus}
 
 The message should:
@@ -144,7 +144,7 @@ The message should:
       systemPrompt,
       {
         leadId: lead.id,
-        leadName: lead.name || 'Visitor',
+        leadName: lead.firstName || lead.lastName ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : 'Visitor',
         type: 'initial_chat',
         metadata: { focus }
       }

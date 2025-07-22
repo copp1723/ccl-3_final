@@ -194,7 +194,7 @@ router.get('/dossier/email-preview/:leadId', async (req: Request, res: Response)
     // Generate HTML email content
     const { HandoverEmailService } = await import('../services/handover-email-service');
     const emailHtml = HandoverEmailService.generateEmailHtml(
-      lead.name,
+      `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
       dossier,
       mostRecentConversation.id
     );

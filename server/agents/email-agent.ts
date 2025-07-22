@@ -33,14 +33,14 @@ Looking forward to hearing from you!`;
     const { lead, campaign } = context;
     
     // Store incoming message in supermemory
-    await this.storeMemory(`Email from ${lead.name}: ${message}`, {
+    await this.storeMemory(`Email from ${lead.firstName || ''} ${lead.lastName || ''}: ${message}`, {
       leadId: lead.id,
       type: 'email_received',
       source: lead.source
     });
 
     // Search for previous email interactions
-    const memories = await this.searchMemory(`email ${lead.name} ${lead.id}`);
+    const memories = await this.searchMemory(`email ${lead.firstName || ''} ${lead.lastName || ''} ${lead.id}`);
     const emailHistory = memories.filter(m => m.metadata?.type?.includes('email')).slice(0, 3);
     
     const systemPrompt = `You are an Email Agent communicating with a potential customer.
@@ -51,7 +51,7 @@ Be friendly, helpful, and focus on understanding their needs.
 Previous interactions: ${emailHistory.map(h => h.content).join('\n')}`;
 
     const prompt = `Generate a response to this customer email:
-Customer Name: ${lead.name}
+Customer Name: ${lead.firstName || ''} ${lead.lastName || ''}
 Their Message: "${message}"
 
 Context:
@@ -69,7 +69,7 @@ Create a professional, engaging email response that:
       systemPrompt,
       {
         leadId: lead.id,
-        leadName: lead.name,
+        leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
         type: 'email_sent',
         metadata: { campaign: campaign?.name }
       }
@@ -143,7 +143,7 @@ Make it welcoming, professional, and focused on understanding their needs.
 Similar successful interactions: ${similarInteractions}`;
 
     const prompt = `Create an initial email for:
-Customer Name: ${lead.name}
+Customer Name: ${lead.firstName || ''} ${lead.lastName || ''}
 Source: ${lead.source}
 Focus Area: ${focus}
 
@@ -159,7 +159,7 @@ The email should:
       systemPrompt,
       {
         leadId: lead.id,
-        leadName: lead.name,
+        leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
         type: 'initial_email',
         metadata: { focus, source: lead.source }
       }

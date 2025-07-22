@@ -62,7 +62,8 @@ router.get('/',
       if (search) {
         const searchTerm = search.toLowerCase();
         filteredLeads = filteredLeads.filter(lead =>
-          lead.name?.toLowerCase().includes(searchTerm) ||
+          lead.firstName?.toLowerCase().includes(searchTerm) ||
+          lead.lastName?.toLowerCase().includes(searchTerm) ||
           lead.email?.toLowerCase().includes(searchTerm) ||
           lead.phone?.includes(searchTerm) ||
           lead.source?.toLowerCase().includes(searchTerm)

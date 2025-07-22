@@ -179,7 +179,7 @@ The Team`;
     }
 
     // Personalize template
-    const personalizedBody = template.body.replace('{{name}}', lead.name);
+    const personalizedBody = template.body.replace('{{name}}', `${lead.firstName || ''} ${lead.lastName || ''}`.trim());
 
     // Send email
     const response = await this.sendEmail(

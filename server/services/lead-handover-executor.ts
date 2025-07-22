@@ -141,8 +141,8 @@ export class LeadHandoverExecutor {
   ): Promise<HandoverResult> {
     try {
       const payload = {
-        first_name: lead.name?.split(' ')[0] || '',
-        last_name: lead.name?.split(' ').slice(1).join(' ') || '',
+        first_name: lead.firstName || '',
+        last_name: lead.lastName || '',
         email: lead.email,
         phone: lead.phone,
         source: lead.source,
@@ -250,7 +250,7 @@ export class LeadHandoverExecutor {
         event: 'lead_handover',
         lead: {
           id: lead.id,
-          name: lead.name,
+          name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Unknown',
           email: lead.email,
           phone: lead.phone,
           source: lead.source,
@@ -307,7 +307,7 @@ export class LeadHandoverExecutor {
         New Lead Handover Notification
         
         Lead Details:
-        - Name: ${lead.name}
+        - Name: ${lead.firstName || ''} ${lead.lastName || ''}
         - Email: ${lead.email}
         - Phone: ${lead.phone}
         - Source: ${lead.source}

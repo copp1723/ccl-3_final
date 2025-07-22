@@ -67,8 +67,8 @@ export class EmailAgentAI {
     switch (intent) {
       case 'pricing_inquiry':
         return {
-          subject: `Re: Pricing information for ${context.lead.name}`,
-          body: `Hi ${context.lead.name},
+          subject: `Re: Pricing information for ${context.lead.firstName || ''} ${context.lead.lastName || ''}`.trim(),
+          body: `Hi ${context.lead.firstName || ''} ${context.lead.lastName || ''},
 
 Great question about pricing! I'd love to understand your specific needs better to provide the most accurate information.
 
@@ -91,8 +91,8 @@ P.S. ${conversationSummary}`
 
       case 'schedule_request':
         return {
-          subject: `Re: Let's schedule a call, ${context.lead.name}`,
-          body: `Hi ${context.lead.name},
+          subject: `Re: Let's schedule a call, ${context.lead.firstName || ''} ${context.lead.lastName || ''}`.trim(),
+          body: `Hi ${context.lead.firstName || ''} ${context.lead.lastName || ''},
 
 Perfect! I'd be happy to schedule a call with you.
 
@@ -116,8 +116,8 @@ The Team`
 
       case 'information_request':
         return {
-          subject: `Re: More details for ${context.lead.name}`,
-          body: `Hi ${context.lead.name},
+          subject: `Re: More details for ${context.lead.firstName || ''} ${context.lead.lastName || ''}`.trim(),
+          body: `Hi ${context.lead.firstName || ''} ${context.lead.lastName || ''},
 
 Absolutely! Here's a quick overview:
 
@@ -134,7 +134,7 @@ The Team`
       case 'opt_out':
         return {
           subject: `Re: Unsubscribe confirmed`,
-          body: `Hi ${context.lead.name},
+          body: `Hi ${context.lead.firstName || ''} ${context.lead.lastName || ''},
 
 No problem at all - I've removed you from our email list.
 
@@ -148,7 +148,7 @@ The Team`
       default:
         return {
           subject: `Re: Following up on your message`,
-          body: `Hi ${context.lead.name},
+          body: `Hi ${context.lead.firstName || ''} ${context.lead.lastName || ''},
 
 Thanks for getting back to me! 
 

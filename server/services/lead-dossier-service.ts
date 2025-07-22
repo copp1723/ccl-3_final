@@ -158,7 +158,7 @@ export class LeadDossierService {
     const additionalNotes = this.extractAdditionalNotes(lead, conversations);
 
     return {
-      name: lead.name || 'Name not provided',
+      name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Name not provided',
       contactInfo: {
         phone: lead.phone || null,
         email: lead.email || null

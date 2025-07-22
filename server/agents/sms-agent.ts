@@ -41,14 +41,14 @@ export class SMSAgent extends BaseAgent {
     const { lead, campaign } = context;
     
     // Store incoming SMS in supermemory
-    await this.storeMemory(`SMS from ${lead.name}: ${message}`, {
+    await this.storeMemory(`SMS from ${lead.firstName || ''} ${lead.lastName || ''}: ${message}`, {
       leadId: lead.id,
       type: 'sms_received',
       phone: lead.phone
     });
 
     // Search for previous SMS interactions
-    const memories = await this.searchMemory(`SMS ${lead.name} ${lead.phone}`);
+    const memories = await this.searchMemory(`SMS ${lead.firstName || ''} ${lead.lastName || ''} ${lead.phone}`);
     const smsHistory = memories.filter(m => m.metadata?.type?.includes('sms')).slice(0, 2);
     
     const systemPrompt = `You are an SMS Agent communicating with a potential customer via text message.
@@ -59,7 +59,7 @@ SMS messages should be under 160 characters when possible.
 Previous SMS: ${smsHistory.map(h => h.content).join('\n')}`;
 
     const prompt = `Generate a brief SMS response:
-Customer Name: ${lead.name}
+Customer Name: ${lead.firstName || ''} ${lead.lastName || ''}
 Their Message: "${message}"
 
 Context:
@@ -75,7 +75,7 @@ Create a concise, friendly text that:
     const response = await this.callOpenRouter(prompt, systemPrompt);
     
     // Store outgoing SMS in supermemory
-    await this.storeMemory(`SMS response to ${lead.name}: ${response}`, {
+    await this.storeMemory(`SMS response to ${lead.firstName || ''} ${lead.lastName || ''}: ${response}`, {
       leadId: lead.id,
       type: 'sms_sent',
       campaign: campaign?.name
@@ -156,7 +156,7 @@ Keep it very brief, friendly, and engaging. Maximum 160 characters.
 Successful patterns: ${successfulPatterns}`;
 
     const prompt = `Create an initial SMS for:
-Customer Name: ${lead.name}
+Customer Name: ${lead.firstName || ''} ${lead.lastName || ''}
 Focus: ${focus}
 
 The SMS should:
@@ -169,7 +169,7 @@ The SMS should:
     const sms = await this.callOpenRouter(prompt, systemPrompt);
     
     // Store initial SMS in supermemory
-    await this.storeMemory(`Initial SMS to ${lead.name}: ${sms}`, {
+    await this.storeMemory(`Initial SMS to ${lead.firstName || ''} ${lead.lastName || ''}: ${sms}`, {
       leadId: lead.id,
       type: 'initial_sms',
       focus,

@@ -10,11 +10,11 @@ export class EmailAgentSimple {
     const templates = {
       general: {
         subject: `Thank you for your interest`,
-        body: `Hi ${lead.name},\n\nThank you for reaching out. We'll be in touch soon.\n\nBest regards`
+        body: `Hi ${lead.firstName || ''} ${lead.lastName || ''},\n\nThank you for reaching out. We'll be in touch soon.\n\nBest regards`
       },
       qualified: {
-        subject: `Welcome ${lead.name}!`,
-        body: `Hi ${lead.name},\n\nWe're excited to connect with you. Our team will reach out shortly.\n\nBest regards`
+        subject: `Welcome ${lead.firstName || ''} ${lead.lastName || ''}!`,
+        body: `Hi ${lead.firstName || ''} ${lead.lastName || ''},\n\nWe're excited to connect with you. Our team will reach out shortly.\n\nBest regards`
       }
     };
     

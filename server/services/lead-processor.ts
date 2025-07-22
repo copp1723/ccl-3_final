@@ -23,7 +23,7 @@ export class LeadProcessor {
         logger.info('Lead queued for background processing', {
           leadId: lead.id,
           jobId: jobId,
-          leadName: lead.name
+          leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim()
         });
         return { status: 'queued', jobId: jobId };
       } catch (error) {
@@ -36,7 +36,7 @@ export class LeadProcessor {
     }
 
     try {
-      logger.info('Lead processing started', { leadId: lead.id, leadName: lead.name });
+      logger.info('Lead processing started', { leadId: lead.id, leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() });
       
       // 1. Get Overlord Agent instance
       const overlord = getOverlordAgent();
@@ -54,7 +54,7 @@ export class LeadProcessor {
         action: decision.action,
         reasoning: decision.reasoning || 'No reasoning provided',
         leadId: lead.id,
-        leadName: lead.name,
+        leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
         decision
       });
       
@@ -133,7 +133,7 @@ export class LeadProcessor {
     await LeadsRepository.updateQualificationScore(lead.id, newScore);
     
     // Send success feedback
-    feedbackService.success(`Lead ${lead.name} assigned to ${channel} channel`);
+    feedbackService.success(`Lead ${lead.firstName || ''} ${lead.lastName || ''} assigned to ${channel} channel`);
   }
 
   private async sendMessage(lead: any, channel: string, messageContent: string, subject: string, conversationId: string) {
@@ -160,7 +160,7 @@ export class LeadProcessor {
       } else if (channel === 'chat') {
         // Chat sessions are handled differently - they're initiated when user engages
         sendStatus = 'waiting_for_user';
-        logger.info('Chat communication initiated', { leadId: lead.id, leadName: lead.name, status: 'waiting_for_user' });
+        logger.info('Chat communication initiated', { leadId: lead.id, leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(), status: 'waiting_for_user' });
       }
       
       // Record the communication
@@ -241,7 +241,7 @@ export class LeadProcessor {
     });
     
     // Send error feedback
-    feedbackService.error(`Failed to process lead ${lead.name}: ${error.message}`);
+    feedbackService.error(`Failed to process lead ${lead.firstName || ''} ${lead.lastName || ''}: ${error.message}`);
   }
 
   private broadcast(data: any) {

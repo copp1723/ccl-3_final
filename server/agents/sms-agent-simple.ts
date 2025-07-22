@@ -6,7 +6,7 @@ export class SMSAgentSimple {
   }
   
   generateMessage(lead: any) {
-    return `Hi ${lead.name}, thanks for your interest! We'll contact you soon. Reply STOP to opt out.`;
+    return `Hi ${lead.firstName || ''} ${lead.lastName || ''}, thanks for your interest! We'll contact you soon. Reply STOP to opt out.`;
   }
   
   async sendSMS(to: string, body: string) {

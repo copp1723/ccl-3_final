@@ -254,7 +254,7 @@ class FeedbackService {
     return this.createNotification({
       type: 'lead',
       title: 'New Lead Created',
-      message: `New lead "${lead.name}" has been added to the system`,
+      message: `New lead "${lead.firstName || ''} ${lead.lastName || ''}" has been added to the system`,
       priority: 'medium',
       action: {
         label: 'View Lead',
@@ -268,7 +268,7 @@ class FeedbackService {
     return this.createNotification({
       type: 'lead',
       title: 'Lead Qualified',
-      message: `Lead "${lead.name}" has been qualified and sent to Boberdoo`,
+      message: `Lead "${lead.firstName || ''} ${lead.lastName || ''}" has been qualified and sent to Boberdoo`,
       priority: 'high',
       action: {
         label: 'View Details',

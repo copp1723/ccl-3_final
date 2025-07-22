@@ -140,7 +140,7 @@ router.post('/webhooks/mailgun', async (req, res) => {
       const newScore = Math.min(lead.qualificationScore + 15, 100);
       await LeadsRepository.updateQualificationScore(lead.id, newScore);
       
-      console.log(`📧 Email conversation continued with ${lead.name}`);
+      console.log(`📧 Email conversation continued with ${lead.firstName || ''} ${lead.lastName || ''}`);
     }
     
     res.status(200).json({ received: true });
@@ -204,7 +204,7 @@ router.post('/webhooks/twilio', async (req, res) => {
       const newScore = Math.min(lead.qualificationScore + 15, 100);
       await LeadsRepository.updateQualificationScore(lead.id, newScore);
       
-      console.log(`📱 SMS conversation continued with ${lead.name}`);
+      console.log(`📱 SMS conversation continued with ${lead.firstName || ''} ${lead.lastName || ''}`);
     }
     
     // Twilio expects TwiML response
