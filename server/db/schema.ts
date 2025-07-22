@@ -540,3 +540,6 @@ export type NewConversation = typeof conversations.$inferInsert;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+// Export aliases for backward compatibility
+export const emailTemplates = templates;
