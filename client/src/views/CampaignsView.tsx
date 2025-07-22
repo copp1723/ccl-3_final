@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, Plus } from 'lucide-react';
+import { Target, Plus, Wand2 } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
+import { CampaignWizard } from '@/components/campaign-wizard';
 
 export const CampaignsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [agents, setAgents] = useState([]);
+
+  useEffect(() => {
+    // Load agents
+    fetch('/api/agents')
+      .then(res => res.json())
+      .then(data => setAgents(data.agents || []))
+      .catch(console.error);
+  }, []);
 
   return (
     <div className="p-6 space-y-6">
@@ -14,15 +25,40 @@ export const CampaignsView: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
           <p className="text-gray-600">Manage your marketing campaigns</p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Create Campaign</span>
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button 
+            onClick={() => setShowWizard(true)} 
+            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700"
+          >
+            <Wand2 className="h-4 w-4" />
+            <span>Create Campaign</span>
+          </Button>
+          <Button 
+            onClick={() => setShowCreateForm(true)} 
+            variant="outline"
+            className="flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Classic Editor</span>
+          </Button>
+        </div>
       </div>
+
+      {/* Campaign Wizard Sidebar */}
+      <CampaignWizard
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onComplete={(campaign) => {
+          console.log('Campaign created:', campaign);
+          setShowWizard(false);
+          // TODO: Save campaign and refresh list
+        }}
+        agents={agents}
+      />
 
       {showCreateForm ? (
         <CampaignEditor 
-          agents={[]} // TODO: Load actual agents
+          agents={agents}
           onSave={() => {
             setShowCreateForm(false);
             // Optionally refresh the list

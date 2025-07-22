@@ -258,6 +258,23 @@ function AppContent() {
               <span className="font-medium">Campaigns</span>
             </button>
 
+            {/* Intelligence Hub - Advanced Features */}
+            <button
+              onClick={() => setActiveView('intelligence')}
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
+                activeView === 'intelligence'
+                  ? 'border-current'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              style={activeView === 'intelligence' ? {
+                color: branding.primaryColor,
+                borderColor: branding.primaryColor
+              } : {}}
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span className="font-medium">Intelligence</span>
+            </button>
+
             {/* Settings */}
             <div className="relative">
               <button
@@ -319,7 +336,7 @@ function AppContent() {
         {activeView === 'agents' && <AgentsView />}
         {activeView === 'campaigns' && <CampaignsView />}
         {activeView === 'templates' && <TemplateLibraryView />}
-
+        {activeView === 'intelligence' && <CampaignIntelligenceView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'branding' && <BrandingManagementView />}
       </div>

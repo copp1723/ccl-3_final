@@ -16,7 +16,8 @@ import {
   Sparkles,
   CheckCircle,
   XCircle,
-  Info
+  Info,
+  Wand2
 } from 'lucide-react';
 
 interface AgentConfiguratorProps {
@@ -186,6 +187,23 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
     }));
   };
 
+  const enhancePrompt = (field: string) => {
+    // AI-powered prompt enhancement
+    if (field === 'role') {
+      const enhancedRole = formData.role + (formData.role ? '\n\n' : '') + 
+        'Expert Sales Development Representative specializing in personalized outreach, ' +
+        'relationship building, and converting cold leads into qualified opportunities ' +
+        'through intelligent conversation and value-driven messaging.';
+      handleInputChange('role', enhancedRole);
+    } else if (field === 'endGoal') {
+      const enhancedGoal = 
+        'Schedule qualified demo calls with decision-makers who have expressed genuine interest ' +
+        'in our solution. Focus on quality over quantity, ensuring each handover represents ' +
+        'a real opportunity with budget, authority, need, and timeline clearly identified.';
+      handleInputChange('endGoal', enhancedGoal);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -228,7 +246,19 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">Role/Title</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="role">Role/Title</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => enhancePrompt('role')}
+                  className="h-7 px-2"
+                >
+                  <Wand2 className="h-3 w-3 mr-1" />
+                  Enhance
+                </Button>
+              </div>
               <Input
                 id="role"
                 value={formData.role}
@@ -241,10 +271,22 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
 
           {/* End Goal */}
           <div className="space-y-2">
-            <Label htmlFor="endGoal" className="flex items-center space-x-2">
-              <Target className="h-4 w-4" />
-              <span>Campaign End Goal</span>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="endGoal" className="flex items-center space-x-2">
+                <Target className="h-4 w-4" />
+                <span>Campaign End Goal</span>
+              </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => enhancePrompt('endGoal')}
+                className="h-7 px-2"
+              >
+                <Wand2 className="h-3 w-3 mr-1" />
+                AI Suggest
+              </Button>
+            </div>
             <Textarea
               id="endGoal"
               value={formData.endGoal}
