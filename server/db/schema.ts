@@ -89,6 +89,11 @@ export const leads = pgTable('leads', {
   source: varchar('source', { length: 100 }).notNull().default('website'),
   status: leadStatusEnum('status').default('new').notNull(),
   qualificationScore: integer('qualification_score').default(0),
+  assignedChannel: channelEnum('assigned_channel'),
+  
+  // External integrations
+  boberdooId: varchar('boberdoo_id', { length: 255 }),
+  campaignId: uuid('campaign_id').references(() => campaigns.id),
   
   // Financial Info
   creditScore: integer('credit_score'),
@@ -110,6 +115,9 @@ export const leads = pgTable('leads', {
     phoneIdx: index('leads_phone_idx').on(table.phone),
     statusIdx: index('leads_status_idx').on(table.status),
     sourceIdx: index('leads_source_idx').on(table.source),
+    assignedChannelIdx: index('leads_assigned_channel_idx').on(table.assignedChannel),
+    boberdooIdIdx: index('leads_boberdoo_id_idx').on(table.boberdooId),
+    campaignIdIdx: index('leads_campaign_id_idx').on(table.campaignId),
     createdAtIdx: index('leads_created_at_idx').on(table.createdAt)
   }
 });
@@ -279,6 +287,59 @@ export const sessions = pgTable('sessions', {
 });
 
 // Audit Logs - for tracking changes
+// Analytics Events table - for tracking custom events
+export const analyticsEvents = pgTable('analytics_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventType: varchar('event_type', { length: 100 }).notNull(),
+  leadId: uuid('lead_id').references(() => leads.id),
+  campaignId: uuid('campaign_id').references(() => campaigns.id),
+  userId: uuid('user_id').references(() => users.id),
+  
+  // Event details
+  channel: channelEnum('channel'),
+  value: integer('value').default(1).notNull(),
+  metadata: jsonb('metadata').default({}),
+  
+  // Timestamp
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    eventTypeIdx: index('analytics_events_event_type_idx').on(table.eventType),
+    leadIdIdx: index('analytics_events_lead_id_idx').on(table.leadId),
+    campaignIdIdx: index('analytics_events_campaign_id_idx').on(table.campaignId),
+    createdAtIdx: index('analytics_events_created_at_idx').on(table.createdAt)
+  }
+});
+
+// Conversations table - for chat/agent conversations
+export const conversations = pgTable('conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id').references(() => leads.id),
+  
+  // Conversation details
+  channel: channelEnum('channel').notNull(),
+  agentType: agentTypeEnum('agent_type'),
+  status: varchar('status', { length: 50 }).default('active').notNull(), // active, completed, abandoned
+  
+  // Content
+  messages: jsonb('messages').default([]).notNull(),
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}),
+  
+  // Timestamps
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  endedAt: timestamp('ended_at'),
+  lastMessageAt: timestamp('last_message_at')
+}, (table) => {
+  return {
+    leadIdIdx: index('conversations_lead_id_idx').on(table.leadId),
+    channelIdx: index('conversations_channel_idx').on(table.channel),
+    statusIdx: index('conversations_status_idx').on(table.status),
+    startedAtIdx: index('conversations_started_at_idx').on(table.startedAt)
+  }
+});
+
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -319,9 +380,15 @@ export const agentConfigurationsRelations = relations(agentConfigurations, ({ ma
   // but we don't enforce this with foreign keys to keep it flexible
 }));
 
-export const leadsRelations = relations(leads, ({ many }) => ({
+export const leadsRelations = relations(leads, ({ one, many }) => ({
+  campaign: one(campaigns, {
+    fields: [leads.campaignId],
+    references: [campaigns.id]
+  }),
   communications: many(communications),
-  enrollments: many(leadCampaignEnrollments)
+  enrollments: many(leadCampaignEnrollments),
+  analyticsEvents: many(analyticsEvents),
+  conversations: many(conversations)
 }));
 
 export const campaignsRelations = relations(campaigns, ({ many }) => ({
@@ -374,6 +441,28 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   })
 }));
 
+export const analyticsEventsRelations = relations(analyticsEvents, ({ one }) => ({
+  lead: one(leads, {
+    fields: [analyticsEvents.leadId],
+    references: [leads.id]
+  }),
+  campaign: one(campaigns, {
+    fields: [analyticsEvents.campaignId],
+    references: [campaigns.id]
+  }),
+  user: one(users, {
+    fields: [analyticsEvents.userId],
+    references: [users.id]
+  })
+}));
+
+export const conversationsRelations = relations(conversations, ({ one }) => ({
+  lead: one(leads, {
+    fields: [conversations.leadId],
+    references: [leads.id]
+  })
+}));
+
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {
     fields: [auditLogs.userId],
@@ -411,6 +500,12 @@ export type NewLeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferIns
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
+
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export type NewAnalyticsEvent = typeof analyticsEvents.$inferInsert;
+
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;

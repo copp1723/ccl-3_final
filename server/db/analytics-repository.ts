@@ -1,7 +1,6 @@
 import { db } from './client';
 import { analyticsEvents, leads, campaigns, communications, conversations } from './schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 
 export interface AnalyticsEventData {
   eventType: string;
@@ -18,11 +17,9 @@ export class AnalyticsRepository {
     const [event] = await db
       .insert(analyticsEvents)
       .values({
-        id: nanoid(),
         ...data,
         value: data.value || 1,
-        metadata: data.metadata || {},
-        createdAt: new Date()
+        metadata: data.metadata || {}
       })
       .returning();
     
