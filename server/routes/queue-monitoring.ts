@@ -16,7 +16,9 @@ router.get('/stats', authenticate, cclApiRateLimit, async (req, res) => {
   try {
     const stats = await queueManager.getQueueStatistics();
     
-    CCLLogger.analyticsEvent('queue_stats_requested', stats, {
+    CCLLogger.info('Queue statistics requested', {
+      event: 'queue_stats_requested',
+      stats,
       userId: req.user?.id,
       ip: req.ip
     });
@@ -66,11 +68,12 @@ router.post('/jobs', authenticate, cclApiRateLimit, async (req, res) => {
       }
     });
 
-    CCLLogger.securityEvent('Job manually added', 'medium', {
+    CCLLogger.info('Job manually added', {
       jobType,
       jobId: job?.id,
       userId: req.user.id,
-      ip: req.ip
+      ip: req.ip,
+      severity: 'medium'
     });
 
     res.json(CCLResponseHelper.success(
@@ -182,7 +185,9 @@ router.post('/jobs/email', authenticate, cclApiRateLimit, async (req, res) => {
 
     const job = await queueManager.addEmailJob(to, subject, text, html, leadId);
 
-    CCLLogger.communicationSent('email', leadId || '', {
+    CCLLogger.info('Email communication queued', {
+      channel: 'email',
+      leadId: leadId || '',
       recipient: to,
       subject,
       jobId: job?.id,
@@ -217,7 +222,9 @@ router.post('/jobs/sms', authenticate, cclApiRateLimit, async (req, res) => {
 
     const job = await queueManager.addSMSJob(to, body, leadId);
 
-    CCLLogger.communicationSent('sms', leadId || '', {
+    CCLLogger.info('SMS communication queued', {
+      channel: 'sms',
+      leadId: leadId || '',
       recipient: to,
       jobId: job?.id,
       queued: true
@@ -319,11 +326,11 @@ router.post('/jobs/export', authenticate, cclApiRateLimit, async (req, res) => {
 
     const job = await queueManager.addDataExportJob(exportType, filters, req.user!.id);
 
-    CCLLogger.analyticsEvent('data_export_job_queued', {
+    CCLLogger.info('Data export job queued', {
+      event: 'data_export_job_queued',
       exportType,
       filters,
-      jobId: job?.id
-    }, {
+      jobId: job?.id,
       userId: req.user?.id
     });
 
@@ -399,10 +406,11 @@ router.post('/queues/:queueType/pause', authenticate, cclApiRateLimit, async (re
 
     await queueManager.pauseQueue(queueType as any);
 
-    CCLLogger.securityEvent('Queue paused manually', 'high', {
+    CCLLogger.warn('Queue paused manually', {
       queueType,
       userId: req.user.id,
-      ip: req.ip
+      ip: req.ip,
+      severity: 'high'
     });
 
     res.json(CCLResponseHelper.success(
@@ -443,10 +451,11 @@ router.post('/queues/:queueType/resume', authenticate, cclApiRateLimit, async (r
 
     await queueManager.resumeQueue(queueType as any);
 
-    CCLLogger.securityEvent('Queue resumed manually', 'medium', {
+    CCLLogger.info('Queue resumed manually', {
       queueType,
       userId: req.user.id,
-      ip: req.ip
+      ip: req.ip,
+      severity: 'medium'
     });
 
     res.json(CCLResponseHelper.success(
@@ -476,10 +485,11 @@ router.post('/cleanup', authenticate, cclApiRateLimit, async (req, res) => {
     const { queueType } = req.body;
     await queueManager.cleanupOldJobs(queueType);
 
-    CCLLogger.securityEvent('Queue cleanup performed', 'medium', {
+    CCLLogger.info('Queue cleanup performed', {
       queueType: queueType || 'all',
       userId: req.user.id,
-      ip: req.ip
+      ip: req.ip,
+      severity: 'medium'
     });
 
     res.json(CCLResponseHelper.success(

@@ -27,6 +27,9 @@ import { AgentsView } from '@/views/AgentsView';
 import { CampaignsView } from '@/views/CampaignsView';
 import { ClientManagementView } from '@/views/ClientManagementView';
 import { TemplateLibraryView } from '@/views/TemplateLibraryView';
+import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
+import { AgentManagementView } from '@/views/AgentManagementView';
+import { MultiAgentCampaignView } from '@/views/MultiAgentCampaignView';
 
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';

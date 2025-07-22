@@ -119,7 +119,9 @@ router.get('/metrics', authenticate, async (req, res) => {
     };
 
     // Log metrics request
-    CCLLogger.analyticsEvent('system_metrics_requested', metrics, {
+    CCLLogger.info('System metrics requested', {
+      event: 'system_metrics_requested',
+      metrics,
       userId: req.user?.id,
       ip: req.ip
     });
@@ -147,11 +149,12 @@ router.post('/circuit-breakers/:service/reset', authenticate, async (req, res) =
     
     await breaker.forceState('closed');
     
-    CCLLogger.securityEvent('Circuit breaker manually reset', 'high', {
+    CCLLogger.warn('Circuit breaker manually reset', {
       service,
       userId: req.user.id,
       ip: req.ip,
-      manual: true
+      manual: true,
+      severity: 'high'
     });
 
     res.json(CCLResponseHelper.success(
@@ -207,11 +210,12 @@ router.post('/circuit-breakers/reset-all', authenticate, async (req, res) => {
 
     await CCLCircuitBreakerManager.resetAll();
     
-    CCLLogger.securityEvent('All circuit breakers emergency reset', 'critical', {
+    CCLLogger.error('All circuit breakers emergency reset', {
       userId: req.user.id,
       ip: req.ip,
       emergency: true,
-      manual: true
+      manual: true,
+      severity: 'critical'
     });
 
     res.json(CCLResponseHelper.success(

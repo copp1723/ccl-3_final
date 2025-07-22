@@ -321,10 +321,11 @@ export function globalErrorHandler(
     // Log based on severity
     switch (error.severity) {
       case 'critical':
-        CCLLogger.securityEvent(`Critical error: ${error.message}`, 'high', {
+        CCLLogger.error(`Critical error: ${error.message}`, {
           requestId: error.requestId,
           code: error.code,
-          context: error.context
+          context: error.context,
+          severity: 'high'
         });
         break;
       case 'high':

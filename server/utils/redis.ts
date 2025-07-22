@@ -121,12 +121,12 @@ export async function initializeRedis(): Promise<void> {
     // Setup event handlers for main client
     redisClient.on('connect', () => {
       logger.info('Redis main client connected');
-      CCLLogger.securityEvent('Redis connection established', 'low', { type: 'main' });
+      CCLLogger.info('Redis connection established', { type: 'main', severity: 'low' });
     });
 
     redisClient.on('error', (error) => {
       logger.error('Redis main client error', { error: error.message });
-      CCLLogger.securityEvent('Redis connection error', 'medium', { type: 'main', error: error.message });
+      CCLLogger.error('Redis connection error', { type: 'main', error: error.message, severity: 'medium' });
     });
 
     redisClient.on('close', () => {
@@ -170,8 +170,9 @@ export async function initializeRedis(): Promise<void> {
     
     // CCL-3 can operate without Redis, but with reduced functionality
     logger.warn('CCL-3 will operate in memory-only mode (no Redis)');
-    CCLLogger.securityEvent('Redis initialization failed, using memory fallback', 'medium', {
-      error: (error as Error).message
+    CCLLogger.warn('Redis initialization failed, using memory fallback', {
+      error: (error as Error).message,
+      severity: 'medium'
     });
   }
 }

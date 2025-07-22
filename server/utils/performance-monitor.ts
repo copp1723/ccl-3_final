@@ -162,8 +162,9 @@ export class CCLPerformanceMonitor {
         maxSnapshots: this.maxSnapshots
       });
 
-      CCLLogger.securityEvent('Performance monitoring started', 'low', {
-        thresholds: this.thresholds
+      CCLLogger.info('Performance monitoring started', {
+        thresholds: this.thresholds,
+        severity: 'low'
       });
 
     } catch (error) {
@@ -423,13 +424,15 @@ export class CCLPerformanceMonitor {
     });
 
     // Record in CCL logger
-    CCLLogger.securityEvent(`Performance alert: ${level}`, level === 'critical' ? 'high' : 'medium', {
+    const logMethod = level === 'critical' ? 'error' : level === 'warning' ? 'warn' : 'info';
+    CCLLogger[logMethod](`Performance alert: ${level}`, {
       alertId,
       component,
       metric,
       message,
       value,
-      threshold
+      threshold,
+      severity: level === 'critical' ? 'high' : 'medium'
     });
 
     // Update metrics
@@ -539,7 +542,9 @@ export class CCLPerformanceMonitor {
         )
       };
 
-      CCLLogger.analyticsEvent('hourly_performance_report', report, {
+      CCLLogger.info('Hourly performance report generated', {
+        event: 'hourly_performance_report',
+        report,
         automated: true,
         reportType: 'performance'
       });
@@ -576,7 +581,9 @@ export class CCLPerformanceMonitor {
         }
       };
 
-      CCLLogger.analyticsEvent('daily_performance_report', report, {
+      CCLLogger.info('Daily performance report generated', {
+        event: 'daily_performance_report',
+        report,
         automated: true,
         reportType: 'performance'
       });
