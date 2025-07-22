@@ -6,12 +6,16 @@ import { clientValidation } from '../middleware/client-validation';
 // Route imports - all original routes, no fallbacks needed
 import authRoutes from './auth';
 import boberdooRoutes from './boberdoo';
+import clientsRoutes from './clients';
 import campaignsRoutes from './campaigns';
 import communicationsRoutes from './communications';
 import agentDecisionsRoutes from './agent-decisions';
 import importRoutes from './import';
 import emailAgentsRoutes from './email-agents';
+import emailRoutes from './email';
 import emailTemplatesRoutes from './email-templates';
+import campaignIntelligenceRoutes from './campaign-intelligence';
+import chatRoutes from './chat';
 import agentConfigurationsRoutes from './agent-configurations';
 import notificationsRoutes from './notifications';
 import usersRoutes from './users';
@@ -26,6 +30,11 @@ import brandingRoutes from './branding';
 import supermemoryRoutes from './supermemory';
 import cacheRoutes from './cache';
 import conversationsRoutes from './conversations';
+import campaignExecutionRoutes from './campaign-execution';
+import emailMonitorRoutes from './email-monitor';
+import handoverApiRoutes from './handover-api';
+import emailSchedulingRoutes from './email-scheduling';
+import testRoutes from './test';
 
 // Route configuration
 interface RouteConfig {
@@ -42,12 +51,16 @@ const routes: RouteConfig[] = [
   
   // Protected API routes with rate limiting
   { path: '/api/boberdoo', router: boberdooRoutes, middleware: [apiRateLimit] },
+  { path: '/api/clients', router: clientsRoutes, middleware: [apiRateLimit] },
   { path: '/api/campaigns', router: campaignsRoutes, middleware: [apiRateLimit] },
   { path: '/api/communications', router: communicationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-decisions', router: agentDecisionsRoutes, middleware: [apiRateLimit] },
   { path: '/api/import', router: importRoutes, middleware: [apiRateLimit] },
+  { path: '/api/email', router: emailRoutes, middleware: [apiRateLimit] },
   { path: '/api/email-agents', router: emailAgentsRoutes, middleware: [apiRateLimit] },
   { path: '/api/email-templates', router: emailTemplatesRoutes, middleware: [apiRateLimit] },
+  { path: '/api/campaign-intelligence', router: campaignIntelligenceRoutes, middleware: [apiRateLimit] },
+  { path: '/api/chat', router: chatRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-configurations', router: agentConfigurationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/notifications', router: notificationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/users', router: usersRoutes, middleware: [apiRateLimit] },
@@ -61,9 +74,14 @@ const routes: RouteConfig[] = [
   { path: '/api/supermemory', router: supermemoryRoutes, middleware: [apiRateLimit] },
   { path: '/api/cache', router: cacheRoutes, middleware: [apiRateLimit] },
   { path: '/api/conversations', router: conversationsRoutes, middleware: [apiRateLimit] },
+  { path: '/api/campaign-execution', router: campaignExecutionRoutes, middleware: [apiRateLimit] },
+  { path: '/api/email-monitor', router: emailMonitorRoutes, middleware: [apiRateLimit] },
+  { path: '/api/handover-api', router: handoverApiRoutes, middleware: [apiRateLimit] },
+  { path: '/api/email-scheduling', router: emailSchedulingRoutes, middleware: [apiRateLimit] },
   
   // System routes
   { path: '/api/system', router: systemHealthRoutes },
+  { path: '/api/test', router: testRoutes, public: true },
 ];
 
 /**

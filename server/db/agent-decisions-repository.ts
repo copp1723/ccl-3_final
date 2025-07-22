@@ -1,17 +1,19 @@
-import { eq, desc, and } from 'drizzle-orm';
-import { db } from './client';
-import { agentDecisions, agentTypeEnum } from './schema';
 import { nanoid } from 'nanoid';
+
+// Temporary in-memory storage to replace removed agentDecisions table
+type AgentType = 'email' | 'sms' | 'chat' | 'routing' | 'qualification';
 
 export interface AgentDecision {
   id: string;
   leadId: string;
-  agentType: typeof agentTypeEnum.enumValues[number];
+  agentType: AgentType;
   decision: string;
   reasoning: string | null;
   context: Record<string, any> | null;
   createdAt: Date;
 }
+
+const decisionStore: AgentDecision[] = [];
 
 export class AgentDecisionsRepository {
   /**
@@ -19,12 +21,12 @@ export class AgentDecisionsRepository {
    */
   static async create(
     leadId: string,
-    agentType: typeof agentTypeEnum.enumValues[number],
+    agentType: AgentType,
     decision: string,
     reasoning?: string,
     context?: Record<string, any>
   ): Promise<AgentDecision> {
-    const decisionRecord = {
+    const decisionRecord: AgentDecision = {
       id: nanoid(),
       leadId,
       agentType,
@@ -34,32 +36,24 @@ export class AgentDecisionsRepository {
       createdAt: new Date()
     };
 
-    const [inserted] = await db.insert(agentDecisions).values(decisionRecord).returning();
-    return inserted;
+    decisionStore.push(decisionRecord);
+    return decisionRecord;
   }
 
   /**
    * Get all decisions for a lead
    */
   static async findByLeadId(leadId: string): Promise<AgentDecision[]> {
-    return db
-      .select()
-      .from(agentDecisions)
-      .where(eq(agentDecisions.leadId, leadId))
-      .orderBy(desc(agentDecisions.createdAt));
+    return decisionStore.filter(d => d.leadId === leadId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   /**
    * Get decisions by agent type
    */
   static async findByAgentType(
-    agentType: typeof agentTypeEnum.enumValues[number]
+    agentType: AgentType
   ): Promise<AgentDecision[]> {
-    return db
-      .select()
-      .from(agentDecisions)
-      .where(eq(agentDecisions.agentType, agentType))
-      .orderBy(desc(agentDecisions.createdAt));
+    return decisionStore.filter(d => d.agentType === agentType).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   /**
@@ -67,21 +61,13 @@ export class AgentDecisionsRepository {
    */
   static async findLatestDecision(
     leadId: string,
-    agentType: typeof agentTypeEnum.enumValues[number]
+    agentType: AgentType
   ): Promise<AgentDecision | null> {
-    const [decision] = await db
-      .select()
-      .from(agentDecisions)
-      .where(
-        and(
-          eq(agentDecisions.leadId, leadId),
-          eq(agentDecisions.agentType, agentType)
-        )
-      )
-      .orderBy(desc(agentDecisions.createdAt))
-      .limit(1);
-
-    return decision || null;
+    return (
+      decisionStore
+        .filter(d => d.leadId === leadId && d.agentType === agentType)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] || null
+    );
   }
 
   /**
@@ -104,33 +90,37 @@ export class AgentDecisionsRepository {
   }
 
   /**
-   * Count decisions by type and agent
+   * Get decision statistics
    */
   static async getDecisionStats(): Promise<{
     agentType: string;
     decision: string;
     count: number;
   }[]> {
-    const stats = await db
-      .select({
-        agentType: agentDecisions.agentType,
-        decision: agentDecisions.decision,
-        count: db.$count(agentDecisions.id)
-      })
-      .from(agentDecisions)
-      .groupBy(agentDecisions.agentType, agentDecisions.decision);
+    // Generate stats from in-memory store
+    const statMap: Record<string, Record<string, number>> = {};
+    decisionStore.forEach(d => {
+      if (!statMap[d.agentType]) statMap[d.agentType] = {};
+      if (!statMap[d.agentType][d.decision]) statMap[d.agentType][d.decision] = 0;
+      statMap[d.agentType][d.decision] += 1;
+    });
+
+    const stats: { agentType: string; decision: string; count: number }[] = [];
+    Object.entries(statMap).forEach(([agentType, decisions]) => {
+      Object.entries(decisions).forEach(([decision, count]) => {
+        stats.push({ agentType, decision, count });
+      });
+    });
 
     return stats;
   }
 
   /**
-   * Get recent decisions across all agents
+   * Get recent decisions
    */
   static async getRecentDecisions(limit: number = 20): Promise<AgentDecision[]> {
-    return db
-      .select()
-      .from(agentDecisions)
-      .orderBy(desc(agentDecisions.createdAt))
-      .limit(limit);
+    return decisionStore
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
   }
 }

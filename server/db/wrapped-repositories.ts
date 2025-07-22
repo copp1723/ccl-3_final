@@ -1,62 +1,29 @@
 /**
- * Wrapped repository instances that automatically fallback to mock data
- * when database is not available
+ * Wrapped repository instances for ESM compatibility.
+ * Static imports are used to ensure named exports work in ESM environments.
  */
 
-import { createWrappedRepository } from './repository-wrapper';
-import {
-  mockUsers,
-  mockLeads,
-  mockCampaigns,
-  mockAgentConfigurations,
-  mockConversations,
-  mockCommunications,
-  mockEmailTemplates,
-  mockClients,
-  mockAgentDecisions,
-  mockAnalytics,
-  mockAuditLog
-} from './mock-data';
+import { UsersRepository } from './users-repository';
+import { LeadsRepository } from './leads-repository';
+import { CampaignsRepository } from './campaigns-repository';
+import { AgentConfigurationsRepository } from './agent-configurations-repository';
+import { ConversationsRepository } from './conversations-repository';
+import { CommunicationsRepository } from './communications-repository';
+import { EmailTemplatesRepository } from './email-templates-repository';
+import { AgentDecisionsRepository } from './agent-decisions-repository';
+import { AnalyticsRepository } from './analytics-repository';
+import { AuditLogRepository } from './audit-log-repository';
+import { ClientsRepository } from './clients-repository';
 
-// Cache for real repositories
-const repositoryCache = new Map<string, any>();
-
-/**
- * Get or create a wrapped repository
- */
-function getWrappedRepository(name: string, mockData: any): any {
-  const cacheKey = `wrapped_${name}`;
-  
-  if (repositoryCache.has(cacheKey)) {
-    return repositoryCache.get(cacheKey);
-  }
-
-  // Try to load the real repository module
-  let realRepository = {};
-  try {
-    // Attempt synchronous require for initial load
-    const modulePath = `./${name}-repository`;
-    const module = require(modulePath);
-    realRepository = module[`${name}Repository`] || {};
-  } catch (error) {
-    console.warn(`Repository ${name} not available, using mock data only`);
-  }
-
-  const wrapped = createWrappedRepository(name, realRepository, mockData);
-  repositoryCache.set(cacheKey, wrapped);
-  
-  return wrapped;
-}
-
-// Export wrapped repositories
-export const usersRepository = getWrappedRepository('users', mockUsers);
-export const leadsRepository = getWrappedRepository('leads', mockLeads);
-export const campaignsRepository = getWrappedRepository('campaigns', mockCampaigns);
-export const agentConfigurationsRepository = getWrappedRepository('agent-configurations', mockAgentConfigurations);
-export const conversationsRepository = getWrappedRepository('conversations', mockConversations);
-export const communicationsRepository = getWrappedRepository('communications', mockCommunications);
-export const emailTemplatesRepository = getWrappedRepository('email-templates', mockEmailTemplates);
-export const clientsRepository = getWrappedRepository('clients', mockClients);
-export const agentDecisionsRepository = getWrappedRepository('agent-decisions', mockAgentDecisions);
-export const analyticsRepository = getWrappedRepository('analytics', mockAnalytics);
-export const auditLogRepository = getWrappedRepository('audit-log', mockAuditLog);
+// Export repositories as named exports for ESM compatibility
+export const usersRepository = UsersRepository;
+export const leadsRepository = LeadsRepository;
+export const campaignsRepository = CampaignsRepository;
+export const agentConfigurationsRepository = AgentConfigurationsRepository;
+export const conversationsRepository = ConversationsRepository;
+export const communicationsRepository = CommunicationsRepository;
+export const emailTemplatesRepository = EmailTemplatesRepository;
+export const agentDecisionsRepository = AgentDecisionsRepository;
+export const analyticsRepository = AnalyticsRepository;
+export const auditLogRepository = AuditLogRepository;
+export const clientsRepository = ClientsRepository;

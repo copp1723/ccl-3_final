@@ -35,9 +35,10 @@ class DatabaseConnectionManager {
     try {
       // Try to import and use the database client
       const { db } = await import('./client');
+      const { sql } = await import('drizzle-orm');
       
       // Simple query to test connection
-      await db.execute`SELECT 1`;
+      await db.execute(sql`SELECT 1`);
       
       this.status.connected = true;
       this.status.lastError = undefined;

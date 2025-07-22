@@ -1,29 +1,10 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
-import Mailgun from 'mailgun-js';
-import formData from 'form-data';
+import { mailgunService } from '../../email-system/services/mailgun-service';
 import { CCLLogger } from '../utils/logger';
-import { executeWithMailgunBreaker } from '../utils/circuit-breaker';
 
 export class EmailAgent extends BaseAgent {
-  private mailgun: any;
-  private domain: string;
-
   constructor() {
     super('email');
-    
-    // Initialize Mailgun only if credentials are available
-    if (process.env.MAILGUN_API_KEY) {
-      const mailgun = new Mailgun(formData);
-      this.mailgun = mailgun.client({
-        username: 'api',
-        key: process.env.MAILGUN_API_KEY
-      });
-      this.domain = process.env.MAILGUN_DOMAIN || '';
-    } else {
-      CCLLogger.agentAction('email', 'mailgun_fallback', { reason: 'No API key found, email sending will be simulated' });
-      this.mailgun = null;
-      this.domain = '';
-    }
   }
 
   // Override getMockResponse for email-specific mock behavior
@@ -83,14 +64,16 @@ Create a professional, engaging email response that:
 3. Asks relevant qualifying questions
 4. Maintains a helpful, non-pushy tone`;
 
-    const response = await this.callOpenRouter(prompt, systemPrompt);
-    
-    // Store outgoing response in supermemory
-    await this.storeMemory(`Email response to ${lead.name}: ${response}`, {
-      leadId: lead.id,
-      type: 'email_sent',
-      campaign: campaign?.name
-    });
+    const response = await this.generateResponse(
+      prompt,
+      systemPrompt,
+      {
+        leadId: lead.id,
+        leadName: lead.name,
+        type: 'email_sent',
+        metadata: { campaign: campaign?.name }
+      }
+    );
 
     return response;
   }
@@ -107,7 +90,7 @@ Create a professional, engaging email response that:
   async sendEmail(to: string, subject: string, text: string, html?: string): Promise<any> {
     try {
       // Check if Mailgun is configured
-      if (!process.env.MAILGUN_API_KEY || !this.domain) {
+      if (!mailgunService.isConfigured()) {
         CCLLogger.agentAction('email', 'simulated_send', { to, subject, reason: 'Mailgun not configured' });
         const mockResponse = {
           id: `mock-${Date.now()}@example.com`,
@@ -117,17 +100,12 @@ Create a professional, engaging email response that:
         return mockResponse;
       }
 
-      const messageData = {
-        from: process.env.MAILGUN_FROM_EMAIL || 'noreply@example.com',
-        to: to,
-        subject: subject,
-        text: text,
+      // Use centralized mailgun service
+      const response = await mailgunService.sendEmail({
+        to,
+        subject,
+        text: text || '',
         html: html || text
-      };
-
-      // Wrap Mailgun API call with circuit breaker protection
-      const response = await executeWithMailgunBreaker(async () => {
-        return await this.mailgun.messages.create(this.domain, messageData);
       });
       
       // Store successful email send in supermemory
@@ -176,15 +154,16 @@ The email should:
 4. Be concise (under 150 words)
 5. End with a clear call-to-action`;
 
-    const email = await this.callOpenRouter(prompt, systemPrompt);
-    
-    // Store initial email in supermemory
-    await this.storeMemory(`Initial email to ${lead.name}: ${email}`, {
-      leadId: lead.id,
-      type: 'initial_email',
-      focus,
-      source: lead.source
-    });
+    const email = await this.generateResponse(
+      prompt,
+      systemPrompt,
+      {
+        leadId: lead.id,
+        leadName: lead.name,
+        type: 'initial_email',
+        metadata: { focus, source: lead.source }
+      }
+    );
 
     return email;
   }

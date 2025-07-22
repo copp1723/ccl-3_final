@@ -11,6 +11,7 @@ import {
   mockCampaignsRepository,
   closeConnection as mockCloseConnection
 } from './mock-repositories';
+import { mockUsers } from './mock-data';
 
 // Try to import real repositories
 let realRepositories: any = null;
@@ -43,16 +44,26 @@ export const EmailTemplatesRepository = useRealDb ? realRepositories.EmailTempla
 };
 
 export const UsersRepository = useRealDb ? realRepositories.UsersRepository : {
-  findByEmail: async () => null,
-  create: async (data: any) => ({ id: `user-${Date.now()}`, ...data })
+  findAll: async () => mockUsers.findAll(),
+  findByEmail: async (email: string) => mockUsers.findByEmail(email),
+  findByUsername: async (username: string) => mockUsers.findByEmail(username), // Using email as username
+  findById: async (id: string) => mockUsers.findById(id),
+  create: async (data: any) => mockUsers.create(data),
+  update: async (id: string, data: any) => mockUsers.update(id, data),
+  login: async (username: string, password: string) => mockUsers.login(username, password),
+  logout: async () => null,
+  logoutAllSessions: async () => null,
+  refreshToken: async () => null,
+  createDefaultAdmin: async () => null
 };
 
 export const AuditLogRepository = useRealDb ? realRepositories.AuditLogRepository : {
-  create: async () => null
+  create: async () => ({ id: `audit-${Date.now()}` })
 };
 
 export const AnalyticsRepository = useRealDb ? realRepositories.AnalyticsRepository : {
-  getLeadStats: async () => ({ total: 0, new: 0, qualified: 0, converted: 0 })
+  getLeadStats: async () => ({ total: 0, new: 0, qualified: 0, converted: 0 }),
+  trackEvent: async () => ({ id: `event-${Date.now()}` })
 };
 
 // Branding repository (not in original exports)

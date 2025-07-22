@@ -1,696 +1,726 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import {
-  Brain,
-  User,
-  Target,
-  BookOpen,
-  MessageSquare,
-  Zap,
-  Settings,
-  Plus,
-  X,
-  Info,
-  Save,
-  AlertCircle
+import { 
+  Plus, 
+  X, 
+  Brain, 
+  Target, 
+  MessageSquare, 
+  Sparkles,
+  CheckCircle,
+  XCircle,
+  Info
 } from 'lucide-react';
-import { UnifiedAgentConfig } from '@/types';
 
 interface AgentConfiguratorProps {
-  agent: UnifiedAgentConfig | null;
-  onSave: (agent: Partial<UnifiedAgentConfig>) => Promise<void>;
+  agent?: any;
+  onSave: (agent: any) => void;
   onCancel: () => void;
 }
 
-const AGENT_TYPES = [
-  { value: 'overlord', label: 'Overlord (Master Agent)', description: 'Orchestrates all other agents and makes strategic decisions' },
-  { value: 'email', label: 'Email Agent', description: 'Handles email communications and follow-ups' },
-  { value: 'sms', label: 'SMS Agent', description: 'Manages text message communications' },
-  { value: 'chat', label: 'Chat Agent', description: 'Handles website chat and real-time conversations' }
-] as const;
-
-const PERSONALITIES = [
-  { value: 'professional', label: 'Professional', description: 'Formal, business-like approach' },
-  { value: 'friendly', label: 'Friendly', description: 'Warm, approachable personality' },
-  { value: 'authoritative', label: 'Authoritative', description: 'Expert, confident tone' },
-  { value: 'empathetic', label: 'Empathetic', description: 'Understanding, supportive approach' }
-] as const;
-
-const TONES = [
-  { value: 'formal', label: 'Formal', description: 'Business professional language' },
-  { value: 'casual', label: 'Casual', description: 'Relaxed, conversational style' },
-  { value: 'enthusiastic', label: 'Enthusiastic', description: 'Energetic, positive approach' },
-  { value: 'persuasive', label: 'Persuasive', description: 'Sales-focused, compelling language' }
-] as const;
-
-const RESPONSE_LENGTHS = [
-  { value: 'short', label: 'Short', description: '1-2 sentences, concise responses' },
-  { value: 'medium', label: 'Medium', description: '2-4 sentences, balanced detail' },
-  { value: 'long', label: 'Long', description: '4+ sentences, comprehensive responses' }
-] as const;
-
 export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfiguratorProps) {
-  const [formData, setFormData] = useState<Partial<UnifiedAgentConfig>>({
+  const [formData, setFormData] = useState({
     name: '',
-    type: 'email',
     role: '',
     endGoal: '',
-    instructions: { dos: [''], donts: [''] },
+    instructions: {
+      dos: [''],
+      donts: ['']
+    },
     domainExpertise: [''],
     personality: 'professional',
-    tone: 'formal',
-    responseLength: 'medium',
-    temperature: 70,
-    maxTokens: 500,
-    active: true,
-    ...agent
+    tone: 'friendly',
+    isActive: true,
+    settings: {
+      maxEmailsPerDay: 100,
+      followUpDelay: 24,
+      enableAutoResponse: true,
+      workingHours: {
+        start: '09:00',
+        end: '17:00',
+        timezone: 'America/New_York'
+      },
+      handoverRules: {
+        buyingSignals: [
+          'ready to purchase',
+          'what is the price',
+          'can we schedule a demo',
+          'I want to buy',
+          'how much does it cost'
+        ],
+        escalationPhrases: [
+          'speak to a human',
+          'talk to someone',
+          'not a bot',
+          'real person',
+          'manager'
+        ]
+      }
+    }
   });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (agent) {
       setFormData({
         ...agent,
-        instructions: agent.instructions || { dos: [''], donts: [''] },
-        domainExpertise: agent.domainExpertise || ['']
+        instructions: {
+          dos: agent.instructions?.dos || [''],
+          donts: agent.instructions?.donts || ['']
+        },
+        domainExpertise: agent.domainExpertise || [''],
+        settings: {
+          maxEmailsPerDay: agent.settings?.maxEmailsPerDay || 100,
+          followUpDelay: agent.settings?.followUpDelay || 24,
+          enableAutoResponse: agent.settings?.enableAutoResponse ?? true,
+          workingHours: agent.settings?.workingHours || {
+            start: '09:00',
+            end: '17:00',
+            timezone: 'America/New_York'
+          },
+          handoverRules: agent.settings?.handoverRules || {
+            buyingSignals: [
+              'ready to purchase',
+              'what is the price',
+              'can we schedule a demo',
+              'I want to buy',
+              'how much does it cost'
+            ],
+            escalationPhrases: [
+              'speak to a human',
+              'talk to someone',
+              'not a bot',
+              'real person',
+              'manager'
+            ]
+          }
+        }
       });
     }
   }, [agent]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name?.trim()) {
-      newErrors.name = 'Agent name is required';
-    }
-
-    if (!formData.role?.trim()) {
-      newErrors.role = 'Agent role is required';
-    }
-
-    if (!formData.endGoal?.trim()) {
-      newErrors.endGoal = 'End goal is required';
-    }
-
-    const hasDos = formData.instructions?.dos?.some((dos: string) => dos.trim());
-    const hasDonts = formData.instructions?.donts?.some((dont: string) => dont.trim());
-    if (!hasDos && !hasDonts) {
-      newErrors.instructions = 'At least one instruction (do or dont) is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSettingsChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        [field]: value
+      }
+    }));
+  };
+
+  const handleWorkingHoursChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        workingHours: {
+          ...prev.settings.workingHours,
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleInstructionChange = (type: 'dos' | 'donts', index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: {
+        ...prev.instructions,
+        [type]: prev.instructions[type].map((item, i) => i === index ? value : item)
+      }
+    }));
+  };
+
+  const addInstruction = (type: 'dos' | 'donts') => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: {
+        ...prev.instructions,
+        [type]: [...prev.instructions[type], '']
+      }
+    }));
+  };
+
+  const removeInstruction = (type: 'dos' | 'donts', index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: {
+        ...prev.instructions,
+        [type]: prev.instructions[type].filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  const handleExpertiseChange = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      domainExpertise: prev.domainExpertise.map((item, i) => i === index ? value : item)
+    }));
+  };
+
+  const addExpertise = () => {
+    setFormData(prev => ({
+      ...prev,
+      domainExpertise: [...prev.domainExpertise, '']
+    }));
+  };
+
+  const removeExpertise = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      domainExpertise: prev.domainExpertise.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Clean up empty instructions and domain expertise
-      const cleanedData = {
-        ...formData,
-        instructions: {
-          dos: formData.instructions?.dos?.filter((dos: string) => dos.trim()) || [],
-          donts: formData.instructions?.donts?.filter((dont: string) => dont.trim()) || []
-        },
-        domainExpertise: formData.domainExpertise?.filter((domain: string) => domain.trim()) || []
-      };
-
-      await onSave(cleanedData);
-    } catch (error) {
-      console.error('Failed to save agent:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const addDo = () => {
-    setFormData(prev => ({
-      ...prev,
+    // Clean up empty instructions and expertise
+    const cleanedData = {
+      ...formData,
       instructions: {
-        ...prev.instructions!,
-        dos: [...(prev.instructions?.dos || []), '']
-      }
-    }));
-  };
+        dos: formData.instructions.dos.filter(d => d.trim() !== ''),
+        donts: formData.instructions.donts.filter(d => d.trim() !== '')
+      },
+      domainExpertise: formData.domainExpertise.filter(e => e.trim() !== '')
+    };
 
-  const updateDo = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        dos: prev.instructions?.dos?.map((dos: string, i: number) => i === index ? value : dos) || []
-      }
-    }));
+    onSave(cleanedData);
   };
-
-  const removeDo = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        dos: prev.instructions?.dos?.filter((_: string, i: number) => i !== index) || []
-      }
-    }));
-  };
-
-  const addDont = () => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        donts: [...(prev.instructions?.donts || []), '']
-      }
-    }));
-  };
-
-  const updateDont = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        donts: prev.instructions?.donts?.map((dont: string, i: number) => i === index ? value : dont) || []
-      }
-    }));
-  };
-
-  const removeDont = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        donts: prev.instructions?.donts?.filter((_: string, i: number) => i !== index) || []
-      }
-    }));
-  };
-
-  const addDomainExpertise = () => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: [...(prev.domainExpertise || []), '']
-    }));
-  };
-
-  const updateDomainExpertise = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: prev.domainExpertise?.map((domain: string, i: number) => i === index ? value : domain) || []
-    }));
-  };
-
-  const removeDomainExpertise = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: prev.domainExpertise?.filter((_: string, i: number) => i !== index) || []
-    }));
-  };
-
-  const selectedAgentType = AGENT_TYPES.find(type => type.value === formData.type);
-  const selectedPersonality = PERSONALITIES.find(p => p.value === formData.personality);
-  const selectedTone = TONES.find(t => t.value === formData.tone);
-  const selectedResponseLength = RESPONSE_LENGTHS.find(r => r.value === formData.responseLength);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Basic Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Brain className="h-5 w-5" />
-            <span>{agent ? 'Edit' : 'Create'} AI Agent</span>
+            <span>{agent ? 'Edit' : 'Create'} Email Agent</span>
           </CardTitle>
           <CardDescription>
-            Configure your AI agent's basic information and behavior
+            Configure an AI agent with specific goals, instructions, and expertise
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Agent Name *</Label>
+              <Label htmlFor="name">Agent Name</Label>
               <Input
                 id="name"
-                value={formData.name || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Professional Sales Agent"
-                className={errors.name ? 'border-red-500' : ''}
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="e.g., Sales Specialist"
+                required
               />
-              {errors.name && (
-                <p className="text-sm text-red-600 flex items-center space-x-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{errors.name}</span>
-                </p>
-              )}
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="type">Agent Type *</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Select agent type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGENT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      <div className="flex flex-col">
-                        <span>{type.label}</span>
-                        <span className="text-xs text-gray-500">{type.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedAgentType && (
-                <p className="text-xs text-gray-600">{selectedAgentType.description}</p>
-              )}
+              <Label htmlFor="role">Role/Title</Label>
+              <Input
+                id="role"
+                value={formData.role}
+                onChange={(e) => handleInputChange('role', e.target.value)}
+                placeholder="e.g., Senior Account Executive"
+                required
+              />
             </div>
           </div>
 
+          {/* End Goal */}
           <div className="space-y-2">
-            <Label htmlFor="role">Agent Role *</Label>
-            <Input
-              id="role"
-              value={formData.role || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-              placeholder="e.g., Lead Qualification Specialist"
-              className={errors.role ? 'border-red-500' : ''}
-            />
-            {errors.role && (
-              <p className="text-sm text-red-600 flex items-center space-x-1">
-                <AlertCircle className="h-3 w-3" />
-                <span>{errors.role}</span>
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="endGoal">End Goal *</Label>
+            <Label htmlFor="endGoal" className="flex items-center space-x-2">
+              <Target className="h-4 w-4" />
+              <span>Campaign End Goal</span>
+            </Label>
             <Textarea
               id="endGoal"
-              value={formData.endGoal || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, endGoal: e.target.value }))}
-              placeholder="e.g., Qualify leads for automotive financing and schedule consultation calls"
+              value={formData.endGoal}
+              onChange={(e) => handleInputChange('endGoal', e.target.value)}
+              placeholder="e.g., Schedule qualified leads for product demos and convert them into paying customers"
               rows={3}
-              className={errors.endGoal ? 'border-red-500' : ''}
+              required
             />
-            {errors.endGoal && (
-              <p className="text-sm text-red-600 flex items-center space-x-1">
-                <AlertCircle className="h-3 w-3" />
-                <span>{errors.endGoal}</span>
-              </p>
-            )}
+            <p className="text-sm text-gray-500">
+              Define the specific outcome this agent should achieve through email conversations
+            </p>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="active"
-              checked={formData.active}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
-            />
-            <Label htmlFor="active">Agent is active</Label>
+          {/* Instructions - Do's */}
+          <div className="space-y-2">
+            <Label className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>Instructions - Do's</span>
+            </Label>
+            <div className="mb-3">
+              <p className="text-sm text-gray-500 mb-2">Common examples:</p>
+              <div className="flex flex-wrap gap-2">
+                {['Personalize emails with customer name', 'Focus on benefits, not features', 'Ask open-ended questions', 'Follow up within 24 hours', 'Use friendly, professional tone'].map((suggestion) => (
+                  <Badge 
+                    key={suggestion}
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-green-50 text-xs"
+                    onClick={() => {
+                      if (!formData.instructions.dos.includes(suggestion)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          instructions: {
+                            ...prev.instructions,
+                            dos: [...prev.instructions.dos.filter(d => d), suggestion]
+                          }
+                        }));
+                      }
+                    }}
+                  >
+                    + {suggestion}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {formData.instructions.dos.map((instruction, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <Input
+                    value={instruction}
+                    onChange={(e) => handleInstructionChange('dos', index, e.target.value)}
+                    placeholder="e.g., Personalize emails based on lead's industry"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeInstruction('dos', index)}
+                    disabled={formData.instructions.dos.length === 1}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addInstruction('dos')}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Do Instruction
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Personality & Communication */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <span>Personality & Communication Style</span>
-          </CardTitle>
-          <CardDescription>
-            Define how your agent communicates with leads
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          {/* Instructions - Don'ts */}
+          <div className="space-y-2">
+            <Label className="flex items-center space-x-2">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <span>Instructions - Don'ts</span>
+            </Label>
+            <div className="mb-3">
+              <p className="text-sm text-gray-500 mb-2">Common examples:</p>
+              <div className="flex flex-wrap gap-2">
+                {['Use aggressive sales tactics', 'Send more than 3 follow-ups', 'Ignore customer objections', 'Use industry jargon', 'Push for immediate decisions'].map((suggestion) => (
+                  <Badge 
+                    key={suggestion}
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-red-50 text-xs"
+                    onClick={() => {
+                      if (!formData.instructions.donts.includes(suggestion)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          instructions: {
+                            ...prev.instructions,
+                            donts: [...prev.instructions.donts.filter(d => d), suggestion]
+                          }
+                        }));
+                      }
+                    }}
+                  >
+                    + {suggestion}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {formData.instructions.donts.map((instruction, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <Input
+                    value={instruction}
+                    onChange={(e) => handleInstructionChange('donts', index, e.target.value)}
+                    placeholder="e.g., Don't use aggressive sales tactics"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeInstruction('donts', index)}
+                    disabled={formData.instructions.donts.length === 1}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addInstruction('donts')}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Don't Instruction
+              </Button>
+            </div>
+          </div>
+
+          {/* Domain Expertise */}
+          <div className="space-y-2">
+            <Label className="flex items-center space-x-2">
+              <Sparkles className="h-4 w-4" />
+              <span>Domain Expertise</span>
+            </Label>
+            <div className="mb-3">
+              <p className="text-sm text-gray-500 mb-2">Quick suggestions:</p>
+              <div className="flex flex-wrap gap-2">
+                {['Auto Financing', 'Subprime Credit', 'Vehicle Sales', 'Customer Service', 'Lead Qualification', 'B2B Sales', 'Credit Analysis'].map((suggestion) => (
+                  <Badge 
+                    key={suggestion}
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-blue-50 text-xs"
+                    onClick={() => {
+                      if (!formData.domainExpertise.includes(suggestion)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          domainExpertise: [...prev.domainExpertise.filter(e => e), suggestion]
+                        }));
+                      }
+                    }}
+                  >
+                    + {suggestion}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {formData.domainExpertise.map((expertise, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <Input
+                    value={expertise}
+                    onChange={(e) => handleExpertiseChange(index, e.target.value)}
+                    placeholder="e.g., Auto Financing, Credit Analysis, Customer Service"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeExpertise(index)}
+                    disabled={formData.domainExpertise.length === 1}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addExpertise}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Expertise Area
+              </Button>
+            </div>
+          </div>
+
+          {/* Personality & Tone */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="personality">Personality</Label>
               <Select
                 value={formData.personality}
-                onValueChange={(value: any) => setFormData(prev => ({ ...prev, personality: value }))}
+                onValueChange={(value) => handleInputChange('personality', value)}
               >
-                <SelectTrigger id="personality">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PERSONALITIES.map((personality) => (
-                    <SelectItem key={personality.value} value={personality.value}>
-                      <div className="flex flex-col">
-                        <span>{personality.label}</span>
-                        <span className="text-xs text-gray-500">{personality.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="professional">Professional</SelectItem>
+                  <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
+                  <SelectItem value="consultative">Consultative</SelectItem>
+                  <SelectItem value="casual">Casual</SelectItem>
+                  <SelectItem value="authoritative">Authoritative</SelectItem>
                 </SelectContent>
               </Select>
-              {selectedPersonality && (
-                <p className="text-xs text-gray-600">{selectedPersonality.description}</p>
-              )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="tone">Communication Tone</Label>
               <Select
                 value={formData.tone}
-                onValueChange={(value: any) => setFormData(prev => ({ ...prev, tone: value }))}
+                onValueChange={(value) => handleInputChange('tone', value)}
               >
-                <SelectTrigger id="tone">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TONES.map((tone) => (
-                    <SelectItem key={tone.value} value={tone.value}>
-                      <div className="flex flex-col">
-                        <span>{tone.label}</span>
-                        <span className="text-xs text-gray-500">{tone.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="friendly">Friendly</SelectItem>
+                  <SelectItem value="formal">Formal</SelectItem>
+                  <SelectItem value="conversational">Conversational</SelectItem>
+                  <SelectItem value="direct">Direct</SelectItem>
+                  <SelectItem value="empathetic">Empathetic</SelectItem>
                 </SelectContent>
               </Select>
-              {selectedTone && (
-                <p className="text-xs text-gray-600">{selectedTone.description}</p>
-              )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="responseLength">Response Length</Label>
-            <Select
-              value={formData.responseLength}
-              onValueChange={(value: any) => setFormData(prev => ({ ...prev, responseLength: value }))}
-            >
-              <SelectTrigger id="responseLength">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RESPONSE_LENGTHS.map((length) => (
-                  <SelectItem key={length.value} value={length.value}>
-                    <div className="flex flex-col">
-                      <span>{length.label}</span>
-                      <span className="text-xs text-gray-500">{length.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedResponseLength && (
-              <p className="text-xs text-gray-600">{selectedResponseLength.description}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BookOpen className="h-5 w-5" />
-            <span>Instructions</span>
-          </CardTitle>
-          <CardDescription>
-            Provide specific instructions for how the agent should behave
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Do's */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Do's (What the agent should do)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addDo}
-                className="flex items-center space-x-1"
-              >
-                <Plus className="h-3 w-3" />
-                <span>Add Do</span>
-              </Button>
-            </div>
-            {formData.instructions?.dos?.map((doItem: string, index: number) => (
-              <div key={index} className="flex items-start space-x-2">
-                <div className="flex-1">
+          {/* Advanced Settings */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4 flex items-center space-x-2">
+              <MessageSquare className="h-5 w-5" />
+              <span>Advanced Settings</span>
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="maxEmailsPerDay">Max Emails per Day</Label>
                   <Input
-                    value={doItem}
-                    onChange={(e) => updateDo(index, e.target.value)}
-                    placeholder={`Do instruction ${index + 1}`}
+                    id="maxEmailsPerDay"
+                    type="number"
+                    value={formData.settings.maxEmailsPerDay}
+                    onChange={(e) => handleSettingsChange('maxEmailsPerDay', parseInt(e.target.value))}
+                    min="1"
+                    max="500"
                   />
                 </div>
-                {(formData.instructions?.dos?.length || 0) > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeDo(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Don'ts */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Don'ts (What the agent should avoid)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addDont}
-                className="flex items-center space-x-1"
-              >
-                <Plus className="h-3 w-3" />
-                <span>Add Don't</span>
-              </Button>
-            </div>
-            {formData.instructions?.donts?.map((dontItem: string, index: number) => (
-              <div key={index} className="flex items-start space-x-2">
-                <div className="flex-1">
+                <div className="space-y-2">
+                  <Label htmlFor="followUpDelay">Follow-up Delay (hours)</Label>
                   <Input
-                    value={dontItem}
-                    onChange={(e) => updateDont(index, e.target.value)}
-                    placeholder={`Don't instruction ${index + 1}`}
+                    id="followUpDelay"
+                    type="number"
+                    value={formData.settings.followUpDelay}
+                    onChange={(e) => handleSettingsChange('followUpDelay', parseInt(e.target.value))}
+                    min="1"
+                    max="168"
                   />
                 </div>
-                {(formData.instructions?.donts?.length || 0) > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeDont(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
-            ))}
-          </div>
 
-          {errors.instructions && (
-            <p className="text-sm text-red-600 flex items-center space-x-1">
-              <AlertCircle className="h-3 w-3" />
-              <span>{errors.instructions}</span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={formData.settings.enableAutoResponse}
+                  onCheckedChange={(checked) => handleSettingsChange('enableAutoResponse', checked)}
+                />
+                <Label>Enable automatic responses to replies</Label>
+              </div>
 
-      {/* Domain Expertise */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Target className="h-5 w-5" />
-            <span>Domain Expertise</span>
-          </CardTitle>
-          <CardDescription>
-            Define areas of expertise for industry-specific knowledge
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            {formData.domainExpertise?.map((domain: string, index: number) => (
-              <div key={index} className="flex items-start space-x-2">
-                <div className="flex-1 space-y-1">
+              <div className="space-y-2">
+                <Label>Working Hours</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime" className="text-sm">Start Time</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.settings.workingHours.start}
+                      onChange={(e) => handleWorkingHoursChange('start', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime" className="text-sm">End Time</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.settings.workingHours.end}
+                      onChange={(e) => handleWorkingHoursChange('end', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone" className="text-sm">Timezone</Label>
+                    <Select
+                      value={formData.settings.workingHours.timezone}
+                      onValueChange={(value) => handleWorkingHoursChange('timezone', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern</SelectItem>
+                        <SelectItem value="America/Chicago">Central</SelectItem>
+                        <SelectItem value="America/Denver">Mountain</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => handleInputChange('isActive', checked)}
+                />
+                <Label>Agent is active</Label>
+              </div>
+            </div>
+
+            {/* Handover Rules */}
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-sm font-medium flex items-center space-x-2">
+                <Target className="h-4 w-4" />
+                <span>Handover Rules</span>
+              </h4>
+              <p className="text-sm text-gray-500">
+                Define phrases that indicate when to hand over the conversation to a human agent
+              </p>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Buying Signals</Label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Phrases that indicate the lead is ready to make a purchase
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.settings.handoverRules.buyingSignals.map((signal, idx) => (
+                      <Badge key={idx} variant="secondary" className="pr-1">
+                        {signal}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 ml-1"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              settings: {
+                                ...prev.settings,
+                                handoverRules: {
+                                  ...prev.settings.handoverRules,
+                                  buyingSignals: prev.settings.handoverRules.buyingSignals.filter((_, i) => i !== idx)
+                                }
+                              }
+                            }));
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
                   <Input
-                    value={domain}
-                    onChange={(e) => updateDomainExpertise(index, e.target.value)}
-                    placeholder={`Domain expertise ${index + 1}`}
+                    placeholder="Add buying signal phrase..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        if (input.value.trim()) {
+                          setFormData(prev => ({
+                            ...prev,
+                            settings: {
+                              ...prev.settings,
+                              handoverRules: {
+                                ...prev.settings.handoverRules,
+                                buyingSignals: [...prev.settings.handoverRules.buyingSignals, input.value.trim()]
+                              }
+                            }
+                          }));
+                          input.value = '';
+                        }
+                      }
+                    }}
                   />
                 </div>
-                {(formData.domainExpertise?.length || 0) > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeDomainExpertise(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addDomainExpertise}
-            className="flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Domain Expertise</span>
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* AI Model Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Settings className="h-5 w-5" />
-            <span>AI Model Settings</span>
-          </CardTitle>
-          <CardDescription>
-            Fine-tune the AI model parameters for optimal performance
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="apiModel">API Model (Optional)</Label>
-            <Input
-              id="apiModel"
-              value={formData.apiModel || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, apiModel: e.target.value }))}
-              placeholder="e.g., gpt-4, claude-3, leave blank for default"
-            />
-            <p className="text-xs text-gray-600">
-              Specify a custom AI model or leave blank to use the system default
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="temperature">Creativity (Temperature)</Label>
-                <Badge variant="outline">{formData.temperature}%</Badge>
-              </div>
-              <Slider
-                id="temperature"
-                value={[formData.temperature || 70]}
-                onValueChange={(value: number[]) => setFormData(prev => ({ ...prev, temperature: value[0] }))}
-                max={100}
-                min={0}
-                step={5}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-600">
-                Lower values = more focused and deterministic responses. Higher values = more creative and varied responses.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="maxTokens">Max Response Length</Label>
-                <Badge variant="outline">{formData.maxTokens} tokens</Badge>
-              </div>
-              <Slider
-                id="maxTokens"
-                value={[formData.maxTokens || 500]}
-                onValueChange={(value: number[]) => setFormData(prev => ({ ...prev, maxTokens: value[0] }))}
-                max={2000}
-                min={100}
-                step={50}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-600">
-                Controls the maximum length of AI responses. ~4 characters per token.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Preview */}
-      {formData.name && formData.endGoal && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Info className="h-5 w-5" />
-              <span>Agent Preview</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-blue-900">{formData.name}</h4>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={formData.active ? 'default' : 'secondary'}>
-                    {formData.active ? 'Active' : 'Inactive'}
-                  </Badge>
-                  <Badge variant="outline">{selectedAgentType?.label}</Badge>
+                <div className="space-y-2">
+                  <Label>Escalation Phrases</Label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Phrases that indicate the lead wants to speak with a human
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.settings.handoverRules.escalationPhrases.map((phrase, idx) => (
+                      <Badge key={idx} variant="secondary" className="pr-1">
+                        {phrase}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 ml-1"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              settings: {
+                                ...prev.settings,
+                                handoverRules: {
+                                  ...prev.settings.handoverRules,
+                                  escalationPhrases: prev.settings.handoverRules.escalationPhrases.filter((_, i) => i !== idx)
+                                }
+                              }
+                            }));
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <Input
+                    placeholder="Add escalation phrase..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        if (input.value.trim()) {
+                          setFormData(prev => ({
+                            ...prev,
+                            settings: {
+                              ...prev.settings,
+                              handoverRules: {
+                                ...prev.settings.handoverRules,
+                                escalationPhrases: [...prev.settings.handoverRules.escalationPhrases, input.value.trim()]
+                              }
+                            }
+                          }));
+                          input.value = '';
+                        }
+                      }
+                    }}
+                  />
                 </div>
               </div>
-              <p className="text-sm text-blue-800">
-                <strong>Role:</strong> {formData.role}
-              </p>
-              <p className="text-sm text-blue-800">
-                <strong>Goal:</strong> {formData.endGoal}
-              </p>
-              <p className="text-sm text-blue-800">
-                <strong>Style:</strong> {selectedPersonality?.label} personality with {selectedTone?.label.toLowerCase()} tone
-              </p>
-              {formData.instructions && (
-                <p className="text-sm text-blue-800">
-                  <strong>Instructions:</strong> {(formData.instructions.dos?.filter((dos: string) => dos.trim()).length || 0) + (formData.instructions.donts?.filter((dont: string) => dont.trim()).length || 0)} configured
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Zap className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start space-x-2">
+                  <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <p className="text-sm text-blue-800">
+                    When these phrases are detected, the agent will stop the campaign and notify the human team for immediate follow-up.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit">
               {agent ? 'Update' : 'Create'} Agent
-            </>
-          )}
-        </Button>
-      </div>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </form>
   );
 }

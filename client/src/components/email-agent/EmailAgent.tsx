@@ -3,24 +3,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Mail,
-  Settings,
-  Send,
-  FileText,
+import { 
+  Mail, 
+  Settings, 
+  Send, 
+  FileText, 
   Target,
   Brain,
   Plus,
   Edit,
-  Trash2,
-  Users
+  Trash2
 } from 'lucide-react';
 import { AgentConfigurator } from './AgentConfigurator';
 import { CampaignManager } from './CampaignManager';
 import { TemplateEditor } from './TemplateEditor';
 import { CampaignAnalytics } from './CampaignAnalytics';
-import { LeadView } from './LeadView';
-import { UnifiedAgentConfig } from '@/types';
+
+interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  endGoal: string;
+  instructions: {
+    dos: string[];
+    donts: string[];
+  };
+  domainExpertise: string[];
+  personality: string;
+  tone: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface Campaign {
   id: string;
@@ -39,23 +53,15 @@ interface Campaign {
 
 export function EmailAgent() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [agents, setAgents] = useState<UnifiedAgentConfig[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [leads, setLeads] = useState<any[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<UnifiedAgentConfig | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showAgentForm, setShowAgentForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    // Load leads when switching to leads tab
-    if (activeTab === 'leads') {
-      loadLeads();
-    }
-  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -82,23 +88,7 @@ export function EmailAgent() {
     }
   };
 
-  const loadLeads = async () => {
-    try {
-      const response = await fetch('/api/leads?limit=50');
-      if (response.ok) {
-        const data = await response.json();
-        setLeads(data.data || []);
-      } else {
-        console.error('Failed to load leads:', response.status);
-        setLeads([]);
-      }
-    } catch (error) {
-      console.error('Error loading leads:', error);
-      setLeads([]);
-    }
-  };
-
-  const handleAgentSave = async (agent: Partial<UnifiedAgentConfig>) => {
+  const handleAgentSave = async (agent: Partial<Agent>) => {
     try {
       const url = agent.id 
         ? `/api/email/agents/${agent.id}`
@@ -183,7 +173,7 @@ export function EmailAgent() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="flex items-center space-x-2">
             <Brain className="h-4 w-4" />
             <span>Overview</span>
@@ -204,10 +194,6 @@ export function EmailAgent() {
             <Target className="h-4 w-4" />
             <span>Analytics</span>
           </TabsTrigger>
-          <TabsTrigger value="leads" className="flex items-center space-x-2">
-            <Users className="h-4 w-4" />
-            <span>Leads</span>
-          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -219,9 +205,9 @@ export function EmailAgent() {
                 <Brain className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(agents || []).filter(a => a.active).length}</div>
+                <div className="text-2xl font-bold">{agents.filter(a => a.isActive).length}</div>
                 <p className="text-xs text-muted-foreground">
-                  {(agents || []).length} total agents
+                  {agents.length} total agents
                 </p>
               </CardContent>
             </Card>
@@ -233,10 +219,10 @@ export function EmailAgent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(campaigns || []).filter(c => c.status === 'active').length}
+                  {campaigns.filter(c => c.status === 'active').length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {(campaigns || []).length} total campaigns
+                  {campaigns.length} total campaigns
                 </p>
               </CardContent>
             </Card>
@@ -283,7 +269,7 @@ export function EmailAgent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(campaigns || []).slice(0, 5).map((campaign) => (
+                  {campaigns.slice(0, 5).map((campaign) => (
                     <div key={campaign.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <Mail className="h-5 w-5 text-gray-400" />
@@ -316,7 +302,7 @@ export function EmailAgent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(agents || []).filter(a => a.active).slice(0, 5).map((agent) => {
+                  {agents.filter(a => a.isActive).slice(0, 5).map((agent) => {
                     const agentCampaigns = campaigns.filter(c => c.agentId === agent.id);
                     const totalSent = agentCampaigns.reduce((acc, c) => acc + c.stats.sent, 0);
                     const totalOpened = agentCampaigns.reduce((acc, c) => acc + c.stats.opened, 0);
@@ -365,7 +351,7 @@ export function EmailAgent() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {(agents || []).map((agent) => (
+              {agents.map((agent) => (
                 <Card key={agent.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -378,8 +364,8 @@ export function EmailAgent() {
                           <CardDescription>{agent.role}</CardDescription>
                         </div>
                       </div>
-                      <Badge variant={agent.active ? 'default' : 'secondary'}>
-                        {agent.active ? 'Active' : 'Inactive'}
+                      <Badge variant={agent.isActive ? 'default' : 'secondary'}>
+                        {agent.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -392,7 +378,7 @@ export function EmailAgent() {
                       <div>
                         <p className="text-sm font-medium text-gray-700">Domain Expertise</p>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {(agent.domainExpertise || []).map((expertise: string, idx: number) => (
+                          {agent.domainExpertise.map((expertise, idx) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               {expertise}
                             </Badge>
@@ -419,7 +405,7 @@ export function EmailAgent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => agent.id && handleAgentDelete(agent.id)}
+                        onClick={() => handleAgentDelete(agent.id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -463,15 +449,6 @@ export function EmailAgent() {
         {/* Analytics Tab */}
         <TabsContent value="analytics">
           <CampaignAnalytics campaigns={campaigns} agents={agents} />
-        </TabsContent>
-
-        {/* Leads Tab */}
-        <TabsContent value="leads">
-          <LeadView 
-            leads={leads}
-            onLeadSelect={(lead) => console.log('Selected lead:', lead)}
-            onModeSwitch={(leadId, newMode) => console.log('Switch lead', leadId, 'to', newMode)}
-          />
         </TabsContent>
       </Tabs>
     </div>

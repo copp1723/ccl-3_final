@@ -78,6 +78,19 @@ Follow these steps to get the application running locally:
 
 ℹ️ The `dev:quick` script often uses mock data and services. For setup with a real database and external services, consult the detailed guides in the `docs/` directory, particularly regarding environment variable configuration (`.env` file based on `.env.example`).
 
+## 📚 Documentation
+
+For detailed documentation, please refer to the following guides in the `docs/` folder:
+
+- **[Project Structure](docs/guides/PROJECT_STRUCTURE.md)** - Understand the codebase organization
+- **[Quick Start Guide](docs/guides/QUICK_START.md)** - Get up and running quickly
+- **[Troubleshooting Guide](docs/guides/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Email Agent Implementation](docs/guides/EMAIL_AGENT_IMPLEMENTATION.md)** - Email system details
+- **[Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md)** - System design overview
+- **[Operations Manual](docs/OPERATIONS_MANUAL.md)** - Production operations guide
+
+See the full [Documentation Hub](docs/README.md) for all available documentation.
+
 ##🧪 Running Tests
 
 Test files are located in the `tests/` directory. To run tests, you can typically use scripts defined in `package.json`. Look for scripts like:
@@ -88,6 +101,16 @@ Test files are located in the `tests/` directory. To run tests, you can typicall
 *   `npm run test:integration`
 
 Please refer to `package.json` and any `README.md` files within the `tests/` directory for specific commands and testing procedures.
+
+##✅ Code Validation
+
+Run linting, type checks, and the unit test suite in a single step:
+
+```bash
+npm run validate
+```
+
+This script helps ensure code quality before committing changes.
 
 ##☁️ Deployment
 

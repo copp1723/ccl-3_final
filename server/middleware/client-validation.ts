@@ -60,8 +60,8 @@ export async function clientValidation(req: ClientRequest, res: Response, next: 
     // 5. Validate and fetch client data
     const clientData = await dbConnectionManager.executeWithFallback(
       async () => {
-        const { clientsRepository } = await import('../db/clients-repository');
-        return await clientsRepository.findById(clientId!);
+        const { ClientsRepository } = await import('../db/index');
+        return await ClientsRepository.findById(clientId!);
       },
       () => {
         // Fallback: use mock data

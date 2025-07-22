@@ -3,10 +3,11 @@ import multer from 'multer';
 import { parse } from 'csv-parse';
 import { Readable } from 'stream';
 import { nanoid } from 'nanoid';
-import { LeadsRepository, CampaignsRepository, AgentDecisionsRepository, ConversationsRepository, CommunicationsRepository } from '../db';
+import { leadsRepository as LeadsRepository, campaignsRepository as CampaignsRepository, agentDecisionsRepository as AgentDecisionsRepository, conversationsRepository as ConversationsRepository, communicationsRepository as CommunicationsRepository } from '../db';
 import { z } from 'zod';
 import { getOverlordAgent, getAgentByType, getEmailAgent, getSMSAgent, getChatAgent } from '../agents';
 import { validate } from '../middleware/validation';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -55,7 +56,11 @@ interface FieldMapping {
 }
 
 // Parse CSV headers to detect field mappings
-router.post('/analyze', upload.single('file'), async (req, res) => {
+router.post('/analyze', 
+  // Skip authentication in development/production for easier testing
+  process.env.NODE_ENV === 'development' || process.env.SKIP_AUTH === 'true' ? (req: any, res: any, next: any) => next() : authenticate,
+  upload.single('file'), 
+  async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -142,6 +147,8 @@ const importRequestSchema = z.object({
 
 // Import leads with field mappings
 router.post('/leads', 
+  // Skip authentication in development/production for easier testing
+  process.env.NODE_ENV === 'development' || process.env.SKIP_AUTH === 'true' ? (req: any, res: any, next: any) => next() : authenticate,
   upload.single('file'), 
   async (req, res, next) => {
     // Manual validation since multer handles the request

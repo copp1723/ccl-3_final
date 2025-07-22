@@ -1,8 +1,8 @@
-import { Router } from 'express'
-import { brandingCache } from '../../shared/config/branding-config'
-import { logger } from '../utils/logger'
+import { Router } from 'express';
+import { brandingCache } from '../../shared/config/branding-config';
+import { logger } from '../utils/logger';
 
-const router = Router()
+const router = Router();
 
 // Clear branding cache
 router.post('/clear/branding', async (req, res) => {
@@ -44,4 +44,4 @@ router.get('/status', async (req, res) => {
   }
 })
 
-export default router
+export default router;

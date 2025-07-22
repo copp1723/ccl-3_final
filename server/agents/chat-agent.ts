@@ -90,17 +90,20 @@ Create a helpful chat response that:
 5. Keeps it concise (2-3 sentences max)`;
     }
 
-    const response = await this.callOpenRouter(prompt, systemPrompt, {
-      temperature: agentConfig?.temperature ? agentConfig.temperature / 100 : 0.7,
-      max_tokens: agentConfig?.maxTokens || 300
-    });
-    
-    // Store outgoing chat response in supermemory
-    await this.storeMemory(`Chat response to ${lead.name || 'Visitor'}: ${response}`, {
-      leadId: lead.id,
-      type: 'chat_sent',
-      campaign: campaign?.name
-    });
+    const response = await this.generateResponse(
+      prompt,
+      systemPrompt,
+      {
+        leadId: lead.id,
+        leadName: lead.name || 'Visitor',
+        type: 'chat_sent',
+        metadata: { campaign: campaign?.name }
+      },
+      {
+        temperature: agentConfig?.temperature ? agentConfig.temperature / 100 : 0.7,
+        maxTokens: agentConfig?.maxTokens || 300
+      }
+    );
 
     return response;
   }
@@ -136,14 +139,16 @@ The message should:
 4. Ask how you can assist
 5. Be brief and friendly (2-3 sentences)`;
 
-    const greeting = await this.callOpenRouter(prompt, systemPrompt);
-    
-    // Store initial chat greeting in supermemory
-    await this.storeMemory(`Initial chat greeting to ${lead.name || 'Visitor'}: ${greeting}`, {
-      leadId: lead.id,
-      type: 'initial_chat',
-      focus
-    });
+    const greeting = await this.generateResponse(
+      prompt,
+      systemPrompt,
+      {
+        leadId: lead.id,
+        leadName: lead.name || 'Visitor',
+        type: 'initial_chat',
+        metadata: { focus }
+      }
+    );
 
     return greeting;
   }

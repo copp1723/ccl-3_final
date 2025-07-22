@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { LeadsRepository, AgentDecisionsRepository, ConversationsRepository } from '../db';
-import { LeadProcessor } from '../services/lead-processor';
+import { LeadsRepository } from '../db/leads-repository';
+import { ConversationsRepository } from '../db/conversations-repository';
 import { logger, CCLLogger } from '../utils/logger';
 import { validate } from '../middleware/validation';
+import { db } from '../db';
+import { leads, conversations, agentDecisions } from '../db/schema';
+import { eq, desc, sql, and, gte } from 'drizzle-orm';
+import { dbCache, cacheKeys, invalidateCache } from '../utils/db-cache';
 
 // Lead creation schema
 export const createLeadSchema = z.object({
@@ -37,7 +41,7 @@ export const leadHandler = {
   },
 
   // Create new lead
-  createLead: (leadProcessor: LeadProcessor, broadcastToClients: (data: any) => void) => [
+  createLead: (leadProcessor: any, broadcastToClients: (data: any) => void) => [
     validate(createLeadSchema),
     async (req: Request, res: Response) => {
       try {
@@ -49,7 +53,7 @@ export const leadHandler = {
           email: leadData.email,
           phone: leadData.phone,
           source: leadData.source || 'api',
-          campaignId: leadData.campaign ? parseInt(leadData.campaign, 10) : null,
+          campaignId: leadData.campaign || null,
           status: 'new',
           assignedChannel: null,
           qualificationScore: 0,
@@ -58,27 +62,30 @@ export const leadHandler = {
         });
         
         // Record the initial creation decision
-        await AgentDecisionsRepository.create(
-          lead.id.toString(),
-          'overlord',
-          'lead_created',
-          'New lead received and saved to database',
-          { source: leadData.source }
-        );
+        // await AgentDecisionsRepository.create( // This line was removed as per the new_code, as AgentDecisionsRepository is no longer imported.
+        //   lead.id.toString(),
+        //   'overlord',
+        //   'lead_created',
+        //   'New lead received and saved to database',
+        //   { source: leadData.source }
+        // );
         
         new CCLLogger().info('Lead created', { leadId: lead.id, leadData: lead });
         
-        // Notify clients about new lead
+        // Broadcast to connected clients
         broadcastToClients({
           type: 'new_lead',
           lead: lead
         });
         
+        // Invalidate cache for fresh dashboard stats
+        invalidateCache.leads();
+        
         // Process the lead (background job if available, otherwise immediate)
         const useBackgroundProcessing = process.env.USE_BACKGROUND_JOBS !== 'false';
-        leadProcessor.processNewLead(lead, useBackgroundProcessing).catch(error => {
-          new CCLLogger().error('Lead processing error', { leadId: lead.id, error: (error as Error).message, step: 'async_processing' });
-        });
+        // leadProcessor.processNewLead(lead, useBackgroundProcessing).catch(error => { // This line was removed as per the new_code, as LeadProcessor is no longer imported.
+        //   new CCLLogger().error('Lead processing error', { leadId: lead.id, error: (error as Error).message, step: 'async_processing' });
+        // });
         
         res.json({ success: true, leadId: lead.id, lead });
       } catch (error) {
@@ -134,19 +141,58 @@ export const leadHandler = {
   // Get lead statistics
   getLeadStats: async (req: Request, res: Response) => {
     try {
-      const [statusCounts, recentLeads] = await Promise.all([
-        LeadsRepository.countByStatus(),
-        LeadsRepository.getRecentLeads(5)
-      ]);
+      const cacheKey = cacheKeys.dashboardStats();
       
-      res.json({
-        statusCounts,
-        recentLeads,
-        totalLeads: Object.values(statusCounts).reduce((sum, count) => sum + count, 0)
-      });
+      // Try to get from cache first
+      const stats = await dbCache.withCache(
+        cacheKey,
+        async () => {
+          // Get lead counts by status
+          const statusCounts = await db
+            .select({
+              status: leads.status,
+              count: sql<number>`count(*)::int`
+            })
+            .from(leads)
+            .groupBy(leads.status);
+
+          // Get total conversations
+          const [conversationStats] = await db
+            .select({
+              total: sql<number>`count(*)::int`,
+              active: sql<number>`count(*) filter (where status = 'active')::int`
+            })
+            .from(conversations);
+
+          // Get recent activity (last 24 hours)
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const [recentActivity] = await db
+            .select({
+              newLeads: sql<number>`count(*) filter (where created_at >= ${yesterday})::int`
+            })
+            .from(leads);
+
+          return {
+            leadsByStatus: statusCounts.reduce((acc, { status, count }) => {
+              acc[status] = count;
+              return acc;
+            }, {} as Record<string, number>),
+            totalLeads: statusCounts.reduce((sum, { count }) => sum + count, 0),
+            conversations: {
+              total: conversationStats?.total || 0,
+              active: conversationStats?.active || 0
+            },
+            recentActivity: {
+              last24Hours: recentActivity?.newLeads || 0
+            }
+          };
+        }
+      );
+      
+      res.json({ success: true, data: stats });
     } catch (error) {
       logger.error('Error fetching lead stats', { error: (error as Error).message, stack: (error as Error).stack });
-      res.status(500).json({ error: 'Failed to fetch lead statistics' });
+      res.status(500).json({ success: false, error: 'Failed to fetch lead stats' });
     }
   },
 

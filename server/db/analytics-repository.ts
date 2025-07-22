@@ -203,8 +203,7 @@ export class AnalyticsRepository {
 
   // Campaign performance
   static async getCampaignPerformance(campaignId?: string) {
-    const numericCampaignId = campaignId ? parseInt(campaignId, 10) : undefined;
-    const campaignCondition = numericCampaignId && !isNaN(numericCampaignId) ? eq(leads.campaignId, numericCampaignId) : undefined;
+    const campaignCondition = campaignId ? eq(leads.campaignId, campaignId) : undefined;
 
     const performance = await db
       .select({

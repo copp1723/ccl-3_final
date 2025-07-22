@@ -22,16 +22,20 @@ export const auditLog = (options: AuditOptions) => {
         const changes = options.getChanges ? options.getChanges(req) : req.body;
         
         // Log asynchronously to not slow down response
-        AuditLogRepository.create({
-          userId: req.user?.id,
+        // Validate data before logging to prevent UUID errors
+        const auditData = {
+          userId: req.user?.id || undefined, // Let the repository handle undefined
           action: options.action,
           resource: options.resource,
-          resourceId,
-          changes,
-          ipAddress: req.ip,
-          userAgent: req.get('user-agent')
-        }).catch(error => {
-          console.error('Audit log error:', error);
+          resourceId: resourceId || undefined,
+          changes: changes || undefined,
+          ipAddress: req.ip || undefined,
+          userAgent: req.get('user-agent') || undefined
+        };
+        
+        // Only log if we have valid data
+        AuditLogRepository.create(auditData).catch(error => {
+          console.error('Audit log error:', error.message);
         });
       }
       
@@ -94,13 +98,13 @@ export const auditBatch = (resource: string, action: 'create' | 'update' | 'dele
         Promise.all(
           resourceIds.map((resourceId: string, index: number) =>
             AuditLogRepository.create({
-              userId: req.user?.id,
+              userId: req.user?.id || undefined,
               action,
               resource,
               resourceId,
-              changes: items[index],
-              ipAddress: req.ip,
-              userAgent: req.get('user-agent')
+              changes: items[index] || undefined,
+              ipAddress: req.ip || undefined,
+              userAgent: req.get('user-agent') || undefined
             })
           )
         ).catch(error => {

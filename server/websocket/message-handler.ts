@@ -223,11 +223,9 @@ export class WebSocketMessageHandler {
     
     // Get chat agent response
     const chatAgent = getChatAgent();
-    const response = await chatAgent.generateResponse({
+    const response = await chatAgent.processMessage(data.content, {
       lead: chatLead,
-      message: data.content,
-      conversation: conversation,
-      session: { id: data.sessionId }
+      conversationHistory: conversation.messages || []
     });
     
     // Store outgoing message
@@ -235,41 +233,31 @@ export class WebSocketMessageHandler {
       leadId,
       'chat',
       'outbound',
-      response.content,
+      response,
       'delivered',
       null,
-      { sessionId: data.sessionId, quickReplies: response.quickReplies }
+      { sessionId: data.sessionId }
     );
     
     // Update conversation
     await ConversationsRepository.appendMessage(
       conversation.id,
       'assistant',
-      response.content
+      response
     );
     
     // Send response
     ws.send(JSON.stringify({
       type: 'chat:message',
       id: nanoid(),
-      content: response.content,
+      content: response,
       sender: 'agent',
       timestamp: new Date(),
-      quickReplies: response.quickReplies
+      quickReplies: []
     }));
     
     // Stop typing indicator
     ws.send(JSON.stringify({ type: 'chat:stopTyping' }));
-    
-    // Check if we need to hand over to human
-    if (response.shouldHandover) {
-      this.broadcastCallback({
-        type: 'chat_handover_requested',
-        lead: chatLead,
-        conversation: conversation,
-        reason: response.handoverReason
-      });
-    }
   }
 
   private handleConnectionClose(ws: any) {

@@ -1,7 +1,7 @@
 import { Lead, Campaign } from '../db/schema';
 import { logger } from '../utils/logger';
 import { executeWithOpenRouterBreaker } from '../utils/circuit-breaker';
-import { superMemory } from '../services/supermemory';
+import { superMemory, mockSuperMemory } from '../services/supermemory';
 import { ModelRouter, ModelRequestOptions } from '../utils/model-router';
 
 export interface AgentContext {
@@ -24,7 +24,8 @@ export abstract class BaseAgent {
   }
 
   protected async storeMemory(content: string, metadata?: Record<string, any>): Promise<void> {
-    await superMemory.addMemory({
+    const memory = superMemory || mockSuperMemory;
+    await memory.addMemory({
       content,
       metadata: {
         agentType: this.agentType,
@@ -36,11 +37,43 @@ export abstract class BaseAgent {
   }
 
   protected async searchMemory(query: string, limit: number = 5): Promise<any[]> {
-    return await superMemory.searchMemories(query, limit);
+    const memory = superMemory || mockSuperMemory;
+    return await memory.searchMemories(query, limit);
   }
 
   abstract processMessage(message: string, context: AgentContext): Promise<string>;
   abstract makeDecision(context: AgentContext): Promise<AgentDecision>;
+
+  /**
+   * Common method for generating AI responses
+   * This encapsulates the logic for building prompts, calling OpenRouter, and storing in supermemory
+   */
+  protected async generateResponse(
+    prompt: string,
+    systemPrompt: string,
+    context: {
+      leadId: string;
+      leadName?: string;
+      type: string;
+      metadata?: Record<string, any>;
+    },
+    options: Partial<ModelRequestOptions> = {}
+  ): Promise<string> {
+    // Call OpenRouter with the provided prompts
+    const response = await this.callOpenRouter(prompt, systemPrompt, options);
+    
+    // Store the response in supermemory
+    await this.storeMemory(
+      `${this.agentType} response to ${context.leadName || 'user'}: ${response}`,
+      {
+        leadId: context.leadId,
+        type: context.type,
+        ...context.metadata
+      }
+    );
+
+    return response;
+  }
 
   protected async callOpenRouter(
     prompt: string,

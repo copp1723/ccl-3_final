@@ -5,6 +5,8 @@ import { ChatAgent } from './chat-agent';
 import { CCLLogger } from '../utils/logger';
 import { ConversationsRepository, CampaignsRepository } from '../db';
 import { Lead } from '../db/schema';
+import { EventEmitter } from 'events';
+import { WebSocketMessageHandler } from '../websocket/message-handler';
 
 interface AgentCapabilities {
   email: boolean;
@@ -27,16 +29,408 @@ interface ScheduleSyncData {
   lastSyncTime: Date;
 }
 
-export class AgentCommunicationHub {
+// Agent-to-agent message types
+interface AgentMessage {
+  id: string;
+  from: string;
+  to: string;
+  type: 'decision' | 'status' | 'handover' | 'goal_update' | 'coordination';
+  payload: any;
+  timestamp: Date;
+}
+
+// Goal progress tracking
+interface GoalProgress {
+  campaignId: string;
+  leadId: string;
+  goals: {
+    [goalName: string]: {
+      target: number;
+      current: number;
+      completed: boolean;
+      lastUpdated: Date;
+    };
+  };
+}
+
+export class AgentCommunicationHub extends EventEmitter {
   private emailAgent: EmailAgent;
   private smsAgent: SMSAgent;
   private chatAgent: ChatAgent;
   private activeSyncs: Map<string, ScheduleSyncData> = new Map();
+  private agentMessages: Map<string, AgentMessage[]> = new Map();
+  private goalProgress: Map<string, GoalProgress> = new Map();
+  private wsHandler: WebSocketMessageHandler | null = null;
+  private logger = new CCLLogger();
 
   constructor() {
+    super();
     this.emailAgent = new EmailAgent();
     this.smsAgent = new SMSAgent();
     this.chatAgent = new ChatAgent();
+    this.initializeMessageHandlers();
+  }
+
+  /**
+   * Initialize WebSocket handler for real-time communication
+   */
+  setWebSocketHandler(wsHandler: WebSocketMessageHandler): void {
+    this.wsHandler = wsHandler;
+  }
+
+  /**
+   * Initialize internal message handlers for agent communication
+   */
+  private initializeMessageHandlers(): void {
+    // Handle decision coordination
+    this.on('agent:decision', async (message: AgentMessage) => {
+      await this.handleAgentDecision(message);
+    });
+
+    // Handle status updates
+    this.on('agent:status', async (message: AgentMessage) => {
+      await this.handleAgentStatus(message);
+    });
+
+    // Handle handover requests
+    this.on('agent:handover', async (message: AgentMessage) => {
+      await this.handleAgentHandover(message);
+    });
+
+    // Handle goal updates
+    this.on('agent:goal_update', async (message: AgentMessage) => {
+      await this.handleGoalUpdate(message);
+    });
+  }
+
+  /**
+   * Send message between agents
+   */
+  async sendAgentMessage(from: string, to: string, type: AgentMessage['type'], payload: any): Promise<void> {
+    const message: AgentMessage = {
+      id: crypto.randomUUID(),
+      from,
+      to,
+      type,
+      payload,
+      timestamp: new Date()
+    };
+
+    // Store message
+    const key = `${from}-${to}`;
+    if (!this.agentMessages.has(key)) {
+      this.agentMessages.set(key, []);
+    }
+    this.agentMessages.get(key)!.push(message);
+
+    // Emit for processing
+    this.emit(`agent:${type}`, message);
+
+    // Send via WebSocket for real-time updates
+    if (this.wsHandler) {
+      (this.wsHandler as any).broadcastCallback({
+        type: 'agent_message',
+        data: message
+      });
+    }
+
+    this.logger.info('Agent message sent', {
+      from,
+      to,
+      type,
+      messageId: message.id
+    });
+  }
+
+  /**
+   * Handle agent decision coordination
+   */
+  private async handleAgentDecision(message: AgentMessage): Promise<void> {
+    const { from, payload } = message;
+    const { leadId, decision, requiresCoordination } = payload;
+
+    if (requiresCoordination) {
+      // Get all active agents for this lead
+      const activeAgents = await this.getActiveAgentsForLead(leadId);
+      
+      // Coordinate decision with other agents
+      const coordinationResults = await Promise.all(
+        activeAgents
+          .filter(agent => agent !== from)
+          .map(agent => this.requestAgentFeedback(agent, decision))
+      );
+
+      // Aggregate feedback and make final decision
+      const finalDecision = this.aggregateDecisions(decision, coordinationResults);
+      
+      // Notify all agents of final decision
+      for (const agent of activeAgents) {
+        await this.sendAgentMessage('hub', agent, 'coordination', {
+          leadId,
+          finalDecision,
+          originalDecision: decision
+        });
+      }
+    }
+  }
+
+  /**
+   * Handle agent status updates
+   */
+  private async handleAgentStatus(message: AgentMessage): Promise<void> {
+    const { from, payload } = message;
+    const { leadId, status, details } = payload;
+
+    // Broadcast status to relevant agents
+    const activeAgents = await this.getActiveAgentsForLead(leadId);
+    for (const agent of activeAgents) {
+      if (agent !== from) {
+        await this.sendAgentMessage('hub', agent, 'status', {
+          leadId,
+          reportingAgent: from,
+          status,
+          details
+        });
+      }
+    }
+
+    // Update WebSocket clients
+    if (this.wsHandler) {
+      (this.wsHandler as any).broadcastCallback({
+        type: 'agent_status_update',
+        data: { leadId, agent: from, status, details }
+      });
+    }
+  }
+
+  /**
+   * Handle agent handover requests
+   */
+  private async handleAgentHandover(message: AgentMessage): Promise<void> {
+    const { from, payload } = message;
+    const { leadId, targetAgent, reason, context } = payload;
+
+    this.logger.info('Agent handover requested', {
+      from,
+      to: targetAgent,
+      leadId,
+      reason
+    });
+
+    // Get target agent
+    const agent = this.getAgentByType(targetAgent);
+    if (!agent) {
+      this.logger.error('Target agent not found for handover', { targetAgent });
+      return;
+    }
+
+    // Transfer context to target agent
+    await this.sendAgentMessage(from, targetAgent, 'handover', {
+      leadId,
+      context,
+      reason,
+      previousAgent: from
+    });
+
+    // Update conversation ownership
+    const conversations = await ConversationsRepository.findByLeadId(leadId);
+    const activeConversation = conversations.find((c: any) => c.status === 'active');
+    
+    if (activeConversation) {
+      await ConversationsRepository.updateAgentType(activeConversation.id, targetAgent);
+    }
+  }
+
+  /**
+   * Handle goal progress updates
+   */
+  private async handleGoalUpdate(message: AgentMessage): Promise<void> {
+    const { payload } = message;
+    const { campaignId, leadId, goalName, progress } = payload;
+
+    const key = `${campaignId}-${leadId}`;
+    let goalData = this.goalProgress.get(key);
+    
+    if (!goalData) {
+      goalData = {
+        campaignId,
+        leadId,
+        goals: {}
+      };
+      this.goalProgress.set(key, goalData);
+    }
+
+    // Update goal progress
+    goalData.goals[goalName] = {
+      target: progress.target,
+      current: progress.current,
+      completed: progress.current >= progress.target,
+      lastUpdated: new Date()
+    };
+
+    // Check if all goals are completed
+    const allGoalsCompleted = Object.values(goalData.goals).every(g => g.completed);
+    
+    if (allGoalsCompleted) {
+      // Trigger campaign completion logic
+      await this.handleCampaignCompletion(campaignId, leadId);
+    }
+
+    // Broadcast goal update
+    if (this.wsHandler) {
+      (this.wsHandler as any).broadcastCallback({
+        type: 'goal_progress_update',
+        data: {
+          campaignId,
+          leadId,
+          goals: goalData.goals
+        }
+      });
+    }
+  }
+
+  /**
+   * Track goal progress for a lead
+   */
+  async updateGoalProgress(
+    campaignId: string,
+    leadId: string,
+    goalName: string,
+    increment: number = 1
+  ): Promise<void> {
+    const campaign = await CampaignsRepository.findById(campaignId);
+    if (!campaign || !campaign.goals) return;
+
+    const goal = (campaign.goals as any[]).find((g: any) => g.name === goalName);
+    if (!goal) return;
+
+    const key = `${campaignId}-${leadId}`;
+    let goalData = this.goalProgress.get(key);
+    
+    if (!goalData) {
+      goalData = {
+        campaignId,
+        leadId,
+        goals: {}
+      };
+      this.goalProgress.set(key, goalData);
+    }
+
+    const currentProgress = goalData.goals[goalName]?.current || 0;
+    const newProgress = currentProgress + increment;
+
+    await this.sendAgentMessage('hub', 'all', 'goal_update', {
+      campaignId,
+      leadId,
+      goalName,
+      progress: {
+        target: goal.target || 100,
+        current: newProgress
+      }
+    });
+  }
+
+  /**
+   * Get goal progress for a lead
+   */
+  getGoalProgress(campaignId: string, leadId: string): GoalProgress | null {
+    const key = `${campaignId}-${leadId}`;
+    return this.goalProgress.get(key) || null;
+  }
+
+  /**
+   * Request feedback from an agent
+   */
+  private async requestAgentFeedback(agentId: string, decision: any): Promise<any> {
+    // Simulate agent feedback (in production, this would query the actual agent)
+    return {
+      agentId,
+      agrees: Math.random() > 0.3,
+      confidence: Math.random(),
+      suggestions: []
+    };
+  }
+
+  /**
+   * Aggregate decisions from multiple agents
+   */
+  private aggregateDecisions(originalDecision: any, feedback: any[]): any {
+    const agreementCount = feedback.filter((f: any) => f.agrees).length;
+    const totalAgents = feedback.length;
+    const agreementRatio = totalAgents > 0 ? agreementCount / totalAgents : 1;
+
+    return {
+      ...originalDecision,
+      consensus: agreementRatio > 0.5,
+      confidence: agreementRatio,
+      feedback
+    };
+  }
+
+  /**
+   * Get active agents for a lead
+   */
+  private async getActiveAgentsForLead(leadId: string): Promise<string[]> {
+    const conversations = await ConversationsRepository.findByLeadId(leadId);
+    const activeAgents = new Set<string>();
+    
+    conversations
+      .filter((c: any) => c.status === 'active')
+      .forEach((c: any) => activeAgents.add(c.agentType));
+    
+    return Array.from(activeAgents);
+  }
+
+  /**
+   * Get agent by type
+   */
+  private getAgentByType(type: string): BaseAgent | null {
+    switch (type) {
+      case 'email':
+        return this.emailAgent;
+      case 'sms':
+        return this.smsAgent;
+      case 'chat':
+        return this.chatAgent;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Handle campaign completion
+   */
+  private async handleCampaignCompletion(campaignId: string, leadId: string): Promise<void> {
+    this.logger.info('Campaign goals completed', { campaignId, leadId });
+    
+    // Notify all agents
+    const activeAgents = await this.getActiveAgentsForLead(leadId);
+    for (const agent of activeAgents) {
+      await this.sendAgentMessage('hub', agent, 'coordination', {
+        leadId,
+        event: 'campaign_completed',
+        campaignId
+      });
+    }
+
+    // Update campaign status
+    await CampaignsRepository.updateLeadStatus(campaignId, leadId, 'completed');
+  }
+
+  /**
+   * Get message history between agents
+   */
+  getAgentMessageHistory(from: string, to: string): AgentMessage[] {
+    const key = `${from}-${to}`;
+    return this.agentMessages.get(key) || [];
+  }
+
+  /**
+   * Clear message history (for testing)
+   */
+  clearMessageHistory(): void {
+    this.agentMessages.clear();
+    this.goalProgress.clear();
   }
 
   /**
@@ -71,7 +465,7 @@ export class AgentCommunicationHub {
 
     const conversations = await ConversationsRepository.findByLeadId(leadId);
     const lastActivity = conversations
-      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
+      .sort((a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
 
     const coordinations: MessageCoordination[] = [];
 
@@ -143,12 +537,12 @@ export class AgentCommunicationHub {
 
     const conversations = await ConversationsRepository.findByLeadId(leadId);
     const lastConversation = conversations
-      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
+      .sort((a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
 
     // Find the next appropriate action based on conversation history
     const nextAction = syncData.coordinatedMessages.find(coord => {
       // Check if this agent/channel combination hasn't been used recently
-      const recentUsage = conversations.filter(conv => 
+      const recentUsage = conversations.filter((conv: any) => 
         conv.channel === coord.channel && 
         new Date(conv.startedAt).getTime() > Date.now() - (24 * 60 * 60 * 1000) // 24 hours
       );

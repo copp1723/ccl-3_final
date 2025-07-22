@@ -7,7 +7,21 @@ export default defineConfig({
   root: './client',
   build: {
     outDir: '../dist/client',
-    emptyOutDir: true
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-label', '@radix-ui/react-select', '@radix-ui/react-slot', '@radix-ui/react-tabs', '@radix-ui/react-toast'],
+          'utils': ['clsx', 'tailwind-merge', 'class-variance-authority'],
+          'icons': ['lucide-react'],
+          'dropzone': ['react-dropzone'],
+          'toast': ['sonner'],
+          'socket': ['socket.io-client']
+        }
+      }
+    }
   },
   resolve: {
     alias: {

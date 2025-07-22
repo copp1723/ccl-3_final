@@ -1,0 +1,2 @@
+name,email,phone,source
+Test CSV Lead,csvlead@test.com,+1555000001,csv_import

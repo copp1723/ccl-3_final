@@ -1,219 +1,333 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb, uuid, varchar, serial, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, jsonb, uuid, varchar, serial, pgEnum, index, primaryKey } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Enums
-export const agentTypeEnum = pgEnum('agent_type', ['overlord', 'email', 'sms', 'chat']);
+// ============================================
+// ENUMS
+// ============================================
 
-// Clients table for white-label support
-export const clients = pgTable('clients', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 255 }).notNull(),
-  domain: varchar('domain', { length: 255 }),
-  settings: jsonb('settings'), // Stores branding config
-  active: boolean('active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
-});
+export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'agent', 'viewer']);
+export const leadStatusEnum = pgEnum('lead_status', ['new', 'contacted', 'qualified', 'converted', 'rejected']);
+export const channelEnum = pgEnum('channel', ['email', 'sms', 'chat']);
+export const communicationDirectionEnum = pgEnum('communication_direction', ['inbound', 'outbound']);
+export const communicationStatusEnum = pgEnum('communication_status', ['pending', 'sent', 'delivered', 'failed', 'received']);
+export const campaignTypeEnum = pgEnum('campaign_type', ['drip', 'blast', 'trigger']);
+export const agentTypeEnum = pgEnum('agent_type', ['email', 'sms', 'chat', 'voice']);
 
-// Users table (existing, adding clientId)
+// ============================================
+// CORE TABLES
+// ============================================
+
+// Users table - for authentication and access control
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 255 }).unique().notNull(),
-  name: varchar('name', { length: 255 }),
-  role: varchar('role', { length: 50 }).default('user'),
-  clientId: uuid('client_id').references(() => clients.id),
-  active: boolean('active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
-});
-
-// Define lead status enum to match the database
-export const leadStatusEnum = pgEnum('lead_status', ['new', 'contacted', 'qualified', 'sent_to_boberdoo', 'rejected', 'archived']);
-export const channelEnum = pgEnum('channel', ['email', 'sms', 'chat']);
-
-// Leads table (matches actual database structure)
-export const leads = pgTable('leads', {
-  id: text('id').primaryKey().notNull(),
-  name: text('name').notNull(),
-  email: text('email'),
-  phone: text('phone'),
-  source: text('source').notNull(),
-  campaign: text('campaign'), // Original column
-  status: leadStatusEnum('status').default('new').notNull(),
-  assignedChannel: channelEnum('assigned_channel'),
-  qualificationScore: integer('qualification_score').default(0),
+  username: varchar('username', { length: 255 }).unique().notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 255 }),
+  lastName: varchar('last_name', { length: 255 }),
+  role: userRoleEnum('role').default('agent').notNull(),
+  active: boolean('active').default(true).notNull(),
+  lastLogin: timestamp('last_login'),
   metadata: jsonb('metadata').default({}),
-  boberdooId: text('boberdoo_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  createdBy: text('created_by'),
-  campaignId: text('campaign_id'), // Added column
-  clientId: uuid('client_id').references(() => clients.id)
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    emailIdx: index('users_email_idx').on(table.email),
+    usernameIdx: index('users_username_idx').on(table.username)
+  }
 });
 
-// Agent configurations (matches actual database structure)
+// Agent Configurations table - for AI agent settings
 export const agentConfigurations = pgTable('agent_configurations', {
-  id: text('id').primaryKey().notNull(),
-  name: text('name').notNull(),
-  type: agentTypeEnum('type').notNull(),
-  role: text('role').notNull(),
-  endGoal: text('end_goal').notNull(),
-  instructions: jsonb('instructions').notNull(),
-  domainExpertise: jsonb('domain_expertise').default([]).notNull(),
-  personality: text('personality').notNull(),
-  tone: text('tone').notNull(),
-  responseLength: text('response_length').default('medium'),
-  apiModel: text('api_model'),
-  temperature: integer('temperature').default(70),
-  maxTokens: integer('max_tokens').default(500),
-  active: boolean('active').default(true).notNull(),
-  performance: jsonb('performance').default({"conversations":0,"successfulOutcomes":0,"averageResponseTime":0}),
-  metadata: jsonb('metadata').default({}),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  createdBy: text('created_by'),
-  clientId: uuid('client_id').references(() => clients.id)
-});
-
-// Campaigns (matches actual database structure)
-export const campaigns = pgTable('campaigns', {
-  id: text('id').primaryKey().notNull(),
-  name: text('name').notNull(),
-  goals: jsonb('goals').default([]).notNull(),
-  qualificationCriteria: jsonb('qualification_criteria').notNull(),
-  channelPreferences: jsonb('channel_preferences').notNull(),
-  active: boolean('active').default(true).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  createdBy: text('created_by'),
-  handoverCriteria: jsonb('handover_criteria'),
-  selectedLeads: jsonb('selected_leads'),
-  clientId: uuid('client_id').references(() => clients.id)
-});
-
-// Communications (matches actual database structure)
-export const communications = pgTable('communications', {
-  id: text('id').primaryKey().notNull(),
-  leadId: text('lead_id').notNull().references(() => leads.id),
-  channel: channelEnum('channel').notNull(),
-  direction: text('direction').notNull(),
-  content: text('content').notNull(),
-  status: text('status').default('pending').notNull(),
-  externalId: text('external_id'),
-  metadata: jsonb('metadata').default({}),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  clientId: uuid('client_id').references(() => clients.id)
-});
-
-// Agent Decisions (matches actual database structure)
-export const agentDecisions = pgTable('agent_decisions', {
-  id: text('id').primaryKey().notNull(),
-  leadId: text('lead_id').notNull().references(() => leads.id),
-  agentType: agentTypeEnum('agent_type').notNull(),
-  decision: text('decision').notNull(),
-  reasoning: text('reasoning'),
-  context: jsonb('context').default({}),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-});
-
-// Conversations (matches actual database structure)
-export const conversations = pgTable('conversations', {
-  id: text('id').primaryKey().notNull(),
-  leadId: text('lead_id').notNull().references(() => leads.id),
-  channel: channelEnum('channel').notNull(),
-  agentType: agentTypeEnum('agent_type').notNull(),
-  messages: jsonb('messages').default([]).notNull(),
-  status: text('status').default('active').notNull(),
-  startedAt: timestamp('started_at').defaultNow().notNull(),
-  endedAt: timestamp('ended_at')
-});
-
-// Email Templates
-export const emailTemplates = pgTable('email_templates', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
-  subject: varchar('subject', { length: 500 }).notNull(),
-  content: text('content').notNull(),
-  type: varchar('type', { length: 50 }).default('marketing'),
-  active: boolean('active').default(true),
-  clientId: uuid('client_id').references(() => clients.id),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow()
+  type: agentTypeEnum('type').notNull(),
+  active: boolean('active').default(true).notNull(),
+  
+  // Core Configuration
+  systemPrompt: text('system_prompt').notNull(),
+  contextNote: text('context_note'), // New field for additional context
+  temperature: integer('temperature').default(7), // 0-10 scale (will be divided by 10)
+  maxTokens: integer('max_tokens').default(500),
+  
+  // API Configuration
+  apiKey: varchar('api_key', { length: 255 }),
+  apiEndpoint: varchar('api_endpoint', { length: 500 }),
+  
+  // Channel-specific settings
+  channelConfig: jsonb('channel_config').default({}), // Email settings, SMS settings, etc.
+  
+  // Behavioral settings
+  responseDelay: integer('response_delay').default(0), // Seconds to wait before responding
+  retryAttempts: integer('retry_attempts').default(3),
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    nameIdx: index('agent_configurations_name_idx').on(table.name),
+    typeIdx: index('agent_configurations_type_idx').on(table.type),
+    activeIdx: index('agent_configurations_active_idx').on(table.active)
+  }
 });
 
-// Sessions
+// Leads table - core business entity
+export const leads = pgTable('leads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Basic Info
+  firstName: varchar('first_name', { length: 255 }),
+  lastName: varchar('last_name', { length: 255 }),
+  email: varchar('email', { length: 255 }),
+  phone: varchar('phone', { length: 20 }),
+  
+  // Lead Details
+  source: varchar('source', { length: 100 }).notNull().default('website'),
+  status: leadStatusEnum('status').default('new').notNull(),
+  qualificationScore: integer('qualification_score').default(0),
+  
+  // Financial Info
+  creditScore: integer('credit_score'),
+  income: integer('annual_income'),
+  employer: varchar('employer', { length: 255 }),
+  jobTitle: varchar('job_title', { length: 255 }),
+  
+  // Additional Data
+  metadata: jsonb('metadata').default({}),
+  notes: text('notes'),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastContactedAt: timestamp('last_contacted_at')
+}, (table) => {
+  return {
+    emailIdx: index('leads_email_idx').on(table.email),
+    phoneIdx: index('leads_phone_idx').on(table.phone),
+    statusIdx: index('leads_status_idx').on(table.status),
+    sourceIdx: index('leads_source_idx').on(table.source),
+    createdAtIdx: index('leads_created_at_idx').on(table.createdAt)
+  }
+});
+
+// Campaigns table
+export const campaigns = pgTable('campaigns', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  type: campaignTypeEnum('type').default('drip').notNull(),
+  active: boolean('active').default(true).notNull(),
+  
+  // Targeting
+  targetCriteria: jsonb('target_criteria').default({}),
+  
+  // Configuration
+  settings: jsonb('settings').default({}),
+  
+  // Timestamps
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    nameIdx: index('campaigns_name_idx').on(table.name),
+    activeIdx: index('campaigns_active_idx').on(table.active),
+    typeIdx: index('campaigns_type_idx').on(table.type)
+  }
+});
+
+// Communications table - all interactions with leads
+export const communications = pgTable('communications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id').notNull().references(() => leads.id),
+  campaignId: uuid('campaign_id').references(() => campaigns.id),
+  
+  // Communication Details
+  channel: channelEnum('channel').notNull(),
+  direction: communicationDirectionEnum('direction').notNull(),
+  status: communicationStatusEnum('status').default('pending').notNull(),
+  
+  // Content
+  subject: varchar('subject', { length: 255 }),
+  content: text('content').notNull(),
+  
+  // External References
+  externalId: varchar('external_id', { length: 255 }), // Mailgun ID, Twilio SID, etc.
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}),
+  
+  // Timestamps
+  scheduledFor: timestamp('scheduled_for'),
+  sentAt: timestamp('sent_at'),
+  deliveredAt: timestamp('delivered_at'),
+  openedAt: timestamp('opened_at'),
+  clickedAt: timestamp('clicked_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    leadIdIdx: index('communications_lead_id_idx').on(table.leadId),
+    campaignIdIdx: index('communications_campaign_id_idx').on(table.campaignId),
+    channelIdx: index('communications_channel_idx').on(table.channel),
+    statusIdx: index('communications_status_idx').on(table.status),
+    createdAtIdx: index('communications_created_at_idx').on(table.createdAt)
+  }
+});
+
+// Templates table - for email/SMS templates
+export const templates = pgTable('templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  channel: channelEnum('channel').notNull(),
+  
+  // Content
+  subject: varchar('subject', { length: 255 }), // For emails
+  content: text('content').notNull(),
+  
+  // Variables
+  variables: jsonb('variables').default([]), // Array of variable names
+  
+  // Metadata
+  category: varchar('category', { length: 100 }),
+  active: boolean('active').default(true).notNull(),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    nameIdx: index('templates_name_idx').on(table.name),
+    channelIdx: index('templates_channel_idx').on(table.channel),
+    categoryIdx: index('templates_category_idx').on(table.category),
+    activeIdx: index('templates_active_idx').on(table.active)
+  }
+});
+
+// Campaign Steps - for multi-step campaigns
+export const campaignSteps = pgTable('campaign_steps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
+  templateId: uuid('template_id').notNull().references(() => templates.id),
+  
+  // Step Configuration
+  stepOrder: integer('step_order').notNull(),
+  delayMinutes: integer('delay_minutes').default(0),
+  
+  // Conditions
+  conditions: jsonb('conditions').default({}),
+  
+  // Metadata
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    campaignIdIdx: index('campaign_steps_campaign_id_idx').on(table.campaignId),
+    stepOrderIdx: index('campaign_steps_order_idx').on(table.campaignId, table.stepOrder)
+  }
+});
+
+// Lead Campaign Enrollments
+export const leadCampaignEnrollments = pgTable('lead_campaign_enrollments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id').notNull().references(() => leads.id),
+  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id),
+  
+  // Progress
+  currentStep: integer('current_step').default(0),
+  completed: boolean('completed').default(false).notNull(),
+  
+  // Status
+  status: varchar('status', { length: 50 }).default('active').notNull(), // active, paused, completed, stopped
+  
+  // Timestamps
+  enrolledAt: timestamp('enrolled_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  lastProcessedAt: timestamp('last_processed_at')
+}, (table) => {
+  return {
+    leadCampaignIdx: index('enrollments_lead_campaign_idx').on(table.leadId, table.campaignId),
+    statusIdx: index('enrollments_status_idx').on(table.status)
+  }
+});
+
+// Sessions table - for auth
 export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id),
-  token: varchar('token', { length: 255 }).notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow()
-});
-
-// Audit Logs
-export const auditLogs = pgTable('audit_logs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id),
-  action: varchar('action', { length: 100 }).notNull(),
-  resource: varchar('resource', { length: 100 }).notNull(),
-  resourceId: varchar('resource_id', { length: 255 }),
-  details: jsonb('details'),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: varchar('token', { length: 255 }).unique().notNull(),
+  
+  // Session Data
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
-  createdAt: timestamp('created_at').defaultNow()
+  
+  // Timestamps
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastAccessedAt: timestamp('last_accessed_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    userIdIdx: index('sessions_user_id_idx').on(table.userId),
+    tokenIdx: index('sessions_token_idx').on(table.token),
+    expiresAtIdx: index('sessions_expires_at_idx').on(table.expiresAt)
+  }
 });
 
-// Analytics Events
-export const analyticsEvents = pgTable('analytics_events', {
+// Audit Logs - for tracking changes
+export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
-  eventType: varchar('event_type', { length: 100 }).notNull(),
-  entityType: varchar('entity_type', { length: 50 }).notNull(),
-  entityId: uuid('entity_id').notNull(),
-  properties: jsonb('properties'),
-  userId: uuid('user_id').references(() => users.id),
-  sessionId: varchar('session_id', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow()
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  
+  // Action Details
+  action: varchar('action', { length: 100 }).notNull(),
+  resource: varchar('resource', { length: 100 }).notNull(),
+  resourceId: uuid('resource_id'),
+  
+  // Change Data
+  changes: jsonb('changes').default({}),
+  
+  // Context
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  
+  // Timestamp
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    userIdIdx: index('audit_logs_user_id_idx').on(table.userId),
+    resourceIdx: index('audit_logs_resource_idx').on(table.resource, table.resourceId),
+    createdAtIdx: index('audit_logs_created_at_idx').on(table.createdAt)
+  }
 });
 
-// Relations
-export const clientsRelations = relations(clients, ({ many }) => ({
-  users: many(users),
-  leads: many(leads),
-  agentConfigurations: many(agentConfigurations),
-  campaigns: many(campaigns),
-  communications: many(communications)
+// ============================================
+// RELATIONS
+// ============================================
+
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+  auditLogs: many(auditLogs)
 }));
 
-export const usersRelations = relations(users, ({ one, many }) => ({
-  client: one(clients, {
-    fields: [users.clientId],
-    references: [clients.id]
-  }),
-  createdCampaigns: many(campaigns)
+export const agentConfigurationsRelations = relations(agentConfigurations, ({ many }) => ({
+  // Agent configurations can be used by multiple campaigns/communications
+  // but we don't enforce this with foreign keys to keep it flexible
 }));
 
-export const leadsRelations = relations(leads, ({ one, many }) => ({
-  client: one(clients, {
-    fields: [leads.clientId],
-    references: [clients.id]
-  }),
+export const leadsRelations = relations(leads, ({ many }) => ({
   communications: many(communications),
-  agentDecisions: many(agentDecisions),
-  conversations: many(conversations)
+  enrollments: many(leadCampaignEnrollments)
 }));
 
-export const agentConfigurationsRelations = relations(agentConfigurations, ({ one }) => ({
-  client: one(clients, {
-    fields: [agentConfigurations.clientId],
-    references: [clients.id]
-  })
-}));
-
-export const campaignsRelations = relations(campaigns, ({ one }) => ({
-  client: one(clients, {
-    fields: [campaigns.clientId],
-    references: [clients.id]
-  })
+export const campaignsRelations = relations(campaigns, ({ many }) => ({
+  steps: many(campaignSteps),
+  enrollments: many(leadCampaignEnrollments),
+  communications: many(communications)
 }));
 
 export const communicationsRelations = relations(communications, ({ one }) => ({
@@ -221,30 +335,35 @@ export const communicationsRelations = relations(communications, ({ one }) => ({
     fields: [communications.leadId],
     references: [leads.id]
   }),
-  client: one(clients, {
-    fields: [communications.clientId],
-    references: [clients.id]
+  campaign: one(campaigns, {
+    fields: [communications.campaignId],
+    references: [campaigns.id]
   })
 }));
 
-export const agentDecisionsRelations = relations(agentDecisions, ({ one }) => ({
+export const templatesRelations = relations(templates, ({ many }) => ({
+  campaignSteps: many(campaignSteps)
+}));
+
+export const campaignStepsRelations = relations(campaignSteps, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [campaignSteps.campaignId],
+    references: [campaigns.id]
+  }),
+  template: one(templates, {
+    fields: [campaignSteps.templateId],
+    references: [templates.id]
+  })
+}));
+
+export const leadCampaignEnrollmentsRelations = relations(leadCampaignEnrollments, ({ one }) => ({
   lead: one(leads, {
-    fields: [agentDecisions.leadId],
+    fields: [leadCampaignEnrollments.leadId],
     references: [leads.id]
-  })
-}));
-
-export const conversationsRelations = relations(conversations, ({ one }) => ({
-  lead: one(leads, {
-    fields: [conversations.leadId],
-    references: [leads.id]
-  })
-}));
-
-export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
-  client: one(clients, {
-    fields: [emailTemplates.clientId],
-    references: [clients.id]
+  }),
+  campaign: one(campaigns, {
+    fields: [leadCampaignEnrollments.campaignId],
+    references: [campaigns.id]
   })
 }));
 
@@ -262,35 +381,36 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   })
 }));
 
-export const analyticsEventsRelations = relations(analyticsEvents, ({ one }) => ({
-  user: one(users, {
-    fields: [analyticsEvents.userId],
-    references: [users.id]
-  })
-}));
+// ============================================
+// TYPE EXPORTS
+// ============================================
 
-// Type definitions
-export type Lead = typeof leads.$inferSelect;
-export type NewLead = typeof leads.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Client = typeof clients.$inferSelect;
-export type NewClient = typeof clients.$inferInsert;
+
 export type AgentConfiguration = typeof agentConfigurations.$inferSelect;
 export type NewAgentConfiguration = typeof agentConfigurations.$inferInsert;
+
+export type Lead = typeof leads.$inferSelect;
+export type NewLead = typeof leads.$inferInsert;
+
 export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
+
 export type Communication = typeof communications.$inferSelect;
 export type NewCommunication = typeof communications.$inferInsert;
-export type AgentDecision = typeof agentDecisions.$inferSelect;
-export type NewAgentDecision = typeof agentDecisions.$inferInsert;
-export type Conversation = typeof conversations.$inferSelect;
-export type NewConversation = typeof conversations.$inferInsert;
-export type EmailTemplate = typeof emailTemplates.$inferSelect;
-export type NewEmailTemplate = typeof emailTemplates.$inferInsert;
+
+export type Template = typeof templates.$inferSelect;
+export type NewTemplate = typeof templates.$inferInsert;
+
+export type CampaignStep = typeof campaignSteps.$inferSelect;
+export type NewCampaignStep = typeof campaignSteps.$inferInsert;
+
+export type LeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferSelect;
+export type NewLeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferInsert;
+
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
+
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
-export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
-export type NewAnalyticsEvent = typeof analyticsEvents.$inferInsert;
