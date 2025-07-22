@@ -38,6 +38,29 @@ export const users = pgTable('users', {
   }
 });
 
+// Clients table - for multi-tenant client management
+export const clients = pgTable('clients', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  domain: varchar('domain', { length: 255 }).unique(),
+  
+  // Client settings and branding
+  settings: jsonb('settings').default({}),
+  
+  // Status
+  active: boolean('active').default(true).notNull(),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    nameIdx: index('clients_name_idx').on(table.name),
+    domainIdx: index('clients_domain_idx').on(table.domain),
+    activeIdx: index('clients_active_idx').on(table.active)
+  }
+});
+
 // Agent Configurations table - for AI agent settings
 export const agentConfigurations = pgTable('agent_configurations', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -375,6 +398,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   auditLogs: many(auditLogs)
 }));
 
+export const clientsRelations = relations(clients, ({ many }) => ({
+  // Clients can have many users, campaigns, etc.
+  // Add specific relations as needed
+}));
+
 export const agentConfigurationsRelations = relations(agentConfigurations, ({ many }) => ({
   // Agent configurations can be used by multiple campaigns/communications
   // but we don't enforce this with foreign keys to keep it flexible
@@ -476,6 +504,9 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+export type Client = typeof clients.$inferSelect;
+export type NewClient = typeof clients.$inferInsert;
 
 export type AgentConfiguration = typeof agentConfigurations.$inferSelect;
 export type NewAgentConfiguration = typeof agentConfigurations.$inferInsert;
