@@ -18,7 +18,7 @@ export class SMSAgent extends BaseAgent {
       );
       this.fromNumber = process.env.TWILIO_PHONE_NUMBER || '';
     } else {
-      CCLLogger.agentAction('sms', 'twilio_fallback', { reason: 'No credentials found, SMS sending will be simulated' });
+      CCLLogger.info('SMS agent using Twilio fallback - No credentials found, SMS sending will be simulated', { reason: 'No credentials found' });
       this.twilioClient = null;
       this.fromNumber = '';
     }
@@ -96,7 +96,7 @@ Create a concise, friendly text that:
     try {
       // Check if Twilio is configured
       if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !this.fromNumber) {
-        CCLLogger.agentAction('sms', 'simulated_send', { to, reason: 'Twilio not configured' });
+        CCLLogger.info('SMS agent simulated send - Twilio not configured', { to, reason: 'Twilio not configured' });
         const mockResponse = {
           sid: `mock-sms-${Date.now()}`,
           to: to,
@@ -105,7 +105,7 @@ Create a concise, friendly text that:
           status: 'sent',
           message: 'Simulated SMS send (Twilio not configured)'
         };
-        CCLLogger.communicationSent('sms', '', { recipient: to, body, mock: true });
+        CCLLogger.info('SMS communication sent (mock)', { recipient: to, body, mock: true });
         return mockResponse;
       }
 
@@ -126,10 +126,10 @@ Create a concise, friendly text that:
         externalId: message.sid
       });
       
-      CCLLogger.communicationSent('sms', '', { recipient: to, externalId: message.sid });
+      CCLLogger.info('SMS communication sent', { recipient: to, externalId: message.sid });
       return message;
     } catch (error) {
-      CCLLogger.communicationFailed('sms', '', error as Error, { recipient: to });
+      CCLLogger.error('SMS communication failed', { recipient: to, error: (error as Error).message });
       // Return mock response instead of throwing
       return {
         sid: `mock-error-${Date.now()}`,

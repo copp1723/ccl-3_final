@@ -91,12 +91,12 @@ Create a professional, engaging email response that:
     try {
       // Check if Mailgun is configured
       if (!mailgunService.isConfigured()) {
-        CCLLogger.agentAction('email', 'simulated_send', { to, subject, reason: 'Mailgun not configured' });
+        CCLLogger.info('Email agent simulated send - Mailgun not configured', { to, subject, reason: 'Mailgun not configured' });
         const mockResponse = {
           id: `mock-${Date.now()}@example.com`,
           message: 'Simulated email send (Mailgun not configured)'
         };
-        CCLLogger.communicationSent('email', '', { recipient: to, subject, mock: true });
+        CCLLogger.info('Email communication sent (mock)', { recipient: to, subject, mock: true });
         return mockResponse;
       }
 
@@ -117,10 +117,10 @@ Create a professional, engaging email response that:
         externalId: response.id
       });
       
-      CCLLogger.communicationSent('email', '', { recipient: to, subject, externalId: response.id });
+      CCLLogger.info('Email communication sent', { recipient: to, subject, externalId: response.id });
       return response;
     } catch (error) {
-      CCLLogger.communicationFailed('email', '', error as Error, { recipient: to, subject });
+      CCLLogger.error('Email communication failed', { recipient: to, subject, error: (error as Error).message });
       // Return mock response instead of throwing
       return {
         id: `mock-error-${Date.now()}@example.com`,

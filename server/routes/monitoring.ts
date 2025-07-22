@@ -234,10 +234,11 @@ router.post('/performance/alerts/:alertId/resolve', authenticate, apiRateLimit, 
     const resolved = await performanceMonitor.resolveAlert(alertId);
     
     if (resolved) {
-      CCLLogger.securityEvent('Performance alert resolved manually', 'medium', {
+      CCLLogger.info('Performance alert resolved manually', {
         alertId,
         userId: req.user.id,
-        ip: req.ip
+        ip: req.ip,
+        severity: 'medium'
       });
 
       res.json(CCLResponseHelper.success(
@@ -315,10 +316,12 @@ router.get('/dashboard', authenticate, apiRateLimit, async (req: Request, res: R
       }
     };
 
-    CCLLogger.analyticsEvent('system_dashboard_viewed', {
+    CCLLogger.info('System dashboard viewed', {
+      event: 'system_dashboard_viewed',
       systemStatus: dashboard.system.status,
-      activeAlerts: dashboard.alerts.active
-    }, { userId: req.user?.id });
+      activeAlerts: dashboard.alerts.active,
+      userId: req.user?.id
+    });
 
     res.json(CCLResponseHelper.success(dashboard, 'System dashboard data retrieved'));
     
@@ -480,9 +483,10 @@ router.get('/logs', authenticate, apiRateLimit, async (req: Request, res: Respon
       note: 'Log retrieval requires log storage integration'
     };
 
-    CCLLogger.securityEvent('System logs accessed', 'medium', {
+    CCLLogger.info('System logs accessed', {
       userId: req.user.id,
-      filters: { level, limit, component }
+      filters: { level, limit, component },
+      severity: 'medium'
     });
 
     res.json(CCLResponseHelper.success(logs, 'Logs retrieved'));
@@ -565,9 +569,10 @@ router.put('/performance/thresholds', authenticate, apiRateLimit, async (req: Re
     // This would update thresholds in performance monitor
     performanceMonitor.updateThresholds(thresholds);
 
-    CCLLogger.securityEvent('Performance thresholds updated', 'medium', {
+    CCLLogger.info('Performance thresholds updated', {
       userId: req.user.id,
-      thresholds
+      thresholds,
+      severity: 'medium'
     });
 
     res.json(CCLResponseHelper.success(
