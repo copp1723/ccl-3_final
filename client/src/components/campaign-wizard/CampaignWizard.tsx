@@ -47,7 +47,8 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     templates: [],
     schedule: {
       startDate: '',
-      endDate: '',
+      totalEmails: 5,
+      daysBetweenEmails: 3,
       timezone: 'America/New_York',
       sendTimeOptimization: true
     }
@@ -252,12 +253,12 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
                 <h4 className="font-medium text-orange-900">Campaign Schedule</h4>
               </div>
               <p className="text-sm text-orange-700">
-                Set when your campaign should run.
+                Configure your email sequence timing. If a lead replies, the AI takes over with personalized conversations.
               </p>
             </div>
             <div className="space-y-4">
               <div>
-                <Label>Start Date</Label>
+                <Label>Campaign Start Date</Label>
                 <Input
                   type="date"
                   value={campaignData.schedule.startDate}
@@ -269,16 +270,48 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
                 />
               </div>
               <div>
-                <Label>End Date (Optional)</Label>
+                <Label>Total Emails in Sequence</Label>
                 <Input
-                  type="date"
-                  value={campaignData.schedule.endDate}
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={campaignData.schedule.totalEmails}
                   onChange={(e) => setCampaignData(prev => ({
                     ...prev,
-                    schedule: { ...prev.schedule, endDate: e.target.value }
+                    schedule: { ...prev.schedule, totalEmails: parseInt(e.target.value) || 1 }
                   }))}
                   className="mt-1"
+                  placeholder="e.g., 5"
                 />
+                <p className="text-xs text-gray-500 mt-1">Number of templated emails to send (if no response)</p>
+              </div>
+              <div>
+                <Label>Days Between Emails</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={campaignData.schedule.daysBetweenEmails}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    schedule: { ...prev.schedule, daysBetweenEmails: parseInt(e.target.value) || 1 }
+                  }))}
+                  className="mt-1"
+                  placeholder="e.g., 3"
+                />
+                <p className="text-xs text-gray-500 mt-1">Wait time between each templated email</p>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <Brain className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-900">AI Response Mode</p>
+                    <p className="text-blue-700 mt-1">
+                      When a lead replies to any email, the remaining templated emails are cancelled. 
+                      The AI agent takes over for personalized back-and-forth conversation until handover.
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <input
@@ -325,6 +358,19 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
                 <p className="text-sm">
                   {agents.find(a => a.id === campaignData.agentId)?.name || 'No agent selected'}
                 </p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium text-gray-600">Email Sequence</p>
+                <p className="text-sm">
+                  {campaignData.schedule.totalEmails} emails, {campaignData.schedule.daysBetweenEmails} days apart
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  AI takes over if lead replies to any email
+                </p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium text-gray-600">Start Date</p>
+                <p className="text-sm">{campaignData.schedule.startDate || 'Not set'}</p>
               </div>
             </div>
           </div>
