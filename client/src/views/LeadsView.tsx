@@ -3,7 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Users, Plus } from 'lucide-react';
 
-export const LeadsView: React.FC = () => {
+interface LeadsViewProps {
+  onImportLeads?: () => void;
+}
+
+export const LeadsView: React.FC<LeadsViewProps> = ({ onImportLeads }) => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">

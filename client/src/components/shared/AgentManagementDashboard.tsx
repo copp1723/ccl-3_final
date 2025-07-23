@@ -50,9 +50,9 @@ export function AgentManagementDashboard({
   // Filter agents based on search and filters
   const filteredAgents = agents.filter(agent => {
     const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         agent.role.toLowerCase().includes(searchTerm.toLowerCase());
+                         (agent.role?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || agent.type === filterType;
-    const matchesPersonality = filterPersonality === 'all' || agent.personality === filterPersonality;
+    const matchesPersonality = filterPersonality === 'all' || agent.personality?.style === filterPersonality;
     const matchesActive = filterActive === 'all' || 
                          (filterActive === 'active' && agent.active) ||
                          (filterActive === 'inactive' && !agent.active);
@@ -292,9 +292,9 @@ export function AgentManagementDashboard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Personalities</SelectItem>
-                  {PERSONALITY_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {Object.entries(PERSONALITY_OPTIONS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
                     </SelectItem>
                   ))}
                 </SelectContent>

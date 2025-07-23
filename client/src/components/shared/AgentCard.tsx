@@ -37,7 +37,7 @@ export function AgentCard({
   compact = false 
 }: AgentCardProps) {
   const typeInfo = getAgentTypeInfo(agent.type);
-  const statusBadge = getAgentStatusBadge(agent.active);
+  const statusBadge = getAgentStatusBadge(agent.active ?? false);
 
   const getCapabilityIcons = () => {
     const icons = [];
@@ -127,7 +127,7 @@ export function AgentCard({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Personality:</span>
-            <span className="font-medium capitalize">{agent.personality}</span>
+            <span className="font-medium capitalize">{agent.personality?.style || 'Not set'}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Tone:</span>

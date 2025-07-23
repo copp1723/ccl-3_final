@@ -204,7 +204,7 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
               <p className="text-sm font-medium text-blue-900 mb-2">Agent Configuration</p>
               <div className="space-y-1 text-sm text-blue-800">
                 <p><strong>End Goal:</strong> {selectedAgent.endGoal}</p>
-                <p><strong>Personality:</strong> {selectedAgent.personality} • {selectedAgent.tone} tone</p>
+                <p><strong>Personality:</strong> {selectedAgent.personality?.style || 'Not set'} • {selectedAgent.tone} tone</p>
                 <div className="flex items-start">
                   <strong className="mr-2">Expertise:</strong>
                   <div className="flex flex-wrap gap-1">

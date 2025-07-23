@@ -10,8 +10,8 @@ interface BrandingContextType {
 
 // Legacy hook for backward compatibility
 export function useBrandingContext(): BrandingContextType {
-  const { branding } = useClient()
-  return { branding }
+  const { activeClient } = useClient()
+  return { branding: activeClient?.brand_config || {} }
 }
 
 interface BrandingProviderProps {

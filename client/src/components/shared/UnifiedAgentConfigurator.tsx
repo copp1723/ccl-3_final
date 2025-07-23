@@ -58,6 +58,13 @@ export function UnifiedAgentConfigurator({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Helper function to get instructions as object
+  const getInstructionsAsObject = (instructions: string[] | { dos?: string[]; donts?: string[]; } | undefined): { dos: string[]; donts: string[]; } => {
+    if (!instructions) return { dos: [], donts: [] };
+    if (Array.isArray(instructions)) return { dos: [], donts: [] };
+    return { dos: instructions.dos || [], donts: instructions.donts || [] };
+  };
+
   useEffect(() => {
     if (agent) {
       setFormData(agent);
@@ -109,33 +116,42 @@ export function UnifiedAgentConfigurator({
   };
 
   const addInstruction = (type: 'dos' | 'donts') => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        [type]: [...(prev.instructions?.[type] || []), '']
-      }
-    }));
+    setFormData(prev => {
+      const currentInstructions = getInstructionsAsObject(prev.instructions);
+      return {
+        ...prev,
+        instructions: {
+          ...currentInstructions,
+          [type]: [...currentInstructions[type], '']
+        }
+      };
+    });
   };
 
   const updateInstruction = (type: 'dos' | 'donts', index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        [type]: prev.instructions![type].map((item, i) => i === index ? value : item)
-      }
-    }));
+    setFormData(prev => {
+      const currentInstructions = getInstructionsAsObject(prev.instructions);
+      return {
+        ...prev,
+        instructions: {
+          ...currentInstructions,
+          [type]: currentInstructions[type].map((item: string, i: number) => i === index ? value : item)
+        }
+      };
+    });
   };
 
   const removeInstruction = (type: 'dos' | 'donts', index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: {
-        ...prev.instructions!,
-        [type]: prev.instructions![type].filter((_, i) => i !== index)
-      }
-    }));
+    setFormData(prev => {
+      const currentInstructions = getInstructionsAsObject(prev.instructions);
+      return {
+        ...prev,
+        instructions: {
+          ...currentInstructions,
+          [type]: currentInstructions[type].filter((_: string, i: number) => i !== index)
+        }
+      };
+    });
   };
 
   const addDomainExpertise = () => {
@@ -296,18 +312,17 @@ export function UnifiedAgentConfigurator({
             <div className="space-y-2">
               <Label htmlFor="personality">Personality</Label>
               <Select
-                value={formData.personality}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, personality: value as any }))}
+                value={typeof formData.personality === 'object' ? formData.personality?.style : formData.personality}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, personality: { tone: value, style: value, traits: [] } }))}
               >
                 <SelectTrigger id="personality">
                   <SelectValue placeholder="Select personality" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PERSONALITY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                  {Object.entries(PERSONALITY_OPTIONS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
                       <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        <span className="text-xs text-gray-500">{option.description}</span>
+                        <span>{label}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -329,7 +344,6 @@ export function UnifiedAgentConfigurator({
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex flex-col">
                         <span>{option.label}</span>
-                        <span className="text-xs text-gray-500">{option.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -351,7 +365,6 @@ export function UnifiedAgentConfigurator({
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex flex-col">
                         <span>{option.label}</span>
-                        <span className="text-xs text-gray-500">{option.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -388,11 +401,11 @@ export function UnifiedAgentConfigurator({
                 <MessageSquare className="h-4 w-4 text-green-600" />
                 <Label className="text-green-700 font-medium">Do's</Label>
                 <Badge variant="outline" className="text-green-600 border-green-200">
-                  {formData.instructions?.dos?.length || 0}
+                  {getInstructionsAsObject(formData.instructions).dos.length}
                 </Badge>
               </div>
               <div className="space-y-2">
-                {formData.instructions?.dos?.map((instruction, index) => (
+                {getInstructionsAsObject(formData.instructions).dos.map((instruction: string, index: number) => (
                   <div key={index} className="flex items-center space-x-2">
                     <Input
                       value={instruction}
@@ -430,11 +443,11 @@ export function UnifiedAgentConfigurator({
                 <X className="h-4 w-4 text-red-600" />
                 <Label className="text-red-700 font-medium">Don'ts</Label>
                 <Badge variant="outline" className="text-red-600 border-red-200">
-                  {formData.instructions?.donts?.length || 0}
+                  {getInstructionsAsObject(formData.instructions).donts.length}
                 </Badge>
               </div>
               <div className="space-y-2">
-                {formData.instructions?.donts?.map((instruction, index) => (
+                {getInstructionsAsObject(formData.instructions).donts.map((instruction: string, index: number) => (
                   <div key={index} className="flex items-center space-x-2">
                     <Input
                       value={instruction}
@@ -548,7 +561,7 @@ export function UnifiedAgentConfigurator({
                   max={100}
                   step={5}
                   value={[formData.temperature || 70]}
-                  onValueChange={([value]) => setFormData(prev => ({ ...prev, temperature: value }))}
+                  onValueChange={([value]: number[]) => setFormData(prev => ({ ...prev, temperature: value }))}
                   className="w-full"
                 />
                 <p className="text-xs text-gray-500">

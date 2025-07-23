@@ -20,7 +20,8 @@ import {
   Wand2,
   Settings,
   Clock,
-  Zap
+  Zap,
+  Plus
 } from 'lucide-react';
 
 interface CampaignWizardProps {

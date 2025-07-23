@@ -106,7 +106,7 @@ export function SMSAgentModule({ agent, onUpdate }: SMSAgentModuleProps) {
                 <p className="text-sm text-gray-600">Response Rate</p>
                 <p className="text-2xl font-bold">
                   {agent.performance?.conversations ? 
-                    Math.round((agent.performance.successfulOutcomes / agent.performance.conversations) * 100) : 0}%
+                    Math.round(((agent.performance.successfulOutcomes || 0) / agent.performance.conversations) * 100) : 0}%
                 </p>
               </div>
               <BarChart3 className="h-8 w-8 text-green-500" />
@@ -288,7 +288,7 @@ export function SMSAgentModule({ agent, onUpdate }: SMSAgentModuleProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-gray-600">Personality</p>
-              <p className="font-medium capitalize">{agent.personality}</p>
+              <p className="font-medium capitalize">{agent.personality?.style || 'Not set'}</p>
             </div>
             <div>
               <p className="text-gray-600">Tone</p>

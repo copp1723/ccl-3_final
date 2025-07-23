@@ -10,7 +10,7 @@ interface AgentStatusBadgeProps {
 }
 
 export function AgentStatusBadge({ agent, showDot = false, className = '' }: AgentStatusBadgeProps) {
-  const statusBadge = getAgentStatusBadge(agent.active);
+  const statusBadge = getAgentStatusBadge(agent.active ?? false);
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>

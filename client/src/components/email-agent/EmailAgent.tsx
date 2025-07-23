@@ -29,7 +29,11 @@ interface Agent {
     donts: string[];
   };
   domainExpertise: string[];
-  personality: string;
+  personality?: {
+    tone: string;
+    style: string;
+    traits: string[];
+  };
   tone: string;
   isActive: boolean;
   createdAt: string;
@@ -387,7 +391,7 @@ export function EmailAgent() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-700">Personality</p>
-                        <p className="text-sm text-gray-600">{agent.personality} • {agent.tone} tone</p>
+                        <p className="text-sm text-gray-600">{agent.personality?.style || 'Not set'} • {agent.tone} tone</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-4 pt-4 border-t">
