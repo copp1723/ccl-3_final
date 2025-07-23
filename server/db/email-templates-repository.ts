@@ -90,6 +90,21 @@ export class EmailTemplatesRepository {
   }
 
   /**
+   * Find all templates with optional filters (alias for findWithFilters)
+   */
+  static async findAll(filters?: {
+    clientId?: string | null;
+    category?: string;
+    channel?: 'email' | 'sms' | 'chat';
+    campaignId?: string;
+    agentId?: string;
+    active?: boolean;
+    search?: string;
+  }): Promise<Template[]> {
+    return this.findWithFilters(filters);
+  }
+
+  /**
    * Find templates with filters
    */
   static async findWithFilters(filters?: {

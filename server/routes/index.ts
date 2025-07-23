@@ -62,6 +62,7 @@ const routes: RouteConfig[] = [
   { path: '/api/campaign-intelligence', router: campaignIntelligenceRoutes, middleware: [apiRateLimit] },
   { path: '/api/chat', router: chatRoutes, middleware: [apiRateLimit] },
   { path: '/api/agent-configurations', router: agentConfigurationsRoutes, middleware: [apiRateLimit] },
+  { path: '/api/agents', router: agentConfigurationsRoutes, middleware: [apiRateLimit] }, // Alias for agent-configurations
   { path: '/api/notifications', router: notificationsRoutes, middleware: [apiRateLimit] },
   { path: '/api/users', router: usersRoutes, middleware: [apiRateLimit] },
   { path: '/api/analytics', router: analyticsRoutes, middleware: [apiRateLimit] },

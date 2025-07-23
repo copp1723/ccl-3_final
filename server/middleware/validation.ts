@@ -91,6 +91,9 @@ export const commonSchemas = {
   // ID validation
   id: z.string().min(1, 'ID is required'),
   
+  // UUID validation
+  uuid: z.string().uuid('Invalid UUID format'),
+  
   // Pagination
   pagination: z.object({
     limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).optional(),
@@ -174,6 +177,39 @@ export const sanitizeRequest = (req: Request, res: Response, next: NextFunction)
   }
   
   next();
+};
+
+// UUID parameter validation middleware
+export const validateUuidParam = (paramName: string = 'id') => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const value = req.params[paramName];
+    
+    if (!value) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `Missing required parameter: ${paramName}`
+        }
+      });
+    }
+    
+    const uuidSchema = z.string().uuid();
+    const result = uuidSchema.safeParse(value);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `Invalid UUID format for parameter: ${paramName}`,
+          details: `Expected valid UUID, got: ${value}`
+        }
+      });
+    }
+    
+    next();
+  };
 };
 
 // Rate limiting by user/IP
