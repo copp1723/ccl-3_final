@@ -39,6 +39,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     name: '',
     description: '',
     goal: '',
+    context: '',
     audience: {
       filters: [],
       targetCount: 0
@@ -76,6 +77,18 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
       setCampaignData(prev => ({
         ...prev,
         goal: 'Achieve 25% open rate, 10% click-through rate, and generate 50+ qualified leads through personalized multi-touch email sequences optimized by AI.'
+      }));
+    } else if (field === 'context') {
+      setCampaignData(prev => ({
+        ...prev,
+        context: `Business Context: ${prev.name || 'This campaign'} targets potential customers who have shown interest but haven't converted. Key talking points include:
+- Address common objections and concerns
+- Highlight unique value propositions
+- Build trust through transparent communication
+- Focus on customer success stories
+- Emphasize limited-time offers or incentives
+
+The AI should maintain a helpful, consultative tone while gently guiding leads toward conversion.`
       }));
     }
   };
@@ -153,6 +166,31 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
                 onChange={(e) => setCampaignData(prev => ({ ...prev, goal: e.target.value }))}
                 placeholder="e.g., Generate 50 qualified leads"
               />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="context">Campaign Context</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => enhanceWithAI('context')}
+                  className="h-7 px-2"
+                >
+                  <Wand2 className="h-3 w-3 mr-1" />
+                  Generate
+                </Button>
+              </div>
+              <Textarea
+                id="context"
+                value={campaignData.context}
+                onChange={(e) => setCampaignData(prev => ({ ...prev, context: e.target.value }))}
+                placeholder="Provide business context for the AI agent (e.g., 'This is a re-engagement campaign for leads who inquired about car loans but didn't complete their application. Focus on addressing common concerns about credit scores and down payments.')"
+                rows={3}
+                className="text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This context helps the AI understand your business goals and tailor responses appropriately
+              </p>
             </div>
           </div>
         );
@@ -352,6 +390,10 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
               <div className="p-3 bg-gray-50 rounded">
                 <p className="text-sm font-medium text-gray-600">Goal</p>
                 <p className="text-sm">{campaignData.goal || 'Not set'}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium text-gray-600">Campaign Context</p>
+                <p className="text-sm">{campaignData.context || 'Not set'}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded">
                 <p className="text-sm font-medium text-gray-600">Selected Agent</p>
